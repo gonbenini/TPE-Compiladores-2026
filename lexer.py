@@ -11,8 +11,8 @@ class TpLexer(Lexer):
 
 
     tokens = { IDEN, PLUS, MINUS, TIMES, DIVIDE, EQ, ASSIGN, LE, LT, GE, GT, NE, CONSTANTE_E, CONSTANTE_F, CADN}
-    ignore = ' \t\n'
-    ignore_COMMENT = r'//.*\n' #los comentarios son con "//"
+    ignore = ' \t'
+    ignore_COMMENT = r'//.*' #los comentarios son con "//"
     literals = { '(', ')',',', ';' }
 
     PLUS    = r'\+'
