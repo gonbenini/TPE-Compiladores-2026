@@ -1,4 +1,4 @@
-# Trabajo praactico Compiladores e interpretes
+# Trabajo practico Compiladores e interpretes
 ## Benini, Gonzalo David
 ## Rezola, Tomas Ezequiel
 
