@@ -31,7 +31,7 @@ class TpLexer(Lexer):
     @_(r'"[\s\S]*?"')
     def CADN(self, t):
         t.value = t.value.replace('\n', '')
-        t.value = re.sub('\s+',' ',t.value)
+        t.value = re.sub(r'\s+',' ',t.value)
         self._logger.warning('Se removieron las tabulaciones de la cadena multilinea')
         #TS[t.value] = {'type': 'CONSTANTE CADENA', 'lineno': t.lineno, 'index': t.index, 'end': t.end} # [t.value]
         return t
@@ -54,6 +54,7 @@ class TpLexer(Lexer):
             return True
         return False
 
+    '''
     def _fix_flt_range(self, t):
             #print(t.value)
             if -1.17549435e-38 <= t.value <= 1.17549435e-38:
@@ -62,17 +63,14 @@ class TpLexer(Lexer):
                 t.value = 3.40282346e38
             else:
                 t.value = -3.40282346e38
+    '''
 
-    def _range_constraint(self, num, max_num = (2**31) - 1, min_num = -2**31):
-            if num > max_num:
-                num = max_num
-                self._logger.warning('Numero truncado a uno mas chico')
-            elif num < min_num:
-                num = min_num
-                self._logger.warning('Numero truncado a uno mas grande')
-            else:
-                return num
-            return num
+    def _check_int_range(self, t, max_num = (2**31) - 1, min_num = -2**31):
+        num = t.value
+        if num > max_num or num < min_num:
+            return False
+        else:
+            return True
 
     #analizar con TS
     @_(r'[a-zA-Z_][a-zA-Z0-9_]*')
@@ -111,7 +109,10 @@ class TpLexer(Lexer):
     @_(r'\d+\$l')
     def CONSTANTE_E(self, t):
         t.value = int(t.value[:-2]) # removemos el sufijo $l
-        t.value = self._range_constraint(t.value)
+        if not self._check_int_range(t):
+            self._logger.error("ERROR constante entera fuera de rango.")
+            return # no devolvemos nada
+        
         self.TS[t.value] = {'type': 'CONSTANTE ENTERA', 'lineno': t.lineno, 'index': t.index, 'end': t.end}
         return t
 
@@ -129,7 +130,9 @@ class TpLexer(Lexer):
             t.value = float(a[0])
 
         if not self._check_flt_range(t):
-            self._fix_flt_range(t)
+            #self._fix_flt_range(t)
+            self._logger.error("ERROR constante flotante fuera de rango.")
+            return # no devolvemos nada
 
         self.TS[t.value] = {'type': 'CONSTANTE FLOTANTE', 'lineno': t.lineno, 'index': t.index, 'end': t.end}
         return t
