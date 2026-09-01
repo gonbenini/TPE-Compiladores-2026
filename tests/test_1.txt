@@ -1,0 +1,19 @@
+a := 3$l
+b = 3$l;
+c := .3
+d = .3
+e = .4s2
+f := .4s2
+g = .5s-7
+h := 223.3s-12
+"" Constante en rangos menores y mayores al min y max ""
+i =
+j =
+"" Constante flotantes en rangos iguales al min y max ""
+// soy un comentario
+k =
+l =
+suma de varios
+m =
+
+
