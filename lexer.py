@@ -33,7 +33,7 @@ class TpLexer(Lexer):
         t.value = t.value.replace('\n', '')
         t.value = re.sub(r'\s+',' ',t.value)
         self._logger.warning('Se removieron las tabulaciones de la cadena multilinea')
-        #TS[t.value] = {'type': 'CONSTANTE CADENA', 'lineno': t.lineno, 'index': t.index, 'end': t.end} # [t.value]
+        self.TS[t.value] = {'type': 'CONSTANTE CADENA', 'lineno': t.lineno, 'index': t.index, 'end': t.end} # [t.value]
         return t
         
 
