@@ -101,7 +101,7 @@ class TpLexer(Lexer):
                 self.TS[t.value] = {'type': 'IDENTIFICADOR', 'lineno': t.lineno, 'index': t.index, 'end': t.end}
             else:
                 self._logger.error("ERROR Identificador con letras mayus.")#testear
-                t.type = 'ERROR' #lo tiene que devolver o no?
+                #t.type = 'ERROR' #lo tiene que devolver o no?
                 return # no devolvemos nada
             
         return t
@@ -144,5 +144,7 @@ class TpLexer(Lexer):
 
 
     def error(self, t):
-        print("Illegal character '%s'" % t.value[0])
+        err = "'%s'" % t.value[0]
+        self._logger.error(f"ERROR caracter ilegal: {err}")
+        #print("Illegal character '%s'" % t.value[0])
         self.index += 1
