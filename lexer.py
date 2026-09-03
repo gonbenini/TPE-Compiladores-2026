@@ -33,7 +33,7 @@ class TpLexer(Lexer):
         t.value = t.value.replace('\n', '')
         t.value = re.sub(r'\s+',' ',t.value)
         self._logger.warning('Se removieron las tabulaciones de la cadena multilinea')
-        self.TS[t.value] = {'type': 'CONSTANTE CADENA', 'lineno': t.lineno, 'index': t.index, 'end': t.end} # [t.value]
+        self.TS[t.value] = {'type': 'CONSTANTE CADENA'} # [t.value]
         return t
         
 
@@ -98,7 +98,7 @@ class TpLexer(Lexer):
             #r'[a-z][a-z0-9_]*'
             # chequear que sea minuscula
             if iden.islower():
-                self.TS[t.value] = {'type': 'IDENTIFICADOR', 'lineno': t.lineno, 'index': t.index, 'end': t.end}
+                self.TS[t.value] = {'type': 'IDENTIFICADOR'}
             else:
                 self._logger.error("ERROR Identificador con letras mayus.")#testear
                 #t.type = 'ERROR' #lo tiene que devolver o no?
@@ -113,7 +113,7 @@ class TpLexer(Lexer):
             self._logger.error("ERROR constante entera fuera de rango.")
             return # no devolvemos nada
         
-        self.TS[t.value] = {'type': 'CONSTANTE ENTERA', 'lineno': t.lineno, 'index': t.index, 'end': t.end}
+        self.TS[t.value] = {'type': 'CONSTANTE ENTERA'}
         return t
 
 
@@ -134,7 +134,7 @@ class TpLexer(Lexer):
             self._logger.error("ERROR constante flotante fuera de rango.")
             return # no devolvemos nada
 
-        self.TS[t.value] = {'type': 'CONSTANTE FLOTANTE', 'lineno': t.lineno, 'index': t.index, 'end': t.end}
+        self.TS[t.value] = {'type': 'CONSTANTE FLOTANTE'}
         return t
 
 
