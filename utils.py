@@ -14,7 +14,7 @@ def get_logger(fn="./log.txt"):
     logging.basicConfig(
         filename=fn,
         level=logging.DEBUG,
-        format="%(asctime)s | %(levelname)s | %(name)s | %(funcName)s | Linea %(lineno)d | %(message)s",
+        format="%(asctime)s | %(levelname)s | %(name)s | %(funcName)s | %(message)s",
         force=True
     )
 

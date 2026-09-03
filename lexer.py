@@ -32,14 +32,14 @@ class TpLexer(Lexer):
     def CADN(self, t):
         t.value = t.value.replace('\n', '')
         t.value = re.sub(r'\s+',' ',t.value)
-        self._logger.warning('Se removieron las tabulaciones de la cadena multilinea')
+        self._logger.warning(f"Linea {self.lineno} | Se removieron las tabulaciones de la cadena multilinea")
         self.TS[t.value] = {'type': 'CONSTANTE CADENA'} # [t.value]
         return t
         
 
     def ASSIGN(self,t): # Si no es exactamente la definicion pero es parecido, avisamos
         if t.value not in (':=','='): 
-            self._logger.warning('Asignacion truncada para detectar error de sintaxis')
+            self._logger.warning(f"Linea {self.lineno} | Asignacion truncada para detectar error de sintaxis")
             t.value = ':=' # aca loggeamos como warning
         return t
 
@@ -78,7 +78,7 @@ class TpLexer(Lexer):
 
         if len(t.value) > 22:
             t.value = t.value[:22] # aca loggeamos como warning
-            self._logger.warning('Identificador truncado por ser mayor a 22 caracteres')
+            self._logger.warning(f"Linea {self.lineno} | Identificador truncado por ser mayor a 22 caracteres")
 
         # stored = PR.get(t.value.lower()) #convertimos t.value aca para buscar palabras reservadas en mismo formato.
 
@@ -100,7 +100,7 @@ class TpLexer(Lexer):
             if iden.islower():
                 self.TS[t.value] = {'type': 'IDENTIFICADOR'}
             else:
-                self._logger.error("ERROR Identificador con letras mayus.")#testear
+                self._logger.error(f"Linea {self.lineno} | ERROR Identificador con letras mayus.")#testear
                 #t.type = 'ERROR' #lo tiene que devolver o no?
                 return # no devolvemos nada
             
@@ -110,10 +110,11 @@ class TpLexer(Lexer):
     def CONSTANTE_E(self, t):
         t.value = int(t.value[:-2]) # removemos el sufijo $l
         if not self._check_int_range(t):
-            self._logger.error("ERROR constante entera fuera de rango.")
+            self._logger.error(f"Linea {self.lineno} | ERROR constante entera fuera de rango.")
             return # no devolvemos nada
-        
-        self.TS[t.value] = {'type': 'CONSTANTE ENTERA'}
+
+        if not self.TS.get(t.value):
+            self.TS[t.value] = {'type': 'CONSTANTE ENTERA'}
         return t
 
 
@@ -131,10 +132,11 @@ class TpLexer(Lexer):
 
         if not self._check_flt_range(t):
             #self._fix_flt_range(t)
-            self._logger.error("ERROR constante flotante fuera de rango.")
+            self._logger.error(f"Linea {self.lineno} | ERROR constante flotante fuera de rango.")
             return # no devolvemos nada
 
-        self.TS[t.value] = {'type': 'CONSTANTE FLOTANTE'}
+        if not self.TS.get(t.value):
+            self.TS[t.value] = {'type': 'CONSTANTE FLOTANTE'}
         return t
 
 
@@ -145,6 +147,6 @@ class TpLexer(Lexer):
 
     def error(self, t):
         err = "'%s'" % t.value[0]
-        self._logger.error(f"ERROR caracter ilegal: {err}")
+        self._logger.error(f"Linea {self.lineno} | ERROR caracter ilegal: {err}")
         #print("Illegal character '%s'" % t.value[0])
         self.index += 1
