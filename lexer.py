@@ -20,7 +20,6 @@ class TpLexer(Lexer):
     TIMES   = r'\*'
     DIVIDE  = r'/'
     EQ      = r'=='
-    # la regla :. ya incluye :=, esto lo podemos minimizar
     ASSIGN  = r'=|:=|:.' # prevenimos el error aceptando que despues de : venga cualquier cosa. el punto significa lo que vvenga
     LE      = r'<='
     LT      = r'<'
@@ -31,88 +30,76 @@ class TpLexer(Lexer):
     @_(r'"[\s\S]*?"')
     def CADN(self, t):
         t.value = t.value.replace('\n', '')
-        t.value = re.sub('\s+',' ',t.value)
-        self._logger.warning('Se removieron las tabulaciones de la cadena multilinea')
-        #TS[t.value] = {'type': 'CONSTANTE CADENA', 'lineno': t.lineno, 'index': t.index, 'end': t.end} # [t.value]
+        t.value = re.sub(r'\s+',' ',t.value)
+        self._logger.warning(f"Linea {self.lineno} | Se removieron las tabulaciones de la cadena multilinea")
+        self.TS[t.value] = {'type': 'CONSTANTE CADENA'} # [t.value]
         return t
         
 
     def ASSIGN(self,t): # Si no es exactamente la definicion pero es parecido, avisamos
         if t.value not in (':=','='): 
-            self._logger.warning('Asignacion truncada para detectar error de sintaxis')
+            self._logger.warning(f"Linea {self.lineno} | Asignacion truncada para detectar error de sintaxis")
             t.value = ':=' # aca loggeamos como warning
         return t
+
 
     def _check_flt_range(self,t):
         num = t.value
         
         if num == 0.0:
             return True
-        if -3.40282347e38 < num < -1.17549435e-38:  # loggear que truncamos
+        if -3.40282347e38 < num < -1.17549435e-38:
             return True
-        if 1.17549435e-38 < num < 3.40282347e38:  # loggear que truncamos
+        if 1.17549435e-38 < num < 3.40282347e38:
             return True
         return False
 
-    def _fix_flt_range(self, t):
-            #print(t.value)
-            if -1.17549435e-38 <= t.value <= 1.17549435e-38:
-                t.value = 0.0
-            elif t.value >= 3.40282347e38:
-                t.value = 3.40282346e38
-            else:
-                t.value = -3.40282346e38
 
-    def _range_constraint(self, num, max_num = (2**31) - 1, min_num = -2**31):
-            if num > max_num:
-                num = max_num
-                self._logger.warning('Numero truncado a uno mas chico')
-            elif num < min_num:
-                num = min_num
-                self._logger.warning('Numero truncado a uno mas grande')
-            else:
-                return num
-            return num
+    def _check_int_range(self, t, max_num = (2**31) - 1, min_num = -2**31):
+        num = t.value
+        if num > max_num or num < min_num:
+            return False
+        else:
+            return True
+
 
     #analizar con TS
-    @_(r'[a-zA-Z_][a-zA-Z0-9_]*')
+    @_(r'[a-zA-Z][a-zA-Z0-9_]*')
     def IDEN(self, t):
 
         if len(t.value) > 22:
             t.value = t.value[:22] # aca loggeamos como warning
-            self._logger.warning('Identificador truncado por ser mayor a 22 caracteres')
-
-        # stored = PR.get(t.value.lower()) #convertimos t.value aca para buscar palabras reservadas en mismo formato.
-
+            self._logger.warning(f"Linea {self.lineno} | Identificador truncado por ser mayor a 22 caracteres")
 
         is_pr = t.value.lower() in self.PR
-
 
         if is_pr: # Si es palabra reservada esta guardado si o si porque se precarga.
             t.type = 'PR' # Cambiamos el tipo de token
             t.value = t.value.lower()
             
-        
         elif not self.TS.get(t.value): # si es un identificador que no esta guardado.
-            # cuando guardamos comprabmos que sea valido.
+            # cuando guardamos comprobamos que sea valido.
             iden = t.value
 
-            #r'[a-z][a-z0-9_]*'
-            # chequear que sea minuscula
+            # chequeamos que sea minuscula
             if iden.islower():
-                self.TS[t.value] = {'type': 'IDENTIFICADOR', 'lineno': t.lineno, 'index': t.index, 'end': t.end}
+                self.TS[t.value] = {'type': 'IDENTIFICADOR'}
             else:
-                self._logger.error("ERROR Identificador con letras mayus.")#testear
-                t.type = 'ERROR' #lo tiene que devolver o no?
+                self._logger.error(f"Linea {self.lineno} | ERROR Identificador con letras mayus.")#testear
                 return # no devolvemos nada
             
         return t
 
+
     @_(r'\d+\$l')
     def CONSTANTE_E(self, t):
         t.value = int(t.value[:-2]) # removemos el sufijo $l
-        t.value = self._range_constraint(t.value)
-        self.TS[t.value] = {'type': 'CONSTANTE ENTERA', 'lineno': t.lineno, 'index': t.index, 'end': t.end}
+        if not self._check_int_range(t):
+            self._logger.error(f"Linea {self.lineno} | ERROR constante entera fuera de rango.")
+            return # no devolvemos nada
+
+        if not self.TS.get(t.value):
+            self.TS[t.value] = {'type': 'CONSTANTE ENTERA'}
         return t
 
 
@@ -122,16 +109,16 @@ class TpLexer(Lexer):
         if len(a) == 2:
             base = float(a[0])
             exp = int(a[1])
-            # t.value = base**exp
             t.value = float(f"{base}e{exp}")
-            #print(t.value, base, exp)
         else:
             t.value = float(a[0])
 
         if not self._check_flt_range(t):
-            self._fix_flt_range(t)
+            self._logger.error(f"Linea {self.lineno} | ERROR constante flotante fuera de rango.")
+            return # no devolvemos nada
 
-        self.TS[t.value] = {'type': 'CONSTANTE FLOTANTE', 'lineno': t.lineno, 'index': t.index, 'end': t.end}
+        if not self.TS.get(t.value):
+            self.TS[t.value] = {'type': 'CONSTANTE FLOTANTE'}
         return t
 
 
@@ -141,5 +128,6 @@ class TpLexer(Lexer):
 
 
     def error(self, t):
-        print("Illegal character '%s'" % t.value[0])
+        err = "'%s'" % t.value[0]
+        self._logger.error(f"Linea {self.lineno} | ERROR caracter ilegal: {err}")
         self.index += 1

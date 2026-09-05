@@ -1,0 +1,4 @@
+cadena_2_1_h = " hola
+que tal "
+
+_cadena = 10.0
