@@ -12,7 +12,7 @@ _logger = get_logger()
 PR = ( 'if', 'else', 'end_if', 'begin', 'end', 'pout', 'ret', 'class', 'function', 'longint', 'singlef' )
 
 TS = {
-    # 'a': {'esPalabraR': False, 'type': 'IDENTIFICADOR', 'lineno': 4, 'index': 3, 'end': 4}
+    # 'a': {'esPalabraR': False, 'type': 'IDENTIFICADOR'}
     # ejemplo de identificador, donde los mismos usan siempre tipo IDEN.
 }
 
