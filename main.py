@@ -1,6 +1,6 @@
 from utils import get_program_code, get_logger, save_lexer_output
 from lexer import TpLexer
-#from parser import TpParser
+from parser import TpParser
 import sys
 
 ### Dependencias del lexer
@@ -20,12 +20,14 @@ TS = {
 ### Instanciaciones
 
 lexer = TpLexer(_logger, TS, PR)
-# parser = TpParser()
+parser = TpParser()
 
 ### Invocacion
 
 tokens = lexer.tokenize(program_code)
+result = parser.parse(tokens)
+print(result)
 
-save_lexer_output(tokens, TS)
+#save_lexer_output(tokens, TS)
 # for t in tokens:
 #     print(t)

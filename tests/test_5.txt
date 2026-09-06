@@ -1,2 +1,8 @@
-28$l
-_gonza = 10$l
+gonza
+
+BEGIN
+IF (gonza == crack) BEGIN
+
+
+ENDIF;
+END;

@@ -18,7 +18,7 @@ class TpLexer(Lexer):
 
     ignore = ' \t'
     ignore_COMMENT = r'//.*' #los comentarios son con "//"
-    literals = { '(', ')',',', ';', '[', ']' }
+    literals = { '(', ')',',', ';', '[', ']', '.' }
 
     PLUS    = r'\+'
     MINUS   = r'-'
