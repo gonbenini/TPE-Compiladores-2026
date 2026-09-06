@@ -9,8 +9,13 @@ class TpLexer(Lexer):
         self.TS = TS
         self.PR = PR
 
+    tokens = { 
+        IDEN, PLUS, MINUS, TIMES, DIVIDE, EQ, ASSIGN2P, ASSIGN, LE, LT, GE, GT, NE, 
+        CONSTANTE_E, CONSTANTE_F, CADN,
+        IF, ELSE, END_IF, BEGIN, END, POUT, RET, CLASS, FUNCTION, 
+        LONGINT, SINGLEF, FROM, TO, BY, REPEAT, TYPEDEF, TOL
+    }
 
-    tokens = { IDEN, PLUS, MINUS, TIMES, DIVIDE, EQ, ASSIGN2P, ASSIGN, LE, LT, GE, GT, NE, CONSTANTE_E, CONSTANTE_F, CADN}
     ignore = ' \t'
     ignore_COMMENT = r'//.*' #los comentarios son con "//"
     literals = { '(', ')',',', ';', '[', ']' }
@@ -75,7 +80,7 @@ class TpLexer(Lexer):
         is_pr = t.value.lower() in self.PR
 
         if is_pr: # Si es palabra reservada esta guardado si o si porque se precarga.
-            t.type = 'PR' # Cambiamos el tipo de token
+            t.type = t.value.upper() # cambio el tipo de identificar a la palabra reservada (token) correcto.
             t.value = t.value.lower()
             
         elif not self.TS.get(t.value): # si es un identificador que no esta guardado.
