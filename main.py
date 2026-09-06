@@ -1,6 +1,6 @@
 from utils import get_program_code, get_logger, save_lexer_output
 from lexer import TpLexer
-from parser import TpParser
+#from parser import TpParser
 import sys
 
 ### Dependencias del lexer
@@ -10,7 +10,7 @@ _logger = get_logger()
 
 # Definiciones del lenguaje (ppalabras reservadas y tabbla de simbolos)
 
-PR = ( 'if', 'else', 'end_if', 'begin', 'end', 'pout', 'ret', 'class', 'function', 'longint', 'singlef' )
+PR = ( 'if', 'else', 'end_if', 'begin', 'end', 'pout', 'ret', 'class', 'function', 'longint', 'singlef', 'class', 'from', 'to', 'by', 'repeat', 'typedef', 'tol' )
 
 TS = {
     # 'a': {'esPalabraR': False, 'type': 'IDENTIFICADOR'}

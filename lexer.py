@@ -10,17 +10,18 @@ class TpLexer(Lexer):
         self.PR = PR
 
 
-    tokens = { IDEN, PLUS, MINUS, TIMES, DIVIDE, EQ, ASSIGN, LE, LT, GE, GT, NE, CONSTANTE_E, CONSTANTE_F, CADN}
+    tokens = { IDEN, PLUS, MINUS, TIMES, DIVIDE, EQ, ASSIGN2P, ASSIGN, LE, LT, GE, GT, NE, CONSTANTE_E, CONSTANTE_F, CADN}
     ignore = ' \t'
     ignore_COMMENT = r'//.*' #los comentarios son con "//"
-    literals = { '(', ')',',', ';' }
+    literals = { '(', ')',',', ';', '[', ']' }
 
     PLUS    = r'\+'
     MINUS   = r'-'
     TIMES   = r'\*'
     DIVIDE  = r'/'
     EQ      = r'=='
-    ASSIGN  = r'=|:=|:.' # prevenimos el error aceptando que despues de : venga cualquier cosa. el punto significa lo que vvenga
+    ASSIGN2P = r':=|:.' # prevenimos el error aceptando que despues de : venga cualquier cosa. el punto significa lo que vvenga
+    ASSIGN = r'='
     LE      = r'<='
     LT      = r'<'
     GE      = r'>='
@@ -35,8 +36,8 @@ class TpLexer(Lexer):
         self.TS[t.value] = {'type': 'CONSTANTE CADENA'} # [t.value]
         return t
         
-
-    def ASSIGN(self,t): # Si no es exactamente la definicion pero es parecido, avisamos
+    #ASSIGN[r'=']
+    def ASSIGN2P(self,t): # Si no es exactamente la definicion pero es parecido, avisamos
         if t.value not in (':=','='): 
             self._logger.warning(f"Linea {self.lineno} | Asignacion truncada para detectar error de sintaxis")
             t.value = ':=' # aca loggeamos como warning
