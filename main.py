@@ -1,7 +1,8 @@
-from utils import get_program_code, get_logger, save_lexer_output
+from utils import get_program_code, get_logger, save_lexer_output, imprimir_arbol
 from lexer import TpLexer
 from parser import TpParser
 import sys
+import pprint
 
 ### Dependencias del lexer
 
@@ -26,7 +27,11 @@ parser = TpParser()
 
 tokens = lexer.tokenize(program_code)
 result = parser.parse(tokens)
-print(result)
+#pprint.pprint(result, width=40)
+from icecream import ic
+
+#ic(result)
+imprimir_arbol(result)
 
 #save_lexer_output(tokens, TS)
 # for t in tokens:
