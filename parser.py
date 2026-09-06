@@ -85,7 +85,11 @@ class TpParser(Parser):
     def retorno(self, p):
         return p
 
-    @_('IDEN "." invocacion_funcion', 'invocacion_metodo "." invocacion_funcion')
+    #desambiguamos la gramatica ya que sino cuando venia un IDEN y un ".", la gramatica no sabia si reducir el IDEN
+    #a "asignable" o consumirlo para que luego viniera una invocacion a metodo y reducirlo a invocacion_metodo.
+    #a si, siempre que viene un IDEN lo convierte en asignable y opera a partir de ahi.
+    #ademas, ahora gracias a esto podemos invocar metodos de atributos de objetos, por ejemplo a.b.c.d();
+    @_('asignable "." invocacion_funcion', 'invocacion_metodo "." invocacion_funcion')
     def invocacion_metodo(self, p):
         return p
 

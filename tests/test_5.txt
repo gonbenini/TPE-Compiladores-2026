@@ -1,8 +1,5 @@
 gonza
 
 BEGIN
-IF (gonza == crack) BEGIN
-
-
-ENDIF;
-END;
+    a.b.c.d = 10$l;
+END
