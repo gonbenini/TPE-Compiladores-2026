@@ -17,7 +17,7 @@ class TpLexer(Lexer):
     }
 
     ignore = ' \t'
-    ignore_COMMENT = r'//.*' #los comentarios son con "//"
+    ignore_COMMENT = r'//.*' #los comentarios son con "//" y el punto no incluye el salto de linea, por lo que salimos del comentario con \n
     literals = { '(', ')',',', ';', '[', ']', '.' }
 
     PLUS    = r'\+'
@@ -38,7 +38,7 @@ class TpLexer(Lexer):
         t.value = t.value.replace('\n', '')
         t.value = re.sub(r'\s+',' ',t.value)
         self._logger.warning(f"Linea {self.lineno} | Se removieron las tabulaciones de la cadena multilinea")
-        self.TS[t.value] = {'type': 'CONSTANTE CADENA'} # [t.value]
+        self.TS[t.value] = {'type': 'CADN'} # [t.value]
         return t
         
     #ASSIGN[r'=']

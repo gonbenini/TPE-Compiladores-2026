@@ -14,7 +14,7 @@ _logger = get_logger()
 PR = ( 'if', 'else', 'end_if', 'begin', 'end', 'pout', 'ret', 'class', 'function', 'longint', 'singlef', 'class', 'from', 'to', 'by', 'repeat', 'typedef', 'tol' )
 
 TS = {
-    # 'a': {'esPalabraR': False, 'type': 'IDENTIFICADOR'}
+    # 'a': {'type': 'IDENTIFICADOR'}
     # ejemplo de identificador, donde los mismos usan siempre tipo IDEN.
 }
 
@@ -26,13 +26,13 @@ parser = TpParser()
 ### Invocacion
 
 tokens = lexer.tokenize(program_code)
-result = parser.parse(tokens)
+#result = parser.parse(tokens)
 #pprint.pprint(result, width=40)
 from icecream import ic
 
 #ic(result)
-imprimir_arbol(result)
+#imprimir_arbol(result)
 
-#save_lexer_output(tokens, TS)
+save_lexer_output(tokens, TS)
 # for t in tokens:
 #     print(t)
