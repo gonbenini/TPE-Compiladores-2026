@@ -1,0 +1,36 @@
+program_1
+// en este test vemos como el Lexer reconoce Tokens en situaciones de:
+// - declaraciones constantes y funciones (y sus declaraciones).
+// - sentencias ejecutables como seleccion, llamado a funciones, etc.
+
+
+
+
+//declaracion constantes
+longint a, b;
+singlef c, d;
+
+//declaracion funcion
+singlef function f1 (longint p1, longint p2, singlef p3)
+
+    longint f2 (longint p4)
+    begin
+
+        ret p4*p1+p2;
+    end
+    longint v1;
+begin
+
+    POUT "desde funcion 1"; //no deberia dar warning.
+    p1 := f2(1$l, 2$l, 3.4s4) + d;
+    p2 = p1;
+    ret p2;
+end
+
+//sentencias ejecutables
+begin
+    if f1(10$l, 20$l, 4.5s-3) == 30$l
+        pout (a);
+    else
+        pout (b);
+end

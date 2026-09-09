@@ -1,0 +1,52 @@
+program_2
+// en este test vemos como el Lexer reconoce Tokens en situaciones de:
+// - declaraciones de clases con atributos, metodos y herencia.
+// - declaracion tipo enumerado.
+// - desprefijado
+// - cadenas multilinea.
+// - declaracion de objetos a partir de las clases
+// - llamado a metodos 
+// - combinacion de expresiones.
+
+//declaracion constantes
+longint a, b;
+singlef c, d;
+
+//declaracion clase
+class base1 c10 begin
+    longint a1;
+    singlef m(longint pa) begin
+        ret a1 / a - b;
+    end;
+end;
+
+class base2 c10 begin
+    singlef f1 .332s+4;
+    extends base1, base 2;
+end;
+
+base1 o1, o2;
+base2 o3;
+
+//declaracion tipo enumerado
+typedef enteros_pares_1_digito = [2$l, 4$l, 6$l, 8$l];
+
+enteros_pares_1_digito e;
+
+longint function sum (longint p1, longint p2) begin
+
+    ret p1 + p2;
+end;
+
+//sentencias ejecutables
+begin
+    o1.a1 = 10$l;
+    o2.a1 := 5$l;
+    pout (sum(o1.a1, o2.m(a) * 10$l));
+
+    //desprefijado
+    o3.base1.a := 30$l;
+
+    POUT("desde
+                            sentencias ejecutables");
+end

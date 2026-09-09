@@ -1,0 +1,23 @@
+program_constantes
+// en este test vemos como el Lexer reconoce Tokens en situaciones de:
+// - constantes enteras en sus limites numericos positivos.
+// - constantes flotantes en sus limites numericos positivos.
+
+// ACLARACION: El chequeo de rango de constantes se realiza
+// en las etapas posteriores.
+
+
+//en este ejemplo consideramos solo constantes positivas
+//debido a que el chequeo de rango de negativos
+//los realizamos en las etapas posteriores.
+
+
+
+//valor limite maximo entero = 2147483647
+a = 2147483647$l;
+
+//valor limite minimo flotante= 1.17549436e-38
+a = 1.17549436s-38;
+
+//valor limite maximo flotante= 3.40282346e+38
+a = 3.40282346s+38;
