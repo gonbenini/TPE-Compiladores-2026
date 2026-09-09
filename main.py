@@ -11,7 +11,7 @@ _logger = get_logger()
 
 # Definiciones del lenguaje (ppalabras reservadas y tabbla de simbolos)
 
-PR = ( 'if', 'else', 'end_if', 'begin', 'end', 'pout', 'ret', 'class', 'function', 'longint', 'singlef', 'class', 'from', 'to', 'by', 'repeat', 'typedef', 'tol' )
+PR = ( 'if', 'else', 'end_if', 'begin', 'end', 'pout', 'ret', 'class', 'function', 'longint', 'singlef', 'class', 'from', 'to', 'by', 'repeat', 'typedef', 'tol', 'extends' )
 
 TS = {
     # 'a': {'type': 'IDENTIFICADOR'}
