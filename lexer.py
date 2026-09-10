@@ -35,10 +35,11 @@ class TpLexer(Lexer):
 
     @_(r'"[\s\S]*?"')
     def CADN(self, t):
-        t.value = t.value.replace('\n', '')
-        t.value = re.sub(r'\s+',' ',t.value)
-        self._logger.warning(f"Linea {self.lineno} | Se removieron las tabulaciones de la cadena multilinea")
-        self.TS[t.value] = {'type': 'CADN'} # [t.value]
+        trimed_token_value = re.sub(r'\s+',' ',t.value)
+        if trimed_token_value != t.value:
+            self._logger.warning(f"Linea {self.lineno} | Se removieron elementos de la cadena multilinea como tabulaciones o saltos de linea")
+        t.value = trimed_token_value
+        self.TS[t.value] = {'type': 'CADN'}
         return t
         
     #ASSIGN[r'=']
