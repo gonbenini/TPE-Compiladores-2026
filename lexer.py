@@ -41,8 +41,7 @@ class TpLexer(Lexer):
         t.value = trimed_token_value
         self.TS[t.value] = {'type': 'CADN'}
         return t
-        
-    #ASSIGN[r'=']
+
     def ASSIGN2P(self,t): # Si no es exactamente la definicion pero es parecido, avisamos
         if t.value not in (':=','='): 
             self._logger.warning(f"Linea {self.lineno} | Asignacion truncada para detectar error de sintaxis")
@@ -75,8 +74,10 @@ class TpLexer(Lexer):
     def IDEN(self, t):
 
         if len(t.value) > 22:
-            t.value = t.value[:22] # aca loggeamos como warning
-            self._logger.warning(f"Linea {self.lineno} | Identificador truncado por ser mayor a 22 caracteres")
+            old_t_value = t.value
+            new_t_value= t.value[:22]
+            self._logger.warning(f"Linea {self.lineno} | El identificador {old_t_value} truncado a {new_t_value} por ser mayor a 22 caracteres")
+            t.value = new_t_value
 
         is_pr = t.value.lower() in self.PR
 
@@ -92,8 +93,8 @@ class TpLexer(Lexer):
             if iden.islower():
                 self.TS[t.value] = {'type': 'IDENTIFICADOR'}
             else:
-                self._logger.error(f"Linea {self.lineno} | ERROR Identificador con letras mayus.")#testear
-                return # no devolvemos nada
+                self._logger.error(f"Linea {self.lineno} | ERROR Identificador con letras mayus.")
+                return # devolvemos None en vez de un token ya que ocurrio un error. Luego de loggear podemos podemos seguir obteniendo proximos tokens
             
         return t
 
