@@ -2,7 +2,6 @@ from utils import get_program_code, get_logger, save_lexer_output, imprimir_arbo
 from lexer import TpLexer
 from parser import TpParser
 import sys
-import pprint
 
 ### Dependencias del lexer
 
@@ -20,19 +19,13 @@ TS = {
 
 ### Instanciaciones
 
-lexer = TpLexer(_logger, TS, PR)
+tokens_out = []
+lexer = TpLexer(_logger, TS, PR, tokens_out)
 parser = TpParser()
 
 ### Invocacion
 
 tokens = lexer.tokenize(program_code)
-#result = parser.parse(tokens)
-#pprint.pprint(result, width=40)
-from icecream import ic
-
-#ic(result)
-#imprimir_arbol(result)
-
-save_lexer_output(tokens, TS)
-# for t in tokens:
-#     print(t)
+result = parser.parse(tokens)
+imprimir_arbol(result)
+save_lexer_output(tokens_out, TS)

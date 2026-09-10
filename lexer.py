@@ -3,11 +3,12 @@ import re
 
 class TpLexer(Lexer):
 
-    def __init__(self, _logger, TS, PR):
+    def __init__(self, _logger, TS, PR, tokens_out):
         # Inyectamos dependencias
         self._logger = _logger
         self.TS = TS
         self.PR = PR
+        self.tokens_out = tokens_out
 
     tokens = { 
         IDEN, PLUS, MINUS, TIMES, DIVIDE, EQ, ASSIGN2P, ASSIGN, LE, LT, GE, GT, NE, 
@@ -40,12 +41,15 @@ class TpLexer(Lexer):
             self._logger.warning(f"Linea {self.lineno} | Se removieron elementos de la cadena multilinea como tabulaciones o saltos de linea")
         t.value = trimed_token_value
         self.TS[t.value] = {'type': 'CADN'}
+        self.tokens_out.append(t)
         return t
 
     def ASSIGN2P(self,t): # Si no es exactamente la definicion pero es parecido, avisamos
         if t.value not in (':=','='): 
             self._logger.warning(f"Linea {self.lineno} | Asignacion truncada para detectar error de sintaxis")
             t.value = ':=' # aca loggeamos como warning
+            
+        self.tokens_out.append(t)
         return t
 
 
@@ -95,7 +99,8 @@ class TpLexer(Lexer):
             else:
                 self._logger.error(f"Linea {self.lineno} | ERROR Identificador con letras mayus.")
                 return # devolvemos None en vez de un token ya que ocurrio un error. Luego de loggear podemos podemos seguir obteniendo proximos tokens
-            
+
+        self.tokens_out.append(t)
         return t
 
 
@@ -108,6 +113,8 @@ class TpLexer(Lexer):
 
         if not self.TS.get(t.value):
             self.TS[t.value] = {'type': 'CONSTANTE ENTERA'}
+
+        self.tokens_out.append(t)
         return t
 
 
@@ -127,6 +134,8 @@ class TpLexer(Lexer):
 
         if not self.TS.get(t.value):
             self.TS[t.value] = {'type': 'CONSTANTE FLOTANTE'}
+
+        self.tokens_out.append(t)
         return t
 
 
