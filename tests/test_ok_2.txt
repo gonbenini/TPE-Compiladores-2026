@@ -16,7 +16,7 @@ singlef c, d;
 class base1 c10 begin
     longint a1;
     singlef m(longint pa) begin
-        ret (a1 / a - b);
+        ret (a1/c - d);
     end;
 end;
 
@@ -35,7 +35,7 @@ enteros_pares_1_digito e;
 
 longint function sum (longint p1, longint p2) begin
 
-    ret p1 + p2;
+    ret (p1 + p2);
 end;
 
 //sentencias ejecutables
