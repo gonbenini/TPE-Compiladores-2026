@@ -10,3 +10,5 @@ tests/*.txt
 
 # Exceptuar los tests OK
 !tests/test_ok_*.txt
+
+venv*
