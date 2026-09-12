@@ -38,7 +38,7 @@ class TpParser(Parser):
     def declaracion_clase(self, p):
         return p
 
-    @_('tipo IDEN "(" parametros_f ")" BEGIN ejecutables END ";"',)
+    @_('tipo IDEN "(" parametros_f ")" BEGIN ejecutables_func END ";"',)
     def metodo(self, p):
         return p
     
