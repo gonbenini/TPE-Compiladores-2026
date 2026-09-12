@@ -44,11 +44,12 @@ class TpLexer(Lexer):
         self.tokens_out.append(t)
         return t
 
+
     def ASSIGN2P(self,t): # Si no es exactamente la definicion pero es parecido, avisamos
         if t.value not in (':=','='): 
             self._logger.warning(f"Linea {self.lineno} | Asignacion truncada para detectar error de sintaxis")
             t.value = ':=' # aca loggeamos como warning
-            
+
         self.tokens_out.append(t)
         return t
 

@@ -2,3 +2,11 @@ log.txt
 __pycache__/
 tokens.txt
 TS.txt
+# Archivos generados por SLY
+parser.out
+
+# Ignorar todos los tests
+tests/*.txt
+
+# Exceptuar los tests OK
+!tests/test_ok_*.txt
