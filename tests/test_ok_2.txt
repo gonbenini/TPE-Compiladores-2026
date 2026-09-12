@@ -16,12 +16,12 @@ singlef c, d;
 class base1 c10 begin
     longint a1;
     singlef m(longint pa) begin
-        ret a1 / a - b;
+        ret (a1 / a - b);
     end;
 end;
 
 class base2 c10 begin
-    singlef f1 .332s+4;
+    singlef f1;
     extends base1, base 2;
 end;
 

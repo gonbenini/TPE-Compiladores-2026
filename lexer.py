@@ -41,16 +41,15 @@ class TpLexer(Lexer):
             self._logger.warning(f"Linea {self.lineno} | Se removieron elementos de la cadena multilinea como tabulaciones o saltos de linea")
         t.value = trimed_token_value
         self.TS[t.value] = {'type': 'CADN'}
-        self.tokens_out.append(t)
+        #self.tokens_out.append(t)
         return t
-
 
     def ASSIGN2P(self,t): # Si no es exactamente la definicion pero es parecido, avisamos
         if t.value not in (':=','='): 
             self._logger.warning(f"Linea {self.lineno} | Asignacion truncada para detectar error de sintaxis")
             t.value = ':=' # aca loggeamos como warning
-
-        self.tokens_out.append(t)
+            
+        #self.tokens_out.append(t)
         return t
 
 
@@ -101,7 +100,7 @@ class TpLexer(Lexer):
                 self._logger.error(f"Linea {self.lineno} | ERROR Identificador con letras mayus.")
                 return # devolvemos None en vez de un token ya que ocurrio un error. Luego de loggear podemos podemos seguir obteniendo proximos tokens
 
-        self.tokens_out.append(t)
+        #self.tokens_out.append(t)
         return t
 
 
@@ -115,7 +114,7 @@ class TpLexer(Lexer):
         if not self.TS.get(t.value):
             self.TS[t.value] = {'type': 'CONSTANTE ENTERA'}
 
-        self.tokens_out.append(t)
+        #self.tokens_out.append(t)
         return t
 
 
@@ -136,7 +135,7 @@ class TpLexer(Lexer):
         if not self.TS.get(t.value):
             self.TS[t.value] = {'type': 'CONSTANTE FLOTANTE'}
 
-        self.tokens_out.append(t)
+        #self.tokens_out.append(t)
         return t
 
 
@@ -149,3 +148,8 @@ class TpLexer(Lexer):
         err = "'%s'" % t.value[0]
         self._logger.error(f"Linea {self.lineno} | ERROR caracter ilegal: {err}")
         self.index += 1
+
+    def tokenize(self, text, lineno=1, index=0):
+        for t in super().tokenize(text, lineno, index):
+            self.tokens_out.append(t)
+            yield t
