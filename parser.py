@@ -10,11 +10,7 @@ class TpParser(Parser):
     def programa_I(self, p):
         return p
 
-    @_('IDEN declaraciones BEGIN ejecutables END')
-    def programa(self, p):
-        return p
-
-    @_('IDEN BEGIN ejecutables END')
+    @_('IDEN declaraciones BEGIN ejecutables END', 'IDEN BEGIN ejecutables END')
     def programa(self, p):
         return p
 
