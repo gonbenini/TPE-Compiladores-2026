@@ -1,6 +1,7 @@
 from sly import Parser
 from lexer import TpLexer 
 
+
 class TpParser(Parser):
 
     debugfile = 'parser.out'
@@ -10,11 +11,47 @@ class TpParser(Parser):
     def programa_I(self, p):
         return p
 
-    @_('IDEN declaraciones BEGIN ejecutables END', 'IDEN BEGIN ejecutables END')
+    @_(
+    'program_in declaraciones BEGIN ejecutables END',
+
+    'program_in declaraciones ejecutables END',
+
+    'program_in declaraciones BEGIN ejecutables',
+
+    'program_in declaraciones ejecutables',
+
+    'declaraciones BEGIN ejecutables END',
+
+    'declaraciones ejecutables END',
+
+    'declaraciones ejecutables',
+
+    'declaraciones BEGIN ejecutables'
+    )
     def programa(self, p):
+
+        if not hasattr(p, 'program_in'):
+            print("Falta nombre de programa")
+
+        if not hasattr(p, 'declaraciones'):
+            print("Falta de declaraciones")
+
+        if not hasattr(p, 'BEGIN'):
+            print("Falta de BEGIN")
+
+        if not hasattr(p, 'ejecutables'):
+            print("Falta de ejecutables")
+
+        if not hasattr(p, 'END'):
+            print("Falta END")
+
         return p
 
-    @_('declaracion', 'declaraciones declaracion')
+    @_('PROGRAM IDEN')
+    def program_in(self, p):
+        return p
+
+    @_('declaraciones declaracion', 'declaracion')
     def declaraciones(self, p):
         return p
 
@@ -26,24 +63,42 @@ class TpParser(Parser):
     def declaraciones_func(self, p):
         return p
 
-    @_('dec_var ";"', 'funcion')
+    @_('dec_var ";"', 'funcion ";"')
     def declaracion_func(self, p):
         return p
 
-    @_('dec_var ";"', 'metodo')
+    #manejo de falta de ";"
+    @_('dec_var', 'funcion')
+    def declaracion_func(self, p):
+        print(f"Falta de ';' en linea {p.lineno}")
+
+
+    @_('dec_var ";"', 'metodo ";"')
     def declaracion_clase(self, p):
         return p
 
-    @_('tipo IDEN "(" parametros_f ")" BEGIN ejecutables_func END ";"',)
+    #manejo de falta de ";"
+    @_('dec_var', 'metodo')
+    def declaracion_clase(self, p):
+        print(f"Falta de ';' en linea {p.lineno}")
+
+    @_('tipo IDEN "(" parametros_f ")" BEGIN ejecutables_func END')
     def metodo(self, p):
+        print('Declaracion metodo')
         return p
     
-    @_('dec_var ";"', 'clase', 'funcion', 'tipoUsuario')
+    @_('dec_var ";"', 'clase ";"', 'funcion ";"', 'tipoUsuario ";"')
     def declaracion(self, p):
         return p
 
+    #manejo de falta de ";"
+    @_('dec_var', 'clase', 'funcion', 'tipoUsuario')
+    def declaracion(self, p):
+        print(f"Falta de ';' en declaracion de linea {p.lineno}")
+
     @_('tipo id_vars')
     def dec_var(self, p):
+        print('Declaracion variable')
         return p
 
     @_('SINGLEF', 'LONGINT', 'IDEN')
@@ -62,17 +117,20 @@ class TpParser(Parser):
     def parametro_f(self, p):
         return p
 
-    @_('tipo FUNCTION IDEN "(" parametros_f ")" declaraciones_func BEGIN ejecutables_func END ";"',
-       'tipo FUNCTION IDEN "(" parametros_f ")" BEGIN ejecutables_func END ";"')
+    @_('tipo FUNCTION IDEN "(" parametros_f ")" declaraciones_func BEGIN ejecutables_func END',
+       'tipo FUNCTION IDEN "(" parametros_f ")" BEGIN ejecutables_func END')
     def funcion(self, p):
+        print('Declaracion funcion')
         return p
 
-    @_('CLASS IDEN IDEN BEGIN declaraciones_clase END ";"', 'CLASS IDEN IDEN BEGIN declaraciones_clase EXTENDS id_vars ";" END ";"')
+    @_('CLASS IDEN IDEN BEGIN declaraciones_clase END', 'CLASS IDEN IDEN BEGIN declaraciones_clase EXTENDS id_vars ";" END')
     def clase(self, p):
+        print('Declaracion clase')
         return p
 
-    @_('TYPEDEF IDEN ASSIGN "[" constantes "]" ";"')
+    @_('TYPEDEF IDEN ASSIGN "[" constantes "]"')
     def tipoUsuario(self, p):
+        print('Declaracion tipo usuario')
         return p
 
     @_('constantes "," constante', 'constante')
@@ -103,10 +161,12 @@ class TpParser(Parser):
 
     @_('RET "(" expr ")" ";"')
     def retorno(self, p):
+        print('Retorno')
         return p
 
     @_('POUT "(" asignado ")" ";"')
     def pout(self, p):
+        print('print')
         return p
 
     #desambiguamos la gramatica ya que sino cuando venia un IDEN y un ".", la gramatica no sabia si reducir el IDEN
@@ -119,6 +179,7 @@ class TpParser(Parser):
 
     @_('IDEN "(" parametros ")" "[" posicionales "]"', 'IDEN "(" parametros ")"')
     def invocacion_funcion(self, p):
+        print('Invocacion')
         return p
 
     @_('posicionales "," CONSTANTE_E', 'CONSTANTE_E')
@@ -127,10 +188,12 @@ class TpParser(Parser):
 
     @_('asignable ASSIGN asignado ";"')
     def asignacion(self, p):
+        print('asignacion')
         return p
 
     @_('asignable ASSIGN2P asignado_linea ";"')
     def asignacion_linea(self, p):
+        print('asignacion')
         return p
 
     @_('asignable "." IDEN', 'IDEN')
@@ -197,25 +260,38 @@ class TpParser(Parser):
     @_('IF "(" condicion ")" cuerpo_control END_IF ";"',
        'IF "(" condicion ")" cuerpo_control ELSE cuerpo_control END_IF ";"')
     def seleccion(self, p):
+        print('seleccion')
         return p
+
+    @_('IF "(" condicion ")" cuerpo_control error ";"')
+    def seleccion(self, p):
+        print("falta de END_IF")
 
     @_('FROM IDEN ASSIGN2P constante TO constante BY constante REPEAT cuerpo_control ";"')
     def iteracion(self, p):
+        print('iteracion')
         return p
     
-    @_('BEGIN ejecutables END', 'ejecutable')
+    @_('BEGIN ejecutables END ";"', 'ejecutable')
     def cuerpo_control(self, p):
         return p
 
     @_('IF "(" condicion ")" cuerpo_control_func END_IF ";"',
         'IF "(" condicion ")" cuerpo_control_func ELSE cuerpo_control_func END_IF ";"')
     def seleccion_func(self, p):
-            return p
+        print('seleccion')
+        return p
+
     
-    @_('FROM IDEN ASSIGN2P constante TO constante BY constante REPEAT cuerpo_control_func ";"')
+    @_('FROM IDEN ASSIGN2P CONSTANTE_E TO CONSTANTE_E BY CONSTANTE_E REPEAT cuerpo_control_func ";"')
     def iteracion_func(self, p):
+        print('iteracion')
         return p
         
     @_('BEGIN ejecutables_func END', 'ejecutable_func')
     def cuerpo_control_func(self, p):
         return p
+
+    def error(self, p):
+        if p is None:
+            print("Error: falta END")

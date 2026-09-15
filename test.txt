@@ -1,0 +1,24 @@
+
+program gonza
+
+vector a, b, c;
+
+longint function f1(longint a)
+    longint a, b;
+    singlef c;
+begin
+
+    a = 10$l;
+end
+
+class ca c1 begin
+    longint a;
+end
+begin
+    a = a+  3$l;
+    IF ( x > 0$l )
+       BEGIN 
+           b = 2$l; 
+       END;
+    end_if;
+end
