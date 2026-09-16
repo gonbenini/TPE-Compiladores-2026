@@ -19,7 +19,7 @@ class TpParser(Parser):
     def programa(self, p):
 
         if not hasattr(p, 'program_in'):
-            print("Falta nombre de programa")
+            print(f"Falta nombre de programa en linea {p.lineno}")
 
         if not hasattr(p, 'declaraciones'):
             print("Falta de declaraciones")
@@ -83,8 +83,15 @@ class TpParser(Parser):
     def parametros_f(self, p):
         return p
 
-    @_('tipo IDEN')
+    #error 6 y 7
+    @_('tipo IDEN', 'tipo', 'error')
     def parametro_f(self, p):
+        if not hasattr(p, 'IDEN'):
+            print(f"Falta nombre de parametro formal en linea {p.lineno}")
+
+        if not hasattr(p, 'tipo'):
+            print(f"Falta tipo de parametro formal en linea {p.lineno}")
+        
         return p
 
     @_('tipo FUNCTION IDEN "(" parametros_f ")" declaraciones_func BEGIN ejecutables_func END ";"',

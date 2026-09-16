@@ -1,0 +1,19 @@
+program compi
+longint function f1(longint a) begin
+
+    pout("hola");
+end;
+
+longint function f2 (longint , singlef a, longint, tipo1 b, tipo2 ) begin
+
+    pout(b);
+end;
+
+abc function () begin
+
+    pout(b);
+end;
+
+begin
+    f1(a);
+end
