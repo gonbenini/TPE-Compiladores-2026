@@ -1,3 +1,5 @@
+from math import nan
+
 from sly import Parser
 from lexer import TpLexer 
 
@@ -84,13 +86,10 @@ class TpParser(Parser):
         return p
 
     #error 6 y 7
-    @_('tipo IDEN', 'tipo', 'error')
+    @_('tipo IDEN', 'tipo')
     def parametro_f(self, p):
-        if not hasattr(p, 'IDEN'):
-            print(f"Falta nombre de parametro formal en linea {p.lineno}")
-
-        if not hasattr(p, 'tipo'):
-            print(f"Falta tipo de parametro formal en linea {p.lineno}")
+        if len(p) == 1:
+            print(f"Falta tipo o nombre de parametro formal en linea {p.lineno}")
         
         return p
 
@@ -138,7 +137,7 @@ class TpParser(Parser):
     def ejecutables_func(self, p):
             return p
     
-    @_('asignacion_linea', 'control_func', 'invocacion_funcion ";"', 'invocacion_metodo ";"', 'retorno', 'pout')
+    @_('asignacion_linea', 'asignacion', 'control_func', 'invocacion_funcion ";"', 'invocacion_metodo ";"', 'retorno', 'pout')
     def ejecutable_func(self, p):
             return p
 
@@ -146,7 +145,7 @@ class TpParser(Parser):
     def ejecutables(self, p):
         return p
 
-    @_('asignacion_linea', 'control', 'invocacion_funcion ";"', 'invocacion_metodo ";"', 'pout')
+    @_('asignacion_linea', 'asignacion', 'control', 'invocacion_funcion ";"', 'invocacion_metodo ";"', 'pout')
     def ejecutable(self, p):
         return p
 
@@ -181,8 +180,24 @@ class TpParser(Parser):
     def asignacion_linea(self, p):
         return p
 
+    @_('asignable ASSIGN asignado ";"')
+    def asignacion(self, p):
+        return p
+
     @_('asignable "." IDEN', 'IDEN')
     def asignable(self, p):
+        return p
+
+    @_('expr', 'expr_linea')
+    def expr_mixto(self, p):
+        return p
+
+    @_('term', 'term_linea')
+    def term_mixto(self, p):
+        return p
+
+    @_('factor', 'factor_linea')
+    def factor_mixto(self, p):
         return p
 
     @_('expr', 'CADN')
@@ -197,34 +212,33 @@ class TpParser(Parser):
     def term(self, p):
         return p
     
-    @_('constante', 'invocacion_funcion', 'invocacion_metodo', 
-        'asignable', 'TOL "(" expr ")"')
+    @_('constante', 'invocacion_funcion', 'invocacion_metodo',  'asignable', 'TOL "(" expr ")"')
     def factor(self, p):
         return p
 
     @_('expr_linea', 'CADN')
-    def asignado_linea (self, p):
+    def asignado_linea(self, p):
         return p
 
-    @_('expr_linea PLUS term_linea', 'expr_linea MINUS term_linea', 'term_linea')
+    @_('expr_linea PLUS term_mixto', 'expr_linea MINUS term_mixto', # al menos tenemos una asignacion de linea del lado izquierdo.
+       'expr PLUS term_linea', 'expr MINUS term_linea', # al menos tenemos una asignacion de linea del lado derecho
+       'term_linea'
+    )
     def expr_linea(self, p):
         return p
     
-    @_('term_linea TIMES factor_linea', 'term_linea DIVIDE factor_linea', 'factor_linea')
+    @_('term_linea TIMES factor_mixto', 'term_linea DIVIDE factor_mixto', # al menos tenemos una asignacion de linea del lado izquierdo.
+       'term TIMES factor_linea', 'term DIVIDE factor_linea', # al menos tenemos una asignacion de linea del lado derecho
+       'factor_linea'
+    )
     def term_linea(self, p):
         return p
     
-    @_('constante', 'invocacion_funcion', 'invocacion_metodo', 
-        'asignable', 'asignacion_de_linea', 'TOL "(" expr ")"')
-    def factor_linea(self, p):
-        return p
-
     @_('asignable ASSIGN IDEN', 'asignable ASSIGN CONSTANTE_E',
-       'asignable ASSIGN CONSTANTE_F',
-       'asignable ASSIGN2P IDEN', 'asignable ASSIGN2P CONSTANTE_E',
-       'asignable ASSIGN2P CONSTANTE_F')
-    def asignacion_de_linea(self, p):
-        # Con este cambio puede que `factor_linea` quede deprecado
+       'asignable ASSIGN CONSTANTE_F', 'asignable ASSIGN2P IDEN',
+       'asignable ASSIGN2P CONSTANTE_E', 'asignable ASSIGN2P CONSTANTE_F'
+    )
+    def factor_linea(self, p):
         if p._slice[1].type == 'ASSIGN2P':
             print(f"Línea {p.lineno} | ERROR COD(15): Uso del símbolo ':=' donde debe usarse '='.")
         return p
@@ -241,9 +255,9 @@ class TpParser(Parser):
     def control_func(self, p):
         return p
 
-    @_('expr_linea GT expr_linea', 'expr_linea LT expr_linea',
-       'expr_linea GE expr_linea', 'expr_linea LE expr_linea',
-       'expr_linea NE expr_linea', 'expr_linea EQ expr_linea')
+    @_('expr_mixto GT expr_mixto', 'expr_mixto LT expr_mixto',
+       'expr_mixto GE expr_mixto', 'expr_mixto LE expr_mixto',
+       'expr_mixto NE expr_mixto', 'expr_mixto EQ expr_mixto')
     def condicion(self, p):
         return p
 
@@ -272,6 +286,3 @@ class TpParser(Parser):
     @_('BEGIN ejecutables_func END', 'ejecutable_func')
     def cuerpo_control_func(self, p):
         return p
-    
-    def error(self, p):
-        print(f"error - linea {p.lineno}")

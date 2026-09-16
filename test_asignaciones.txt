@@ -1,0 +1,11 @@
+program compi
+longint a;
+longint function f1(hola a) begin
+    pout("hola");
+END;
+begin
+    a = 5$l;
+    //a = b = 10$l;
+    a := b := 5$l;
+    pout(hola");
+end
