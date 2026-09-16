@@ -71,8 +71,11 @@ class TpParser(Parser):
     def clase(self, p):
         return p
 
-    @_('TYPEDEF IDEN ASSIGN "[" constantes "]" ";"')
+    @_('TYPEDEF IDEN ASSIGN "[" constantes "]" ";"', 'TYPEDEF IDEN ASSIGN "[" "]" ";"')
     def tipoUsuario(self, p):
+        if len(p) == 6:
+            print(f"Línea {p.lineno} | ERROR COD(16): Ausencia de valores para la enumeración.")
+            return
         return p
 
     @_('constantes "," constante', 'constante')
