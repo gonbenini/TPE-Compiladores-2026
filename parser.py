@@ -6,13 +6,26 @@ class TpParser(Parser):
     debugfile = 'parser.out'
     tokens = TpLexer.tokens
 
-    @_('programa')
+    @_('programa_valido')
     def programa_I(self, p):
         return p
 
-    @_('IDEN declaraciones BEGIN ejecutables END', 'IDEN BEGIN ejecutables END')
-    def programa(self, p):
+    @_('program_in_valido declaraciones BEGIN ejecutables END', 'program_in_valido BEGIN ejecutables END')
+    def programa_valido(self, p):
         return p
+
+    @_('PROGRAM IDEN')
+    def program_in_valido(self, p):
+        return p
+
+    #error de program_in
+    @_('program_in_valido : empty')
+    def program_in_error(self, p):
+        print("Falta nombre de programa")
+
+    @_('')
+    def empty(self, p):
+        pass
 
     @_('declaracion', 'declaraciones declaracion')
     def declaraciones(self, p):
@@ -234,3 +247,13 @@ class TpParser(Parser):
     @_('BEGIN ejecutables_func END', 'ejecutable_func')
     def cuerpo_control_func(self, p):
         return p
+
+    @_('programa_valido : program_in_valido error ";" ', 'programa_valido : program_in_valido declaraciones error ";" ')
+    def programa_error_begin(self, p):
+        print("falta BEGIN")
+        return "error"
+
+    def error(self, p):
+        if not p:
+            print("Falta END")
+            return

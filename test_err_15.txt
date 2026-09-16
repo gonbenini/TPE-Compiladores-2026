@@ -1,4 +1,4 @@
-test_cod15_ext
+program test_cod15_ext
 longint a, b, i;
 begin
     // Asignacion de sentencia principal (Correcta)

@@ -1,6 +1,6 @@
-test_cod10_ext
+program test_cod10_ext
 longint a, b, i;
-begin
+
     // Asignacion de sentencia principal (Correcta)
     a := 5$l;
 
