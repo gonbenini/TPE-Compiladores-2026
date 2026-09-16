@@ -89,7 +89,7 @@ class TpParser(Parser):
     def ejecutables_func(self, p):
             return p
     
-    @_('asignacion', 'asignacion_linea', 'control_func', 'invocacion_funcion ";"', 'invocacion_metodo ";"', 'retorno', 'pout')
+    @_('asignacion_linea', 'control_func', 'invocacion_funcion ";"', 'invocacion_metodo ";"', 'retorno', 'pout')
     def ejecutable_func(self, p):
             return p
 
@@ -97,7 +97,7 @@ class TpParser(Parser):
     def ejecutables(self, p):
         return p
 
-    @_('asignacion', 'asignacion_linea', 'control', 'invocacion_funcion ";"', 'invocacion_metodo ";"', 'pout')
+    @_('asignacion_linea', 'control', 'invocacion_funcion ";"', 'invocacion_metodo ";"', 'pout')
     def ejecutable(self, p):
         return p
 
@@ -126,10 +126,6 @@ class TpParser(Parser):
 
     @_('posicionales "," CONSTANTE_E', 'CONSTANTE_E')
     def posicionales(self, p):
-        return p
-
-    @_('asignable ASSIGN2P asignado ";"')
-    def asignacion(self, p):
         return p
 
     @_('asignable ASSIGN2P asignado_linea ";"')
@@ -174,17 +170,14 @@ class TpParser(Parser):
     def factor_linea(self, p):
         return p
 
-    @_('asignable ASSIGN IDEN', 
-       'asignable ASSIGN CONSTANTE_E',
+    @_('asignable ASSIGN IDEN', 'asignable ASSIGN CONSTANTE_E',
        'asignable ASSIGN CONSTANTE_F',
-       'asignable ASSIGN2P IDEN', 
-       'asignable ASSIGN2P CONSTANTE_E',
+       'asignable ASSIGN2P IDEN', 'asignable ASSIGN2P CONSTANTE_E',
        'asignable ASSIGN2P CONSTANTE_F')
     def asignacion_de_linea(self, p):
         # Con este cambio puede que `factor_linea` quede deprecado
         if p._slice[1].type == 'ASSIGN2P':
             print(f"Línea {p.lineno} | ERROR COD(15): Uso del símbolo ':=' donde debe usarse '='.")
-        
         return p
 
     @_('parametros "," expr', 'expr')
