@@ -105,8 +105,11 @@ class TpParser(Parser):
     def retorno(self, p):
         return p
 
-    @_('POUT "(" asignado ")" ";"')
+    @_('POUT "(" asignado ")" ";"', 'POUT "("  ")" ";"')
     def pout(self, p):
+        if len(p) == 4: # atrapamos el error de invoicacion a pout sin argumentos
+            print(f"Línea {p.lineno} | ERROR COD(10): Falta argumento en sentencia pout.")
+            return
         return p
 
     #desambiguamos la gramatica ya que sino cuando venia un IDEN y un ".", la gramatica no sabia si reducir el IDEN

@@ -1,0 +1,21 @@
+test_cod10_ext
+longint a, b, i;
+begin
+    // Asignacion de sentencia principal (Correcta)
+    a := 5$l;
+
+    // Asignacion en expresion con '=' (Correcta)
+    a := b = 10$l;
+
+    pout(a);
+
+    pout();    
+
+
+    // Test FROM (equivale al 'for') con asignaciones correctas
+    from i := 1$l to 5$l by 1$l repeat
+    begin
+        a := 30$l;
+        b := a = 35$l;
+    end;
+end
