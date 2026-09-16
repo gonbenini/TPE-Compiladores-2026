@@ -6,26 +6,38 @@ class TpParser(Parser):
     debugfile = 'parser.out'
     tokens = TpLexer.tokens
 
-    @_('programa_valido')
+    @_('programa')
     def programa_I(self, p):
         return p
 
-    @_('program_in_valido declaraciones BEGIN ejecutables END', 'program_in_valido BEGIN ejecutables END')
-    def programa_valido(self, p):
+    @_(
+    'program_in declaraciones BEGIN ejecutables END', 'program_in declaraciones ejecutables END',
+    'program_in declaraciones BEGIN ejecutables', 'program_in declaraciones ejecutables',
+    'declaraciones BEGIN ejecutables END', 'declaraciones ejecutables END',
+    'declaraciones ejecutables', 'declaraciones BEGIN ejecutables'
+    )
+    def programa(self, p):
+
+        if not hasattr(p, 'program_in'):
+            print("Falta nombre de programa")
+
+        if not hasattr(p, 'declaraciones'):
+            print("Falta de declaraciones")
+
+        if not hasattr(p, 'BEGIN'):
+            print("Falta de BEGIN")
+
+        if not hasattr(p, 'ejecutables'):
+            print("Falta de ejecutables")
+
+        if not hasattr(p, 'END'):
+            print("Falta END")
+
         return p
 
     @_('PROGRAM IDEN')
-    def program_in_valido(self, p):
+    def program_in(self, p):
         return p
-
-    #error de program_in
-    @_('program_in_valido : empty')
-    def program_in_error(self, p):
-        print("Falta nombre de programa")
-
-    @_('')
-    def empty(self, p):
-        pass
 
     @_('declaracion', 'declaraciones declaracion')
     def declaraciones(self, p):
@@ -247,13 +259,6 @@ class TpParser(Parser):
     @_('BEGIN ejecutables_func END', 'ejecutable_func')
     def cuerpo_control_func(self, p):
         return p
-
-    @_('programa_valido : program_in_valido error ";" ', 'programa_valido : program_in_valido declaraciones error ";" ')
-    def programa_error_begin(self, p):
-        print("falta BEGIN")
-        return "error"
-
+    
     def error(self, p):
-        if not p:
-            print("Falta END")
-            return
+        print(f"error - linea {p.lineno}")
