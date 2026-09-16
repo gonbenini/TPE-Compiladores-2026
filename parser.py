@@ -92,6 +92,12 @@ class TpParser(Parser):
     def funcion(self, p):
         return p
 
+    #error 4
+    @_('funcion : tipo FUNCTION "(" parametros_f ")" declaraciones_func BEGIN ejecutables_func END ";"',
+       'funcion : tipo FUNCTION "(" parametros_f ")" BEGIN ejecutables_func END ";"')
+    def funcion_error(self, p):
+        print(f"Falta de nombre de funcion en linea {p.lineno}")
+
     @_('CLASS IDEN IDEN BEGIN declaraciones_clase END ";"', 'CLASS IDEN IDEN BEGIN declaraciones_clase EXTENDS id_vars ";" END ";"',
        'CLASS IDEN BEGIN declaraciones_clase END ";"', 'CLASS IDEN BEGIN declaraciones_clase EXTENDS id_vars ";" END ";"',
        'CLASS IDEN IDEN BEGIN declaraciones_clase EXTENDS ";" END ";"', 'CLASS IDEN BEGIN declaraciones_clase EXTENDS ";" END ";"')
