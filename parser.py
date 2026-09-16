@@ -125,7 +125,7 @@ class TpParser(Parser):
     def posicionales(self, p):
         return p
 
-    @_('asignable ASSIGN asignado ";"')
+    @_('asignable ASSIGN2P asignado ";"')
     def asignacion(self, p):
         return p
 
@@ -171,9 +171,17 @@ class TpParser(Parser):
     def factor_linea(self, p):
         return p
 
-    @_('asignable ASSIGN IDEN', 'asignable ASSIGN CONSTANTE_E',
-       'asignable ASSIGN CONSTANTE_F')
+    @_('asignable ASSIGN IDEN', 
+       'asignable ASSIGN CONSTANTE_E',
+       'asignable ASSIGN CONSTANTE_F',
+       'asignable ASSIGN2P IDEN', 
+       'asignable ASSIGN2P CONSTANTE_E',
+       'asignable ASSIGN2P CONSTANTE_F')
     def asignacion_de_linea(self, p):
+        # Con este cambio puede que `factor_linea` quede deprecado
+        if p._slice[1].type == 'ASSIGN2P':
+            print(f"Línea {p.lineno} | ERROR COD(15): Uso del símbolo ':=' donde debe usarse '='.")
+        
         return p
 
     @_('parametros "," expr', 'expr')
