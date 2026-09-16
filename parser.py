@@ -68,10 +68,14 @@ class TpParser(Parser):
         return p
 
     @_('CLASS IDEN IDEN BEGIN declaraciones_clase END ";"', 'CLASS IDEN IDEN BEGIN declaraciones_clase EXTENDS id_vars ";" END ";"',
-       'CLASS IDEN BEGIN declaraciones_clase END ";"', 'CLASS IDEN BEGIN declaraciones_clase EXTENDS id_vars ";" END ";"')
+       'CLASS IDEN BEGIN declaraciones_clase END ";"', 'CLASS IDEN BEGIN declaraciones_clase EXTENDS id_vars ";" END ";"',
+       'CLASS IDEN IDEN BEGIN declaraciones_clase EXTENDS ";" END ";"', 'CLASS IDEN BEGIN declaraciones_clase EXTENDS ";" END ";"')
     def clase(self, p):
-        if len(p) == 6 or len(p) == 9:
+        if p._slice[2].type == 'BEGIN':
             print(f"Línea {p.lineno} | ERROR COD(17): Ausencia del código en la declaración de una clase.")
+            return
+        if p._slice[-4].type == 'EXTENDS':
+            print(f"Línea {p.lineno} | ERROR COD(18): Ausencia de nombre o lista de clases después de extends.")
             return
         return p
 
