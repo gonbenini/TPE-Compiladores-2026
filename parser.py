@@ -21,7 +21,7 @@ class TpParser(Parser):
     def programa(self, p):
 
         if not hasattr(p, 'program_in'):
-            print(f"Falta nombre de programa en linea {p.lineno}")
+            print(f"Falta nombre de programa")
 
         if not hasattr(p, 'declaraciones'):
             print("Falta de declaraciones")
@@ -286,3 +286,15 @@ class TpParser(Parser):
     @_('BEGIN ejecutables_func END', 'ejecutable_func')
     def cuerpo_control_func(self, p):
         return p
+
+    def error(self, p):
+        print(f"Error sintactico en linea {p.lineno} cerca de '{p.value}'")
+        if not p:
+            print("End of File!")
+            return
+        
+        while True:
+            tok = next(self.tokens, None)
+            if not tok or tok.type == ';':
+                break
+        self.restart()
