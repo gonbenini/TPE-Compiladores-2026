@@ -146,6 +146,11 @@ class TpParser(Parser):
         print(f"error falta argumento POUT en linea {p.lineno}")
         return ("error",)
 
+    @_('ejecutable : IF error ";"', 'ejecutable : IF "(" condicion error ";"')
+    def ejecutable_error_if(self, p):
+        print(f"Falta de parentesis de cierre o apertura en linea {p.lineno}")
+        return ("error",)
+
     @_('RET "(" expr ")" ";"')
     def retorno(self, p):
         return p

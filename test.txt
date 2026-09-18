@@ -5,6 +5,6 @@ begin
     pout ("hola");
 end;
 begin
-    pout (;
-    a := 5$l;
+    if (10$l < 5$l;
+    a = 5$l;
 end
