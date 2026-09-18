@@ -66,8 +66,17 @@ class TpParser(Parser):
     def declaracion_error_lista_var(self, p):
         print(f'Falta de "," en declaracion de linea {p.lineno}')
         return ("error",)
-    
 
+    @_('declaracion : tipo FUNCTION error ";"')
+    def declaracion_error_function_name(self, p):
+        print(f'Falta de nombre de funcion en linea {p.lineno}')
+        return ("error",)
+
+    @_('declaracion : tipo FUNCTION IDEN "(" tipo error ";"')
+    def declaracion_error_function_paramf(self, p):
+        print(f'Falta de nombre o tipo de parametro en linea {p.lineno}')
+        return ("error",)
+    
     @_('tipo id_vars')
     def dec_var(self, p):
         return p

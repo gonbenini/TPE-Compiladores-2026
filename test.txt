@@ -1,6 +1,9 @@
 program hola
-longint a, b a;
-long a;
+longint a;
+longint function compi (a)
+begin
+    a = 5$l;
+end;
 begin
 
     a = 5$l;
