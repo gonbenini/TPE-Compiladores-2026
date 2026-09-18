@@ -1,0 +1,7 @@
+program hola
+longint a, b a;
+long a;
+begin
+
+    a = 5$l;
+end

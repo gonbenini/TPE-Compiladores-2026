@@ -10,8 +10,23 @@ class TpParser(Parser):
     def programa_I(self, p):
         return p
 
-    @_('IDEN declaraciones BEGIN ejecutables END', 'IDEN BEGIN ejecutables END')
+    @_('program_in declaraciones BEGIN ejecutables END')
     def programa(self, p):
+        return p
+
+    @_('programa : program_in error BEGIN ejecutables END')
+    def programa_error_declaracion(self, p):
+        print(f"Error o falta de declaracion en linea {p.lineno}")
+        return ("error",)
+
+    @_('programa : declaraciones BEGIN ejecutables END', 'programa : BEGIN ejecutables END')
+    def programa_error_nombre(self, p):
+        print("Falta nombre de programa")
+        if not hasattr(p, 'declaraciones'): print("Falta declaracion")
+        return ("error",)
+
+    @_('PROGRAM IDEN')
+    def program_in(self, p):
         return p
 
     @_('declaracion', 'declaraciones declaracion')
@@ -41,6 +56,17 @@ class TpParser(Parser):
     @_('dec_var ";"', 'clase', 'funcion', 'tipoUsuario')
     def declaracion(self, p):
         return p
+
+    @_('declaracion : error ";"')
+    def declaracion_error(self, p):
+        print(f"error declaracion en linea {p.lineno}")
+        return ("error",)
+
+    @_('declaracion : dec_var error ";"')
+    def declaracion_error_lista_var(self, p):
+        print(f'Falta de "," en declaracion de linea {p.lineno}')
+        return ("error",)
+    
 
     @_('tipo id_vars')
     def dec_var(self, p):
@@ -100,6 +126,11 @@ class TpParser(Parser):
     @_('asignacion', 'asignacion_linea', 'control', 'invocacion_funcion ";"', 'invocacion_metodo ";"', 'pout')
     def ejecutable(self, p):
         return p
+
+    @_('ejecutable : error ";"')
+    def ejecutable_error(self, p):
+        print(f"error ejecutable en linea {p.lineno}")
+        return ("error",)
 
     @_('RET "(" expr ")" ";"')
     def retorno(self, p):
