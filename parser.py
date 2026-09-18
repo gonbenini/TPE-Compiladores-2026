@@ -141,6 +141,11 @@ class TpParser(Parser):
         print(f"error ejecutable en linea {p.lineno}")
         return ("error",)
 
+    @_('ejecutable : POUT "(" error ";"')
+    def ejecutable_error_pout(self, p):
+        print(f"error falta argumento POUT en linea {p.lineno}")
+        return ("error",)
+
     @_('RET "(" expr ")" ";"')
     def retorno(self, p):
         return p

@@ -1,10 +1,10 @@
 program hola
 longint a;
-longint function compi (a)
+longint function compi (longint a)
 begin
-    a = 5$l;
+    pout ("hola");
 end;
 begin
-
-    a = 5$l;
+    pout (;
+    a := 5$l;
 end
