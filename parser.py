@@ -57,7 +57,7 @@ class TpParser(Parser):
     def declaracion(self, p):
         return p
 
-    @_('declaracion : error ";"', 'declaracion_func : error ";"')
+    @_('declaracion : error ";"', 'declaracion_func : error ";"', 'declaracion_clase : error ";"')
     def declaracion_error(self, p):
         print(f"error declaracion en linea {p.lineno}")
         return ("error",)
