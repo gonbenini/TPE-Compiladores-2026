@@ -106,6 +106,11 @@ class TpParser(Parser):
     def clase(self, p):
         return p
 
+    @_('declaracion : CLASS IDEN error BEGIN declaraciones_clase END ";"')
+    def clase_error(self, p):
+        print(f"error ejecutable en linea {p.lineno}, la clase no posee codigo.")
+        return ("error",)
+
     @_('TYPEDEF IDEN ASSIGN "[" constantes "]" ";"')
     def tipoUsuario(self, p):
         return p
