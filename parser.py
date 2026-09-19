@@ -140,8 +140,8 @@ class TpParser(Parser):
     def ejecutable_error(self, p):
 
         atributos_a_buscar = ['FROM', 'IDEN', 'constante', 'TO']
-        # p._namemap contiene los nombres de todo lo que la regla atrapó
-        if not any(atributo in p._namemap for atributo in atributos_a_buscar):
+        # tiene que contener al menos y tiene que faltar al menos uno.
+        if any(atributo in p._namemap for atributo in atributos_a_buscar) and not any(atributo in p._namemap for atributo in atributos_a_buscar):
             print(f"Error falta de elemento en iterador de linea {p.lineno}")
             return ("error",)
 
