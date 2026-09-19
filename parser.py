@@ -1,5 +1,6 @@
 from sly import Parser
-from lexer import TpLexer 
+from lexer import TpLexer
+import sys 
 
 class TpParser(Parser):
 
@@ -8,18 +9,20 @@ class TpParser(Parser):
 
     @_('programa')
     def programa_I(self, p):
+        print("Parseo finalizado")
+        sys.exit(0)
         return p
 
-    @_('program_in declaraciones BEGIN ejecutables END')
+    @_('program_in declaraciones cuerpo_ejecutable')
     def programa(self, p):
         return p
 
-    @_('programa : program_in error BEGIN ejecutables END')
+    @_('programa : program_in error cuerpo_ejecutable')
     def programa_error_declaracion(self, p):
         print(f"Error o falta de declaracion en linea {p.lineno}")
         return ("error",)
 
-    @_('programa : declaraciones BEGIN ejecutables END', 'programa : BEGIN ejecutables END')
+    @_('programa : declaraciones cuerpo_ejecutable', 'programa : cuerpo_ejecutable')
     def programa_error_nombre(self, p):
         print("Falta nombre de programa")
         if not hasattr(p, 'declaraciones'): print("Falta declaracion")
@@ -49,9 +52,18 @@ class TpParser(Parser):
     def declaracion_clase(self, p):
         return p
 
-    @_('tipo IDEN "(" parametros_f ")" BEGIN ejecutables END ";"',)
+    @_('tipo IDEN "(" parametros_f ")" cuerpo_ejecutable',)
     def metodo(self, p):
         return p
+
+    @_('BEGIN ejecutables END ";"')
+    def cuerpo_ejecutable(self, p):
+        return p
+
+    @_('cuerpo_ejecutable : error END ";"')
+    def cuerpo_ejecutable_error(self, p):
+        print(f"error falta de begin en cuerpo ejecutable de linea {p.lineno}")
+        return ("error",)
     
     @_('dec_var ";"', 'clase', 'funcion', 'tipoUsuario')
     def declaracion(self, p):
@@ -97,8 +109,8 @@ class TpParser(Parser):
     def parametro_f(self, p):
         return p
 
-    @_('tipo FUNCTION IDEN "(" parametros_f ")" declaraciones_func BEGIN ejecutables END ";"',
-       'tipo FUNCTION IDEN "(" parametros_f ")" BEGIN ejecutables END ";"')
+    @_('tipo FUNCTION IDEN "(" parametros_f ")" declaraciones_func cuerpo_ejecutable',
+       'tipo FUNCTION IDEN "(" parametros_f ")" cuerpo_ejecutable')
     def funcion(self, p):
         return p
 
@@ -121,7 +133,7 @@ class TpParser(Parser):
         return p
 
     @_('declaracion : TYPEDEF IDEN ASSIGN "[" error "]" ";"')
-    def tipoUsuario(self, p):
+    def tipoUsuario_error(self, p):
         print(f"error ejecutable en linea {p.lineno}, ausencia de valores para la enumeración.")
         return ("error",)
 
@@ -284,6 +296,10 @@ class TpParser(Parser):
     def iteracion(self, p):
         return p
     
-    @_('BEGIN ejecutables END', 'ejecutable')
+    @_('cuerpo_ejecutable', 'ejecutable')
     def cuerpo_control(self, p):
         return p
+
+    def error(self, p):
+        if not p:
+            print("Falta de end principal")
