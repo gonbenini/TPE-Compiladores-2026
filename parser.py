@@ -264,6 +264,12 @@ class TpParser(Parser):
     def asignacion_de_linea(self, p):
         return p
 
+    @_('asignacion_de_linea : asignable ASSIGN2P IDEN', 'asignacion_de_linea : asignable ASSIGN2P CONSTANTE_E',
+       'asignacion_de_linea : asignable ASSIGN2P CONSTANTE_F')
+    def asignacion_de_linea_error(self, p):
+        print(f"Error en linea {p.lineno}, uso del símbolo de asignación normal (:=) donde debe usarse =.")
+        return ("error",)
+
     @_('parametros "," expr', 'expr')
     def parametros(self, p):
         return p
