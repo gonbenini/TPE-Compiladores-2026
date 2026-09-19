@@ -47,7 +47,7 @@ class TpParser(Parser):
     @_('dec_var ";"', 'funcion')
     def declaracion_func(self, p):
         return p
-
+    
     @_('dec_var ";"', 'metodo')
     def declaracion_clase(self, p):
         return p
@@ -221,9 +221,9 @@ class TpParser(Parser):
     def expr(self, p):
         return p
 
-    @_('expr : expr PLUS error ";"', 'expr : expr MINUS error ";"', 'expr : expr error term', 'expr : PLUS term', 'expr : MINUS term')
+    @_('expr : expr PLUS error ";"', 'expr : expr MINUS error ";"', 'expr : PLUS term', 'expr : MINUS term')
     def expr_error(self, p):
-        print("Error falta de operando u operador xd")
+        print(f"Error falta de operando u operador xd {p.lineno}")
         return ("error",)
     
     @_('term TIMES factor', 'term DIVIDE factor', 'factor')
@@ -301,5 +301,7 @@ class TpParser(Parser):
         return p
 
     def error(self, p):
-        if not p:
-            print("Falta de end principal")
+        # print(f"error linea {p.lineno}")
+        # if not p:
+        #     print("Falta de end principal")
+        pass
