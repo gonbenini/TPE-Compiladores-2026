@@ -22,17 +22,6 @@ class TpParser(Parser):
     def programa(self, p):
         return p
 
-    @_('programa : program_in error cuerpo_ejecutable')
-    def programa_error_declaracion(self, p):
-        print(f"Error o falta de declaracion en linea {p.lineno}")
-        return ("error",)
-
-    @_('programa : declaraciones cuerpo_ejecutable', 'programa : cuerpo_ejecutable')
-    def programa_error_nombre(self, p):
-        print("Falta nombre de programa")
-        if not hasattr(p, 'declaraciones'): print("Falta declaracion")
-        return ("error",)
-
     @_('PROGRAM IDEN')
     def program_in(self, p):
         return p
@@ -64,35 +53,10 @@ class TpParser(Parser):
     @_('BEGIN ejecutables END ";"')
     def cuerpo_ejecutable(self, p):
         return p
-
-    @_('cuerpo_ejecutable : error END ";"')
-    def cuerpo_ejecutable_error(self, p):
-        print(f"error falta de begin en cuerpo ejecutable de linea {p.lineno}")
-        return ("error",)
     
     @_('dec_var ";"', 'clase', 'funcion', 'tipoUsuario')
     def declaracion(self, p):
         return p
-
-    @_('declaracion : error ";"', 'declaracion_func : error ";"', 'declaracion_clase : error ";"')
-    def declaracion_error(self, p):
-        print(f"error declaracion en linea {p.lineno}")
-        return ("error",)
-
-    @_('declaracion : dec_var error ";"', 'declaracion_func : dec_var error ";"', 'declaracion_clase : dec_var error ";"')
-    def declaracion_error_lista_var(self, p):
-        print(f'Falta de "," en declaracion de linea {p.lineno}')
-        return ("error",)
-
-    @_('declaracion : tipo FUNCTION error ";"', 'declaracion_func : tipo FUNCTION error ";"')
-    def declaracion_error_function_name(self, p):
-        print(f'Falta de nombre de funcion en linea {p.lineno}')
-        return ("error",)
-
-    @_('declaracion : tipo FUNCTION IDEN "(" error ";"', 'declaracion_func : tipo FUNCTION IDEN "(" error ";"')
-    def declaracion_error_function_paramf(self, p):
-        print(f'Falta de nombre o tipo de parametro en linea {p.lineno}')
-        return ("error",)
     
     @_('tipo id_vars')
     def dec_var(self, p):
@@ -123,24 +87,9 @@ class TpParser(Parser):
     def clase(self, p):
         return p
 
-    @_('declaracion : CLASS IDEN error BEGIN declaraciones_clase END ";"')
-    def clase_error_codigo(self, p):
-        print(f"error ejecutable en linea {p.lineno}, la clase no posee codigo.")
-        return ("error",)
-
-    @_('declaracion : CLASS IDEN IDEN BEGIN declaraciones_clase EXTENDS error ";" END ";"')
-    def clase_error_extends(self, p):
-        print(f"error ejecutable en linea {p.lineno}, la clase no posee identificadores luego del extends.")
-        return ("error",)
-
     @_('TYPEDEF IDEN ASSIGN "[" constantes "]" ";"')
     def tipoUsuario(self, p):
         return p
-
-    @_('declaracion : TYPEDEF IDEN ASSIGN "[" error "]" ";"')
-    def tipoUsuario_error(self, p):
-        print(f"error ejecutable en linea {p.lineno}, ausencia de valores para la enumeración.")
-        return ("error",)
 
     @_('constantes "," constante', 'constante')
     def constantes(self, p):
@@ -158,29 +107,6 @@ class TpParser(Parser):
     @_('asignacion', 'asignacion_linea', 'control', 'invocacion_funcion ";"', 'invocacion_metodo ";"', 'retorno', 'pout')
     def ejecutable(self, p):
         return p
-
-    @_('ejecutable : error ";"')
-    def ejecutable_error(self, p):
-
-        #print(p._namemap)
-
-        print(f"error ejecutable en linea {p.lineno}")
-        return ("error",)
-
-    @_('ejecutable : POUT "(" error ";"')
-    def ejecutable_error_pout(self, p):
-        print(f"error falta argumento POUT en linea {p.lineno}")
-        return ("error",)
-
-    @_('ejecutable : IF error ";"', 'ejecutable : IF "(" condicion error ";"')
-    def ejecutable_error_if(self, p):
-        print(f"Falta de parentesis de cierre o apertura en linea {p.lineno}")
-        return ("error",)
-
-    @_('ejecutable : IF "(" condicion ")" cuerpo_control error ";"')
-    def ejecutable_error_if_endIF(self, p):
-        print(f"Falta de end_if en linea {p.lineno}")
-        return ("error",)
 
     @_('RET "(" expr ")" ";"')
     def retorno(self, p):
@@ -225,25 +151,10 @@ class TpParser(Parser):
     @_('expr PLUS term', 'expr MINUS term', 'term')
     def expr(self, p):
         return p
-
-    @_('expr : expr PLUS error ";"', 'expr : expr MINUS error ";"', 'expr : PLUS term', 'expr : MINUS term')
-    def expr_error(self, p):
-        print(f"Error falta de operando u operador xd {p.lineno}")
-        return ("error",)
     
     @_('term TIMES factor', 'term DIVIDE factor', 'factor')
     def term(self, p):
         return p
-
-    @_('term : term TIMES', 'term : term DIVIDE', 'term : TIMES factor', 'term : DIVIDE factor', 'term : TIMES', 'term : DIVIDE')
-    def term_error(self, p):
-        print("Error falta de operando u operador")
-        return ("error",)
-
-    # @_('term : term error factor')
-    # def term_error_operador(self, p):
-    #     print("Error falta de operando u operador")
-    #     return ("error",)
     
     @_('constante', 'invocacion_funcion', 'invocacion_metodo', 
         'asignable', 'TOL "(" expr ")"')
@@ -272,12 +183,6 @@ class TpParser(Parser):
     def asignacion_de_linea(self, p):
         return p
 
-    @_('asignacion_de_linea : asignable ASSIGN2P IDEN', 'asignacion_de_linea : asignable ASSIGN2P CONSTANTE_E',
-       'asignacion_de_linea : asignable ASSIGN2P CONSTANTE_F')
-    def asignacion_de_linea_error(self, p):
-        print(f"Error en linea {p.lineno}, uso del símbolo de asignación normal (:=) donde debe usarse =.")
-        return ("error",)
-
     @_('parametros "," expr', 'expr')
     def parametros(self, p):
         return p
@@ -285,11 +190,6 @@ class TpParser(Parser):
     @_('seleccion', 'iteracion')
     def control(self, p):
         return p
-
-    @_('iteracion : FROM IDEN ASSIGN2P constante TO constante BY constante REPEAT error')
-    def iteracion_error_cuerpo(self, p):
-        print(f"Error o falta de cuerpo de control en iteracion en linea {p.lineno}")
-        return ("error",)
 
     @_('expr_linea GT expr_linea', 'expr_linea LT expr_linea',
        'expr_linea GE expr_linea', 'expr_linea LE expr_linea',
@@ -315,3 +215,100 @@ class TpParser(Parser):
         # if not p:
         #     print("Falta de end principal")
         pass
+
+    #-----------------------------------------------------------------------------
+    #errores
+    @_('programa : program_in error cuerpo_ejecutable')
+    def programa_error_declaracion(self, p):
+        print(f"Error o falta de declaracion en linea {p.lineno}")
+        return ("error",)
+
+    @_('programa : declaraciones cuerpo_ejecutable', 'programa : cuerpo_ejecutable')
+    def programa_error_nombre(self, p):
+        print("Falta nombre de programa")
+        if not hasattr(p, 'declaraciones'): print("Falta declaracion")
+        return ("error",)
+
+    @_('cuerpo_ejecutable : error END ";"')
+    def cuerpo_ejecutable_error(self, p):
+        print(f"error falta de begin en cuerpo ejecutable de linea {p.lineno}")
+        return ("error",)
+
+    @_('declaracion : error ";"', 'declaracion_func : error ";"', 'declaracion_clase : error ";"')
+    def declaracion_error(self, p):
+        print(f"error declaracion en linea {p.lineno}")
+        return ("error",)
+
+    @_('declaracion : dec_var error ";"', 'declaracion_func : dec_var error ";"', 'declaracion_clase : dec_var error ";"')
+    def declaracion_error_lista_var(self, p):
+        print(f'Falta de "," en declaracion de linea {p.lineno}')
+        return ("error",)
+
+    @_('declaracion : tipo FUNCTION error ";"', 'declaracion_func : tipo FUNCTION error ";"')
+    def declaracion_error_function_name(self, p):
+        print(f'Falta de nombre de funcion en linea {p.lineno}')
+        return ("error",)
+
+    @_('declaracion : tipo FUNCTION IDEN "(" error ";"', 'declaracion_func : tipo FUNCTION IDEN "(" error ";"')
+    def declaracion_error_function_paramf(self, p):
+        print(f'Falta de nombre o tipo de parametro en linea {p.lineno}')
+        return ("error",)
+
+    @_('declaracion : CLASS IDEN error BEGIN declaraciones_clase END ";"')
+    def clase_error_codigo(self, p):
+        print(f"error ejecutable en linea {p.lineno}, la clase no posee codigo.")
+        return ("error",)
+
+    @_('declaracion : CLASS IDEN IDEN BEGIN declaraciones_clase EXTENDS error ";" END ";"')
+    def clase_error_extends(self, p):
+        print(f"error ejecutable en linea {p.lineno}, la clase no posee identificadores luego del extends.")
+        return ("error",)
+
+    @_('declaracion : TYPEDEF IDEN ASSIGN "[" error "]" ";"')
+    def tipoUsuario_error(self, p):
+        print(f"error ejecutable en linea {p.lineno}, ausencia de valores para la enumeración.")
+        return ("error",)
+
+    @_('ejecutable : error ";"')
+    def ejecutable_error(self, p):
+
+        #print(p._namemap)
+
+        print(f"error ejecutable en linea {p.lineno}")
+        return ("error",)
+
+    @_('ejecutable : POUT "(" error ";"')
+    def ejecutable_error_pout(self, p):
+        print(f"error falta argumento POUT en linea {p.lineno}")
+        return ("error",)
+
+    @_('ejecutable : IF error ";"', 'ejecutable : IF "(" condicion error ";"')
+    def ejecutable_error_if(self, p):
+        print(f"Falta de parentesis de cierre o apertura en linea {p.lineno}")
+        return ("error",)
+
+    @_('ejecutable : IF "(" condicion ")" cuerpo_control error ";"')
+    def ejecutable_error_if_endIF(self, p):
+        print(f"Falta de end_if en linea {p.lineno}")
+        return ("error",)
+
+    @_('expr : expr PLUS error ";"', 'expr : expr MINUS error ";"', 'expr : PLUS term', 'expr : MINUS term')
+    def expr_error(self, p):
+        print(f"Error falta de operando u operador xd {p.lineno}")
+        return ("error",)
+
+    @_('term : term TIMES', 'term : term DIVIDE', 'term : TIMES factor', 'term : DIVIDE factor', 'term : TIMES', 'term : DIVIDE')
+    def term_error(self, p):
+        print("Error falta de operando u operador")
+        return ("error",)
+
+    @_('asignacion_de_linea : asignable ASSIGN2P IDEN', 'asignacion_de_linea : asignable ASSIGN2P CONSTANTE_E',
+       'asignacion_de_linea : asignable ASSIGN2P CONSTANTE_F')
+    def asignacion_de_linea_error(self, p):
+        print(f"Error en linea {p.lineno}, uso del símbolo de asignación normal (:=) donde debe usarse =.")
+        return ("error",)
+
+    @_('iteracion : FROM IDEN ASSIGN2P constante TO constante BY constante REPEAT error')
+    def iteracion_error_cuerpo(self, p):
+        print(f"Error o falta de cuerpo de control en iteracion en linea {p.lineno}")
+        return ("error",)
