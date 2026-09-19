@@ -17,7 +17,7 @@ end;
 class cb c12
 begin
     longint b;
-    extends ;
+    extends asd;
 end;
 
 begin

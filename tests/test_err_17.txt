@@ -1,0 +1,28 @@
+test_cod17
+longint v;
+
+// Clase valida con codigo de estructura 'c10' (Tema 24)
+class ca c10
+begin
+    longint a;
+    
+    longint m(longint pa)
+    begin
+        ret (pa);
+    end;
+end;
+
+// Clase invalida sin codigo de estructura (Dispara COD 17)
+class cb
+begin
+    longint b;
+    
+    longint n(longint pb)
+    begin
+        ret (pb);
+    end;
+end;
+
+begin
+    v := 1$l;
+end

@@ -120,6 +120,11 @@ class TpParser(Parser):
     def tipoUsuario(self, p):
         return p
 
+    @_('declaracion : TYPEDEF IDEN ASSIGN "[" error "]" ";"')
+    def tipoUsuario(self, p):
+        print(f"error ejecutable en linea {p.lineno}, ausencia de valores para la enumeración.")
+        return ("error",)
+
     @_('constantes "," constante', 'constante')
     def constantes(self, p):
         return p
