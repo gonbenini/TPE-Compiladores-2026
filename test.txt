@@ -5,9 +5,5 @@ begin
     pout ("hola");
 end;
 begin
-    if (10$l < 5$l)
-        begin
-            a = 5$l;
-        end
-    a = 5$l;
+    a := 5$l  10$l by 1$l repeat a = 10$l;
 end

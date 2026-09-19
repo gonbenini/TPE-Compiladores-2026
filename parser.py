@@ -138,6 +138,13 @@ class TpParser(Parser):
 
     @_('ejecutable : error ";"')
     def ejecutable_error(self, p):
+
+        atributos_a_buscar = ['FROM', 'IDEN', 'constante', 'TO']
+        # p._namemap contiene los nombres de todo lo que la regla atrapó
+        if not any(atributo in p._namemap for atributo in atributos_a_buscar):
+            print(f"Error falta de elemento en iterador de linea {p.lineno}")
+            return ("error",)
+
         print(f"error ejecutable en linea {p.lineno}")
         return ("error",)
 
@@ -254,7 +261,7 @@ class TpParser(Parser):
     def seleccion(self, p):
         return p
 
-    @_('FROM IDEN ASSIGN2P constante TO constante BY constante REPEAT cuerpo_control ";"')
+    @_('FROM IDEN ASSIGN2P constante TO constante BY constante REPEAT cuerpo_control')
     def iteracion(self, p):
         return p
     
@@ -271,6 +278,6 @@ class TpParser(Parser):
     def iteracion_func(self, p):
         return p
         
-    @_('BEGIN ejecutables_func END', 'ejecutable_func')
+    @_('BEGIN ejecutables_func END ";"', 'ejecutable_func')
     def cuerpo_control_func(self, p):
         return p
