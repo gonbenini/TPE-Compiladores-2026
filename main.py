@@ -27,5 +27,5 @@ parser = TpParser()
 
 tokens = lexer.tokenize(program_code)
 result = parser.parse(tokens)
-imprimir_arbol(result)
+#imprimir_arbol(result)
 save_lexer_output(tokens_out, TS)

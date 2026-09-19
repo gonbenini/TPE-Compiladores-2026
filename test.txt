@@ -1,12 +1,8 @@
 program hola
-longint a;
-longint function compi (longint a)
-begin
-    pout ("hola");
+class ca c1 begin
+    longint a;
+    function;
 end;
 begin
-    pout(a b);
-
-
-    //f();
+    pout(a +b);
 end

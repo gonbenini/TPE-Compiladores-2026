@@ -49,7 +49,7 @@ class TpParser(Parser):
     def declaracion_clase(self, p):
         return p
 
-    @_('tipo IDEN "(" parametros_f ")" BEGIN ejecutables_func END ";"',)
+    @_('tipo IDEN "(" parametros_f ")" BEGIN ejecutables END ";"',)
     def metodo(self, p):
         return p
     
@@ -97,8 +97,8 @@ class TpParser(Parser):
     def parametro_f(self, p):
         return p
 
-    @_('tipo FUNCTION IDEN "(" parametros_f ")" declaraciones_func BEGIN ejecutables_func END ";"',
-       'tipo FUNCTION IDEN "(" parametros_f ")" BEGIN ejecutables_func END ";"')
+    @_('tipo FUNCTION IDEN "(" parametros_f ")" declaraciones_func BEGIN ejecutables END ";"',
+       'tipo FUNCTION IDEN "(" parametros_f ")" BEGIN ejecutables END ";"')
     def funcion(self, p):
         return p
 
@@ -134,20 +134,11 @@ class TpParser(Parser):
         return p
 
     #asignaciones
-
-    @_('ejecutables_func ejecutable_func', 'ejecutable_func')
-    def ejecutables_func(self, p):
-            return p
-    
-    @_('asignacion', 'asignacion_linea', 'control_func', 'invocacion_funcion ";"', 'invocacion_metodo ";"', 'retorno', 'pout')
-    def ejecutable_func(self, p):
-            return p
-
     @_('ejecutables ejecutable', 'ejecutable')
     def ejecutables(self, p):
         return p
 
-    @_('asignacion', 'asignacion_linea', 'control', 'invocacion_funcion ";"', 'invocacion_metodo ";"', 'pout')
+    @_('asignacion', 'asignacion_linea', 'control', 'invocacion_funcion ";"', 'invocacion_metodo ";"', 'retorno', 'pout')
     def ejecutable(self, p):
         return p
 
@@ -278,10 +269,6 @@ class TpParser(Parser):
     def control(self, p):
         return p
 
-    @_('seleccion_func', 'iteracion_func')
-    def control_func(self, p):
-        return p
-
     @_('expr_linea GT expr_linea', 'expr_linea LT expr_linea',
        'expr_linea GE expr_linea', 'expr_linea LE expr_linea',
        'expr_linea NE expr_linea', 'expr_linea EQ expr_linea')
@@ -299,17 +286,4 @@ class TpParser(Parser):
     
     @_('BEGIN ejecutables END', 'ejecutable')
     def cuerpo_control(self, p):
-        return p
-
-    @_('IF "(" condicion ")" cuerpo_control_func END_IF ";"',
-        'IF "(" condicion ")" cuerpo_control_func ELSE cuerpo_control_func END_IF ";"')
-    def seleccion_func(self, p):
-            return p
-    
-    @_('FROM IDEN ASSIGN2P constante TO constante BY constante REPEAT cuerpo_control_func ";"')
-    def iteracion_func(self, p):
-        return p
-        
-    @_('BEGIN ejecutables_func END ";"', 'ejecutable_func')
-    def cuerpo_control_func(self, p):
         return p
