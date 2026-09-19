@@ -15,7 +15,6 @@ class TpParser(Parser):
     @_('programa')
     def programa_I(self, p):
         print("Parseo finalizado")
-        sys.exit(0)
         return p
 
     @_('program_in declaraciones cuerpo_ejecutable')
