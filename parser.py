@@ -7,6 +7,11 @@ class TpParser(Parser):
     debugfile = 'parser.out'
     tokens = TpLexer.tokens
 
+    precedence = (
+        ('right', 'error'),
+        ('right', 'END', ';'),
+    )
+
     @_('programa')
     def programa_I(self, p):
         print("Parseo finalizado")
@@ -280,6 +285,11 @@ class TpParser(Parser):
     @_('seleccion', 'iteracion')
     def control(self, p):
         return p
+
+    @_('iteracion : FROM IDEN ASSIGN2P constante TO constante BY constante REPEAT error')
+    def iteracion_error_cuerpo(self, p):
+        print(f"Error o falta de cuerpo de control en iteracion en linea {p.lineno}")
+        return ("error",)
 
     @_('expr_linea GT expr_linea', 'expr_linea LT expr_linea',
        'expr_linea GE expr_linea', 'expr_linea LE expr_linea',
