@@ -139,11 +139,7 @@ class TpParser(Parser):
     @_('ejecutable : error ";"')
     def ejecutable_error(self, p):
 
-        atributos_a_buscar = ['FROM', 'IDEN', 'constante', 'TO']
-        # tiene que contener al menos y tiene que faltar al menos uno.
-        if any(atributo in p._namemap for atributo in atributos_a_buscar) and not any(atributo in p._namemap for atributo in atributos_a_buscar):
-            print(f"Error falta de elemento en iterador de linea {p.lineno}")
-            return ("error",)
+        #print(p._namemap)
 
         print(f"error ejecutable en linea {p.lineno}")
         return ("error",)
@@ -206,10 +202,25 @@ class TpParser(Parser):
     @_('expr PLUS term', 'expr MINUS term', 'term')
     def expr(self, p):
         return p
+
+    @_('expr : expr PLUS error ";"', 'expr : expr MINUS error ";"', 'expr : expr error term', 'expr : PLUS term', 'expr : MINUS term')
+    def expr_error(self, p):
+        print("Error falta de operando u operador xd")
+        return ("error",)
     
     @_('term TIMES factor', 'term DIVIDE factor', 'factor')
     def term(self, p):
         return p
+
+    @_('term : term TIMES', 'term : term DIVIDE', 'term : TIMES factor', 'term : DIVIDE factor', 'term : TIMES', 'term : DIVIDE')
+    def term_error(self, p):
+        print("Error falta de operando u operador")
+        return ("error",)
+
+    # @_('term : term error factor')
+    # def term_error_operador(self, p):
+    #     print("Error falta de operando u operador")
+    #     return ("error",)
     
     @_('constante', 'invocacion_funcion', 'invocacion_metodo', 
         'asignable', 'TOL "(" expr ")"')

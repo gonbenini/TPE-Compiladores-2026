@@ -5,5 +5,8 @@ begin
     pout ("hola");
 end;
 begin
-    a == 5$l;
+    pout(a b);
+
+
+    //f();
 end
