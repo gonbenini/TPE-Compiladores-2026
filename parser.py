@@ -292,6 +292,7 @@ class TpParser(Parser):
         print(f"Falta de end_if en linea {p.lineno}")
         return ("error",)
 
+    #expr_linea
     @_('expr : expr PLUS error ";"', 'expr : expr MINUS error ";"', 'expr : PLUS term', 'expr : MINUS term')
     def expr_error(self, p):
         print(f"Error falta de operando u operador xd {p.lineno}")
@@ -299,6 +300,16 @@ class TpParser(Parser):
 
     @_('term : term TIMES', 'term : term DIVIDE', 'term : TIMES factor', 'term : DIVIDE factor', 'term : TIMES', 'term : DIVIDE')
     def term_error(self, p):
+        print("Error falta de operando u operador")
+        return ("error",)
+
+    @_('expr_linea : expr_linea PLUS error ";"', 'expr_linea : expr_linea MINUS error ";"', 'expr_linea : PLUS term_linea', 'expr_linea : MINUS term_linea')
+    def expr_linea_error(self, p):
+        print(f"Error falta de operando u operador xd {p.lineno}")
+        return ("error",)
+
+    @_('term_linea : term_linea TIMES', 'term_linea : term_linea DIVIDE', 'term_linea : TIMES factor_linea', 'term_linea : DIVIDE factor_linea', 'term_linea : TIMES', 'term_linea : DIVIDE')
+    def term_linea_error(self, p):
         print("Error falta de operando u operador")
         return ("error",)
 
