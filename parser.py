@@ -1,8 +1,12 @@
 from sly import Parser
 from lexer import TpLexer
-import sys 
+from utils import check_flt_range, check_int_range
 
 class TpParser(Parser):
+
+    def __init__(self, TS):
+        # Inyectamos dependencias
+        self.TS = TS
 
     debugfile = 'parser.out'
     tokens = TpLexer.tokens
@@ -94,8 +98,35 @@ class TpParser(Parser):
     def constantes(self, p):
         return p
 
-    @_('CONSTANTE_E', 'CONSTANTE_F')
+    @_('CONSTANTE_E', 'CONSTANTE_F', 'MINUS CONSTANTE_E', 'MINUS CONSTANTE_F')
     def constante(self, p):
+        if len(p) == 2:
+            key = p[1]
+
+            if hasattr(p, 'CONSTANTE_E'):
+                tipo_dato = 'CONSTANTE_E'  # (O el string exacto que uses en tu TS)
+            else:
+                tipo_dato = 'CONSTANTE_F'
+
+            if self.TS[key]['count'] == 1:
+                del self.TS[key]
+
+            elif self.TS[key]['count'] > 1:
+                self.TS[key]['count'] -= 1
+
+            nueva_key = '-' + str(key)
+            if nueva_key in self.TS:
+                self.TS[nueva_key]['count'] += 1
+            else:
+                # Diccionario corregido
+                self.TS[nueva_key] = {'type': tipo_dato, 'count': 1}
+
+            if (tipo_dato == 'CONSTANTE_E') & (not check_int_range(key)):
+                print("Error constante negativa fuera de rango")
+
+            elif (tipo_dato == 'CONSTANTE_F') & (not check_flt_range(key)):
+                print("Error constante negativa fuera de rango")
+
         return p
 
     #asignaciones
@@ -327,3 +358,8 @@ class TpParser(Parser):
     def iteracion_error_cuerpo(self, p):
         print(f"Error o falta de cuerpo de control en iteracion en linea {p.lineno}")
         return ("error",)
+
+    # @_('cuerpo_ejecutable : BEGIN END ";"', 'cuerpo_ejecutable : BEGIN END')
+    # def cuerpo_ejecutable_error_begin(self, p):
+    #     print(f"error falta {p.lineno}")
+    #     return ("error",)
