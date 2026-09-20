@@ -1,5 +1,6 @@
 from sly import Lexer
 import re
+from utils import check_flt_range, check_int_range
 
 class TpLexer(Lexer):
 
