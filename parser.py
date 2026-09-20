@@ -4,6 +4,8 @@ from sly import Parser
 from lexer import TpLexer
 import sys
 
+from utils import check_flt_range, check_int_range
+
 class TpParser(Parser):
 
     def __init__(self, TS):
@@ -161,9 +163,9 @@ class TpParser(Parser):
             key = p[1]
 
             if hasattr(p, 'CONSTANTE_E'):
-                tipo_dato = 'LONGINT'  # (O el string exacto que uses en tu TS)
+                tipo_dato = 'CONSTANTE_E'  # (O el string exacto que uses en tu TS)
             else:
-                tipo_dato = 'SINGLEF'
+                tipo_dato = 'CONSTANTE_F'
 
             if self.TS[key]['count'] == 1:
                 del self.TS[key]
@@ -177,6 +179,12 @@ class TpParser(Parser):
             else:
                 # Diccionario corregido
                 self.TS[nueva_key] = {'type': tipo_dato, 'count': 1}
+
+            if (tipo_dato == 'CONSTANTE_E') & (not check_int_range(key)):
+                print("Error constante negativa fuera de rango")
+
+            elif (tipo_dato == 'CONSTANTE_F') & (not check_flt_range(key)):
+                print("Error constante negativa fuera de rango")
 
         return p
 

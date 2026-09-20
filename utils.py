@@ -35,18 +35,22 @@ def save_lexer_output(tokens, TS):
             atrs = TS[t]
             f.write(f"{t} {atrs} \n")
 
-'''
-def token_line_generator(lexer, texto):
-    # utilidad para mandarle al Tokenize del lexer por linea en vez de por archivo.
-    # se instancia haciendo `tokens = token_producer()` y luego se puede iterar.
-    f = open("tokens.txt", "r", encoding="utf-8")
-    for linea in texto.splitlines():
-        for token in lexer.tokenize(linea): 
-            f.write(token) 
-            yield token
+def check_flt_range(num):
+    
+    if num == 0.0:
+        return True
+    if -3.40282347e38 < num < -1.17549435e-38:
+        return True
+    if 1.17549435e-38 < num < 3.40282347e38:
+        return True
+    return False
 
-    close(f)
-'''
+def check_int_range(num, max_num = (2**31) - 1, min_num = -2**31):
+    if num > max_num or num < min_num:
+        return False
+    else:
+        return True
+    
 
 def imprimir_arbol(nodo, prefijo="", es_ultimo=True, es_raiz=True):
     # Si el nodo no es una tupla (es decir, es un string o número final como 'begin' o 4)
@@ -69,3 +73,4 @@ def imprimir_arbol(nodo, prefijo="", es_ultimo=True, es_raiz=True):
     # Iteramos y llamamos a la función de forma recursiva
     for i, hijo in enumerate(hijos):
         imprimir_arbol(hijo, nuevo_prefijo, i == (len(hijos) - 1), False)
+
