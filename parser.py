@@ -18,7 +18,6 @@ class TpParser(Parser):
 
     @_('programa')
     def programa_I(self, p):
-        print("Parseo finalizado")
         return p
 
     @_('program_in declaraciones cuerpo_ejecutable')
@@ -158,7 +157,8 @@ class TpParser(Parser):
     def invocacion_funcion(self, p):
         return p
 
-    @_('posicionales "," CONSTANTE_E', 'CONSTANTE_E')
+    @_('posicionales "," CONSTANTE_E', 'posicionales "," MINUS CONSTANTE_E', 
+       'CONSTANTE_E', 'MINUS CONSTANTE_E')
     def posicionales(self, p):
         return p
 
@@ -181,10 +181,27 @@ class TpParser(Parser):
     @_('expr PLUS term', 'expr MINUS term', 'term')
     def expr(self, p):
         return p
+
+    @_('expr : expr PLUS error ";"', 'expr : expr MINUS error ";"')
+    def expr_error(self, p):
+        print(f"Error falta de operando u operador xd {p.lineno}")
+        return ("error",)
     
     @_('term TIMES factor', 'term DIVIDE factor', 'factor')
     def term(self, p):
         return p
+
+    @_('term : term TIMES error', 'term : term DIVIDE error', 
+       'term : TIMES factor', 'term : DIVIDE factor', 
+       'term : TIMES error', 'term : DIVIDE error')
+    def term_error(self, p):
+        print(f"Error falta de operando u operador en linea {p.lineno}")
+        return ("error",)
+
+    # @_('term : term error factor')
+    # def term_error_operador(self, p):
+    #     print("Error falta de operando u operador")
+    #     return ("error",)
     
     @_('constante', 'invocacion_funcion', 'invocacion_metodo', 
         'asignable', 'TOL "(" expr ")"')
@@ -208,8 +225,9 @@ class TpParser(Parser):
     def factor_linea(self, p):
         return p
 
-    @_('asignable ASSIGN IDEN', 'asignable ASSIGN CONSTANTE_E',
-       'asignable ASSIGN CONSTANTE_F')
+    @_('asignable ASSIGN IDEN', 
+       'asignable ASSIGN CONSTANTE_E', 'asignable ASSIGN MINUS CONSTANTE_E',
+       'asignable ASSIGN CONSTANTE_F', 'asignable ASSIGN MINUS CONSTANTE_F')
     def asignacion_de_linea(self, p):
         return p
 
