@@ -244,7 +244,7 @@ class TpParser(Parser):
 
     @_('declaracion : dec_var error ";"', 'declaracion_func : dec_var error ";"', 'declaracion_clase : dec_var error ";"')
     def declaracion_error_lista_var(self, p):
-        print(f'Falta de "," en declaracion de linea {p.lineno}')
+        print(f'Falta de "," o ";" en declaracion de linea {p.lineno}')
         return ("error",)
 
     @_('declaracion : tipo FUNCTION error ";"', 'declaracion_func : tipo FUNCTION error ";"')
