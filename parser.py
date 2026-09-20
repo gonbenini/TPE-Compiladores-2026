@@ -257,9 +257,9 @@ class TpParser(Parser):
 
     #-----------------------------------------------------------------------------
     #errores
-    @_('programa : program_in error cuerpo_ejecutable')
+    @_('programa : program_in error ";"')
     def programa_error_declaracion(self, p):
-        print(f"Error o falta de declaracion en linea {p.lineno}")
+        print(f"Error fatal en declaraciones")
         return ("error",)
 
     @_('programa : declaraciones cuerpo_ejecutable', 'programa : cuerpo_ejecutable')
