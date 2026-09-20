@@ -21,7 +21,7 @@ TS = {
 
 tokens_out = []
 lexer = TpLexer(_logger, TS, PR, tokens_out)
-parser = TpParser()
+parser = TpParser(TS)
 
 ### Invocacion
 

@@ -268,11 +268,6 @@ class TpParser(Parser):
         if not hasattr(p, 'declaraciones'): print("Falta declaracion")
         return ("error",)
 
-    @_('cuerpo_ejecutable : error END ";"')
-    def cuerpo_ejecutable_error(self, p):
-        print(f"error falta de begin en cuerpo ejecutable de linea {p.lineno}")
-        return ("error",)
-
     @_('declaracion : error ";"', 'declaracion_func : error ";"', 'declaracion_clase : error ";"')
     def declaracion_error(self, p):
         print(f"error declaracion en linea {p.lineno}")
@@ -288,6 +283,7 @@ class TpParser(Parser):
         print(f'Falta de nombre de funcion en linea {p.lineno}')
         return ("error",)
 
+    #posible sol END ";"
     @_('declaracion : tipo FUNCTION IDEN "(" error ";"', 'declaracion_func : tipo FUNCTION IDEN "(" error ";"')
     def declaracion_error_function_paramf(self, p):
         print(f'Falta de nombre o tipo de parametro en linea {p.lineno}')
