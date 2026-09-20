@@ -182,26 +182,13 @@ class TpParser(Parser):
     def expr(self, p):
         return p
 
-    @_('expr : expr PLUS error ";"', 'expr : expr MINUS error ";"')
-    def expr_error(self, p):
-        print(f"Error falta de operando u operador xd {p.lineno}")
-        return ("error",)
+
     
     @_('term TIMES factor', 'term DIVIDE factor', 'factor')
     def term(self, p):
         return p
 
-    @_('term : term TIMES error', 'term : term DIVIDE error', 
-       'term : TIMES factor', 'term : DIVIDE factor', 
-       'term : TIMES error', 'term : DIVIDE error')
-    def term_error(self, p):
-        print(f"Error falta de operando u operador en linea {p.lineno}")
-        return ("error",)
 
-    # @_('term : term error factor')
-    # def term_error_operador(self, p):
-    #     print("Error falta de operando u operador")
-    #     return ("error",)
     
     @_('constante', 'invocacion_funcion', 'invocacion_metodo', 
         'asignable', 'TOL "(" expr ")"')
@@ -345,14 +332,26 @@ class TpParser(Parser):
         return ("error",)
 
     #expr_linea
-    @_('expr : expr PLUS error ";"', 'expr : expr MINUS error ";"', 'expr : PLUS term', 'expr : MINUS term')
+    # @_('expr : expr PLUS error ";"', 'expr : expr MINUS error ";"', 'expr : PLUS term', 'expr : MINUS term')
+    # def COMENTADOexpr_error(self, p):
+    #     print(f"Error falta de operando u operador xd {p.lineno}")
+    #     return ("error",)
+
+    @_('expr : expr PLUS error ";"', 'expr : expr MINUS error ";"')
     def expr_error(self, p):
         print(f"Error falta de operando u operador xd {p.lineno}")
         return ("error",)
 
-    @_('term : term TIMES', 'term : term DIVIDE', 'term : TIMES factor', 'term : DIVIDE factor', 'term : TIMES', 'term : DIVIDE')
+    # @_('term : term TIMES', 'term : term DIVIDE', 'term : TIMES factor', 'term : DIVIDE factor', 'term : TIMES', 'term : DIVIDE')
+    # def term_error(self, p):
+    #     print("Error falta de operando u operador")
+    #     return ("error",)
+
+    @_('term : term TIMES error', 'term : term DIVIDE error', 
+       'term : TIMES factor', 'term : DIVIDE factor', 
+       'term : TIMES error', 'term : DIVIDE error')
     def term_error(self, p):
-        print("Error falta de operando u operador")
+        print(f"Error falta de operando u operador en linea {p.lineno}")
         return ("error",)
 
     @_('expr_linea : expr_linea PLUS error ";"', 'expr_linea : expr_linea MINUS error ";"', 'expr_linea : PLUS term_linea', 'expr_linea : MINUS term_linea')
@@ -376,8 +375,18 @@ class TpParser(Parser):
     def iteracion_error_cuerpo(self, p):
         print(f"Error o falta de cuerpo de control en iteracion en linea {p.lineno}")
         return ("error",)
-
+    
     # @_('cuerpo_ejecutable : BEGIN END ";"', 'cuerpo_ejecutable : BEGIN END')
     # def cuerpo_ejecutable_error_begin(self, p):
     #     print(f"error falta {p.lineno}")
+    #     return ("error",)
+
+    # @_('cuerpo_ejecutable : BEGIN END ";"', 'cuerpo_ejecutable : BEGIN END')
+    # def cuerpo_ejecutable_error_b(self, p):
+    #     print(f"error falta {p.lineno}")
+    #     return ("error",)
+
+    # @_('term : term error factor')
+    # def term_error_operador(self, p):
+    #     print("Error falta de operando u operador")
     #     return ("error",)
