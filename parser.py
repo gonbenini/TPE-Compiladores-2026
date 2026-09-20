@@ -14,8 +14,6 @@ class TpParser(Parser):
 
     @_('programa')
     def programa_I(self, p):
-        print("Parseo finalizado")
-        sys.exit(0)
         return p
 
     @_('program_in declaraciones cuerpo_ejecutable')
@@ -146,7 +144,7 @@ class TpParser(Parser):
     def constantes(self, p):
         return p
 
-    @_('CONSTANTE_E', 'CONSTANTE_F')
+    @_('CONSTANTE_E', 'CONSTANTE_F', 'MINUS CONSTANTE_E', 'MINUS CONSTANTE_F')
     def constante(self, p):
         return p
 
@@ -202,7 +200,8 @@ class TpParser(Parser):
     def invocacion_funcion(self, p):
         return p
 
-    @_('posicionales "," CONSTANTE_E', 'CONSTANTE_E')
+    @_('posicionales "," CONSTANTE_E', 'posicionales "," MINUS CONSTANTE_E', 
+       'CONSTANTE_E', 'MINUS CONSTANTE_E')
     def posicionales(self, p):
         return p
 
@@ -226,7 +225,7 @@ class TpParser(Parser):
     def expr(self, p):
         return p
 
-    @_('expr : expr PLUS error ";"', 'expr : expr MINUS error ";"', 'expr : PLUS term', 'expr : MINUS term')
+    @_('expr : expr PLUS error ";"', 'expr : expr MINUS error ";"')
     def expr_error(self, p):
         print(f"Error falta de operando u operador xd {p.lineno}")
         return ("error",)
@@ -235,9 +234,11 @@ class TpParser(Parser):
     def term(self, p):
         return p
 
-    @_('term : term TIMES', 'term : term DIVIDE', 'term : TIMES factor', 'term : DIVIDE factor', 'term : TIMES', 'term : DIVIDE')
+    @_('term : term TIMES error', 'term : term DIVIDE error', 
+       'term : TIMES factor', 'term : DIVIDE factor', 
+       'term : TIMES error', 'term : DIVIDE error')
     def term_error(self, p):
-        print("Error falta de operando u operador")
+        print(f"Error falta de operando u operador en linea {p.lineno}")
         return ("error",)
 
     # @_('term : term error factor')
@@ -267,8 +268,9 @@ class TpParser(Parser):
     def factor_linea(self, p):
         return p
 
-    @_('asignable ASSIGN IDEN', 'asignable ASSIGN CONSTANTE_E',
-       'asignable ASSIGN CONSTANTE_F')
+    @_('asignable ASSIGN IDEN', 
+       'asignable ASSIGN CONSTANTE_E', 'asignable ASSIGN MINUS CONSTANTE_E',
+       'asignable ASSIGN CONSTANTE_F', 'asignable ASSIGN MINUS CONSTANTE_F')
     def asignacion_de_linea(self, p):
         return p
 
