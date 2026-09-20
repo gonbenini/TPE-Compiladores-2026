@@ -201,8 +201,12 @@ class TpParser(Parser):
     def seleccion(self, p):
         return p
 
-    @_('FROM IDEN ASSIGN2P constante TO constante BY constante REPEAT cuerpo_control')
+    @_('FROM IDEN ASSIGN2P constante TO constante BY constante REPEAT cuerpo_it')
     def iteracion(self, p):
+        return p
+
+    @_('BEGIN ejecutables END ";"', 'ejecutable')
+    def cuerpo_it(self, p):
         return p
     
     @_('cuerpo_ejecutable', 'ejecutable')
@@ -318,7 +322,8 @@ class TpParser(Parser):
         print(f"Error en linea {p.lineno}, uso del símbolo de asignación normal (:=) donde debe usarse =.")
         return ("error",)
 
-    @_('iteracion : FROM IDEN ASSIGN2P constante TO constante BY constante REPEAT error')
+    @_('ejecutable : FROM IDEN ASSIGN2P constante TO constante BY constante REPEAT error',
+       'ejecutable : FROM IDEN ASSIGN2P constante TO constante BY constante REPEAT BEGIN END ";"')
     def iteracion_error_cuerpo(self, p):
         print(f"Error o falta de cuerpo de control en iteracion en linea {p.lineno}")
         return ("error",)
