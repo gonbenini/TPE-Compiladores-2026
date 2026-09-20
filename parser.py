@@ -354,15 +354,15 @@ class TpParser(Parser):
         print(f"Error falta de operando u operador en linea {p.lineno}")
         return ("error",)
 
-    @_('expr_linea : expr_linea PLUS error ";"', 'expr_linea : expr_linea MINUS error ";"', 'expr_linea : PLUS term_linea', 'expr_linea : MINUS term_linea')
-    def expr_linea_error(self, p):
-        print(f"Error falta de operando u operador xd {p.lineno}")
-        return ("error",)
+    # @_('expr_linea : expr_linea PLUS error ";"', 'expr_linea : expr_linea MINUS error ";"', 'expr_linea : PLUS term_linea', 'expr_linea : MINUS term_linea')
+    # def expr_linea_error(self, p):
+    #     print(f"Error falta de operando u operador xd {p.lineno}")
+    #     return ("error",)
 
-    @_('term_linea : term_linea TIMES', 'term_linea : term_linea DIVIDE', 'term_linea : TIMES factor_linea', 'term_linea : DIVIDE factor_linea', 'term_linea : TIMES', 'term_linea : DIVIDE')
-    def term_linea_error(self, p):
-        print("Error falta de operando u operador")
-        return ("error",)
+    # @_('term_linea : term_linea TIMES', 'term_linea : term_linea DIVIDE', 'term_linea : TIMES factor_linea', 'term_linea : DIVIDE factor_linea', 'term_linea : TIMES', 'term_linea : DIVIDE')
+    # def term_linea_error(self, p):
+    #     print("Error falta de operando u operador")
+    #     return ("error",)
 
     @_('asignacion_de_linea : asignable ASSIGN2P IDEN', 'asignacion_de_linea : asignable ASSIGN2P CONSTANTE_E',
        'asignacion_de_linea : asignable ASSIGN2P CONSTANTE_F')
