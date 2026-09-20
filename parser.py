@@ -1,8 +1,14 @@
+from genericpath import exists
+
 from sly import Parser
 from lexer import TpLexer
-import sys 
+import sys
 
 class TpParser(Parser):
+
+    def __init__(self, TS):
+        # Inyectamos dependencias
+        self.TS = TS
 
     debugfile = 'parser.out'
     tokens = TpLexer.tokens
@@ -146,6 +152,27 @@ class TpParser(Parser):
 
     @_('CONSTANTE_E', 'CONSTANTE_F', 'MINUS CONSTANTE_E', 'MINUS CONSTANTE_F')
     def constante(self, p):
+        if len(p) == 2:
+            key = p[1]
+
+            if hasattr(p, 'CONSTANTE_E'):
+                tipo_dato = 'LONGINT'  # (O el string exacto que uses en tu TS)
+            else:
+                tipo_dato = 'SINGLEF'
+
+            if self.TS[key]['count'] == 1:
+                del self.TS[key]
+
+            elif self.TS[key]['count'] > 1:
+                self.TS[key]['count'] -= 1
+
+            nueva_key = '-' + str(key)
+            if nueva_key in self.TS:
+                self.TS[nueva_key]['count'] += 1
+            else:
+                # Diccionario corregido
+                self.TS[nueva_key] = {'type': tipo_dato, 'count': 1}
+
         return p
 
     #asignaciones

@@ -21,11 +21,11 @@ TS = {
 
 tokens_out = []
 lexer = TpLexer(_logger, TS, PR, tokens_out)
-parser = TpParser()
+parser = TpParser(TS)
 
 ### Invocacion
 
 tokens = lexer.tokenize(program_code)
 result = parser.parse(tokens)
-#imprimir_arbol(result)
+imprimir_arbol(result)
 save_lexer_output(tokens_out, TS)
