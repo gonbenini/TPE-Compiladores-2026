@@ -153,7 +153,7 @@ class TpParser(Parser):
     #a "asignable" o consumirlo para que luego viniera una invocacion a metodo y reducirlo a invocacion_metodo.
     #a si, siempre que viene un IDEN lo convierte en asignable y opera a partir de ahi.
     #ademas, ahora gracias a esto podemos invocar metodos de atributos de objetos, por ejemplo a.b.c.d();
-    @_('asignable "." invocacion_funcion', 'invocacion_metodo "." invocacion_funcion')
+    @_('asignable "." invocacion_funcion')
     def invocacion_metodo(self, p): #invocacion_m . invocacion_f -> invocacion_m . invocacion_f . invocacion_f - > a.b.c.m().m1().m2()
         return p
 
