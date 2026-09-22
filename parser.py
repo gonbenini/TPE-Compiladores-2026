@@ -239,6 +239,9 @@ class TpParser(Parser):
         # print(f"error linea {p.lineno}")
         # if not p:
         #     print("Falta de end principal")
+        #print(p.type)
+        # if p.type == 'str' and p.value.upper() == 'END':
+        #     print(f"Error en linea {p.lineno - 1}")
         pass
 
     #----------------------------ERRORES---------------------------------------------
@@ -290,7 +293,7 @@ class TpParser(Parser):
         print(f"error ejecutable en linea {p.lineno}, ausencia de valores para la enumeración.")
         return ("error",)
 
-    @_('ejecutable : error ";"')
+    @_('ejecutable : error ";"', 'ejecutable : error END')
     def ejecutable_error(self, p):
 
         #print(p._namemap)
@@ -313,16 +316,16 @@ class TpParser(Parser):
         print(f"Falta de end_if en linea {p.lineno}")
         return ("error",)
 
-    @_('expr : expr PLUS error ";"', 'expr : expr MINUS error ";"')
+    @_('expr : expr PLUS error', 'expr : expr MINUS error')
     def expr_error(self, p):
-        print(f"Error falta de operando u operador xd {p.lineno}")
+        print(f"Error falta de operando derecho en linea {p.lineno}")
         return ("error",)
 
     @_('term : term TIMES error', 'term : term DIVIDE error', 
        'term : TIMES factor', 'term : DIVIDE factor', 
        'term : TIMES error', 'term : DIVIDE error')
     def term_error(self, p):
-        print(f"Error falta de operando u operador en linea {p.lineno}")
+        print(f"Error falta de operando en linea {p.lineno}")
         return ("error",)
 
     @_('asignacion_de_linea : asignable ASSIGN2P IDEN', 'asignacion_de_linea : asignable ASSIGN2P CONSTANTE_E',
