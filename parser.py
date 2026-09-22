@@ -227,12 +227,8 @@ class TpParser(Parser):
     def seleccion(self, p):
         return p
 
-    @_('FROM IDEN ASSIGN2P constante TO constante BY constante REPEAT cuerpo_it')
+    @_('FROM IDEN ASSIGN2P constante TO constante BY constante REPEAT cuerpo_control')
     def iteracion(self, p):
-        return p
-
-    @_('BEGIN ejecutables END ";"', 'ejecutable')
-    def cuerpo_it(self, p):
         return p
     
     @_('cuerpo_ejecutable', 'ejecutable')
