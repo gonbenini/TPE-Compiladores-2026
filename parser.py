@@ -204,9 +204,7 @@ class TpParser(Parser):
     def factor_linea(self, p):
         return p
 
-    @_('asignable ASSIGN IDEN', 
-       'asignable ASSIGN CONSTANTE_E', 'asignable ASSIGN MINUS CONSTANTE_E',
-       'asignable ASSIGN CONSTANTE_F', 'asignable ASSIGN MINUS CONSTANTE_F')
+    @_('asignable ASSIGN IDEN', 'asignable ASSIGN constante')
     def asignacion_de_linea(self, p):
         return p
 
