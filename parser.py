@@ -328,8 +328,8 @@ class TpParser(Parser):
         print(f"Error falta de operando en linea {p.lineno}")
         return ("error",)
 
-    @_('asignacion_de_linea : asignable ASSIGN2P IDEN', 'asignacion_de_linea : asignable ASSIGN2P CONSTANTE_E',
-       'asignacion_de_linea : asignable ASSIGN2P CONSTANTE_F')
+    @_('asignacion_de_linea : asignable ASSIGN2P IDEN',
+       'asignacion_de_linea : asignable ASSIGN2P constante')
     def asignacion_de_linea_error(self, p):
         print(f"Error en linea {p.lineno}, uso del símbolo de asignación normal (:=) donde debe usarse =.")
         return ("error",)
