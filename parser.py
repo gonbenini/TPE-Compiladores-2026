@@ -316,14 +316,14 @@ class TpParser(Parser):
         print(f"Falta de end_if en linea {p.lineno}")
         return ("error",)
 
-    @_('expr : expr PLUS error', 'expr : expr MINUS error')
+    @_('expr : expr PLUS error', 'expr : expr MINUS error',
+       'expr_linea : expr_linea PLUS error', 'expr_linea : expr_linea MINUS error')
     def expr_error(self, p):
         print(f"Error falta de operando derecho en linea {p.lineno}")
         return ("error",)
 
-    @_('term : term TIMES error', 'term : term DIVIDE error', 
-       'term : TIMES factor', 'term : DIVIDE factor', 
-       'term : TIMES error', 'term : DIVIDE error')
+    @_('term : term TIMES error', 'term : term DIVIDE error', 'term : TIMES factor', 'term : DIVIDE factor', 'term : TIMES error', 'term : DIVIDE error',
+       'term_linea : term_linea TIMES error', 'term_linea : term_linea DIVIDE error', 'term_linea : TIMES factor_linea', 'term_linea : DIVIDE factor_linea', 'term_linea : TIMES error', 'term_linea : DIVIDE error')
     def term_error(self, p):
         print(f"Error falta de operando en linea {p.lineno}")
         return ("error",)
