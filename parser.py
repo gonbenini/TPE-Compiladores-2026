@@ -145,7 +145,7 @@ class TpParser(Parser):
     def retorno(self, p):
         return p
 
-    @_('POUT "(" asignado ")" ";"')
+    @_('POUT "(" expr ")" ";"', 'POUT "(" CADN ")" ";"')
     def pout(self, p):
         return p
 
@@ -166,20 +166,16 @@ class TpParser(Parser):
     def posicionales(self, p):
         return p
 
-    @_('asignable ASSIGN asignado ";"')
+    @_('asignable ASSIGN expr ";"')
     def asignacion(self, p):
         return p
 
-    @_('asignable ASSIGN2P asignado_linea ";"')
+    @_('asignable ASSIGN2P expr_linea ";"')
     def asignacion_linea(self, p):
         return p
 
     @_('asignable "." IDEN', 'IDEN') #asingable.IDEN -> asignable.IDEN.IDEN
     def asignable(self, p):
-        return p
-
-    @_('expr', 'CADN')
-    def asignado(self, p):
         return p
 
     @_('expr PLUS term', 'expr MINUS term', 'term')
@@ -193,10 +189,6 @@ class TpParser(Parser):
     @_('constante', 'invocacion_funcion', 'invocacion_metodo', 
         'asignable', 'TOL "(" expr ")"')
     def factor(self, p):
-        return p
-
-    @_('expr_linea', 'CADN')
-    def asignado_linea (self, p):
         return p
 
     @_('expr_linea PLUS term_linea', 'expr_linea MINUS term_linea', 'term_linea')
