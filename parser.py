@@ -16,6 +16,8 @@ class TpParser(Parser):
         ('right', 'END', ';'),
     )
 
+    #----------------------------ESTRUCTURA PRINCIPAL---------------------------------------------
+
     @_('programa')
     def programa_I(self, p):
         return p
@@ -27,6 +29,8 @@ class TpParser(Parser):
     @_('PROGRAM IDEN')
     def program_in(self, p):
         return p
+
+    #----------------------------DECLARACIONES---------------------------------------------
 
     @_('declaracion', 'declaraciones declaracion')
     def declaraciones(self, p):
@@ -128,7 +132,7 @@ class TpParser(Parser):
 
         return p
 
-    #asignaciones
+    #----------------------------EJECUTABLES---------------------------------------------
     @_('ejecutables ejecutable', 'ejecutable')
     def ejecutables(self, p):
         return p
@@ -150,7 +154,7 @@ class TpParser(Parser):
     #a si, siempre que viene un IDEN lo convierte en asignable y opera a partir de ahi.
     #ademas, ahora gracias a esto podemos invocar metodos de atributos de objetos, por ejemplo a.b.c.d();
     @_('asignable "." invocacion_funcion', 'invocacion_metodo "." invocacion_funcion')
-    def invocacion_metodo(self, p):
+    def invocacion_metodo(self, p): #invocacion_m . invocacion_f -> invocacion_m . invocacion_f . invocacion_f - > a.b.c.m().m1().m2()
         return p
 
     @_('IDEN "(" parametros ")" "[" posicionales "]"', 'IDEN "(" parametros ")"')
@@ -170,7 +174,7 @@ class TpParser(Parser):
     def asignacion_linea(self, p):
         return p
 
-    @_('asignable "." IDEN', 'IDEN')
+    @_('asignable "." IDEN', 'IDEN') #asingable.IDEN -> asignable.IDEN.IDEN
     def asignable(self, p):
         return p
 
@@ -182,14 +186,10 @@ class TpParser(Parser):
     def expr(self, p):
         return p
 
-
-    
     @_('term TIMES factor', 'term DIVIDE factor', 'factor')
     def term(self, p):
         return p
 
-
-    
     @_('constante', 'invocacion_funcion', 'invocacion_metodo', 
         'asignable', 'TOL "(" expr ")"')
     def factor(self, p):
@@ -255,8 +255,8 @@ class TpParser(Parser):
         #     print("Falta de end principal")
         pass
 
-    #-----------------------------------------------------------------------------
-    #errores
+    #----------------------------ERRORES---------------------------------------------
+
     @_('programa : program_in error ";"')
     def programa_error_declaracion(self, p):
         print(f"Error fatal en declaraciones")
@@ -327,21 +327,10 @@ class TpParser(Parser):
         print(f"Falta de end_if en linea {p.lineno}")
         return ("error",)
 
-    #expr_linea
-    # @_('expr : expr PLUS error ";"', 'expr : expr MINUS error ";"', 'expr : PLUS term', 'expr : MINUS term')
-    # def COMENTADOexpr_error(self, p):
-    #     print(f"Error falta de operando u operador xd {p.lineno}")
-    #     return ("error",)
-
     @_('expr : expr PLUS error ";"', 'expr : expr MINUS error ";"')
     def expr_error(self, p):
         print(f"Error falta de operando u operador xd {p.lineno}")
         return ("error",)
-
-    # @_('term : term TIMES', 'term : term DIVIDE', 'term : TIMES factor', 'term : DIVIDE factor', 'term : TIMES', 'term : DIVIDE')
-    # def term_error(self, p):
-    #     print("Error falta de operando u operador")
-    #     return ("error",)
 
     @_('term : term TIMES error', 'term : term DIVIDE error', 
        'term : TIMES factor', 'term : DIVIDE factor', 
@@ -349,16 +338,6 @@ class TpParser(Parser):
     def term_error(self, p):
         print(f"Error falta de operando u operador en linea {p.lineno}")
         return ("error",)
-
-    # @_('expr_linea : expr_linea PLUS error ";"', 'expr_linea : expr_linea MINUS error ";"', 'expr_linea : PLUS term_linea', 'expr_linea : MINUS term_linea')
-    # def expr_linea_error(self, p):
-    #     print(f"Error falta de operando u operador xd {p.lineno}")
-    #     return ("error",)
-
-    # @_('term_linea : term_linea TIMES', 'term_linea : term_linea DIVIDE', 'term_linea : TIMES factor_linea', 'term_linea : DIVIDE factor_linea', 'term_linea : TIMES', 'term_linea : DIVIDE')
-    # def term_linea_error(self, p):
-    #     print("Error falta de operando u operador")
-    #     return ("error",)
 
     @_('asignacion_de_linea : asignable ASSIGN2P IDEN', 'asignacion_de_linea : asignable ASSIGN2P CONSTANTE_E',
        'asignacion_de_linea : asignable ASSIGN2P CONSTANTE_F')
@@ -371,18 +350,3 @@ class TpParser(Parser):
     def iteracion_error_cuerpo(self, p):
         print(f"Error o falta de cuerpo de control en iteracion en linea {p.lineno}")
         return ("error",)
-    
-    # @_('cuerpo_ejecutable : BEGIN END ";"', 'cuerpo_ejecutable : BEGIN END')
-    # def cuerpo_ejecutable_error_begin(self, p):
-    #     print(f"error falta {p.lineno}")
-    #     return ("error",)
-
-    # @_('cuerpo_ejecutable : BEGIN END ";"', 'cuerpo_ejecutable : BEGIN END')
-    # def cuerpo_ejecutable_error_b(self, p):
-    #     print(f"error falta {p.lineno}")
-    #     return ("error",)
-
-    # @_('term : term error factor')
-    # def term_error_operador(self, p):
-    #     print("Error falta de operando u operador")
-    #     return ("error",)
