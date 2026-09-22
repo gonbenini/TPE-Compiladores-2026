@@ -236,12 +236,6 @@ class TpParser(Parser):
         return p
 
     def error(self, p):
-        # print(f"error linea {p.lineno}")
-        # if not p:
-        #     print("Falta de end principal")
-        #print(p.type)
-        # if p.type == 'str' and p.value.upper() == 'END':
-        #     print(f"Error en linea {p.lineno - 1}")
         pass
 
     #----------------------------ERRORES---------------------------------------------
@@ -272,7 +266,6 @@ class TpParser(Parser):
         print(f'Falta de nombre de funcion en linea {p.lineno}')
         return ("error",)
 
-    #posible sol END ";"
     @_('declaracion : tipo FUNCTION IDEN "(" error ";"', 'declaracion_func : tipo FUNCTION IDEN "(" error ";"')
     def declaracion_error_function_paramf(self, p):
         print(f'Falta de nombre o tipo de parametro en linea {p.lineno}')
@@ -295,9 +288,6 @@ class TpParser(Parser):
 
     @_('ejecutable : error ";"', 'ejecutable : error END')
     def ejecutable_error(self, p):
-
-        #print(p._namemap)
-
         print(f"error ejecutable en linea {p.lineno}")
         return ("error",)
 
