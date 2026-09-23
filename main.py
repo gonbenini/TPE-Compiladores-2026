@@ -1,4 +1,4 @@
-from utils import get_program_code, get_logger, save_lexer_output, imprimir_arbol
+from utils import get_logger_Lex, get_logger_Parsec, get_program_code, save_lexer_output, imprimir_arbol
 from lexer import TpLexer
 from parser import TpParser
 import sys
@@ -6,7 +6,8 @@ import sys
 ### Dependencias del lexer
 
 program_code = get_program_code(sys.argv[1]) # esperamos que el primer argumento sea la direccion del archivo
-_logger = get_logger()
+_loggerLex = get_logger_Lex()
+_loggerParsec = get_logger_Parsec()
 
 # Definiciones del lenguaje (ppalabras reservadas y tabbla de simbolos)
 
@@ -20,8 +21,8 @@ TS = {
 ### Instanciaciones
 
 tokens_out = []
-lexer = TpLexer(_logger, TS, PR, tokens_out)
-parser = TpParser(TS)
+lexer = TpLexer(_loggerLex, TS, PR, tokens_out)
+parser = TpParser(TS, _loggerParsec)
 
 ### Invocacion
 

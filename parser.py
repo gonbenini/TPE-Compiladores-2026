@@ -4,9 +4,10 @@ from utils import check_flt_range, check_int_range
 
 class TpParser(Parser):
 
-    def __init__(self, TS):
+    def __init__(self, TS, _logger):
         # Inyectamos dependencias
         self.TS = TS
+        self._logger = _logger
 
     debugfile = 'parser.out'
     tokens = TpLexer.tokens
@@ -52,8 +53,9 @@ class TpParser(Parser):
     def declaracion_clase(self, p):
         return p
 
-    @_('tipo IDEN "(" parametros_f ")" cuerpo_ejecutable',)
+    @_('tipo IDEN "(" parametros_f ")" cuerpo_ejecutable')
     def metodo(self, p):
+        self._logger.info("Declaracion de metodo")
         return p
 
     @_('BEGIN ejecutables END ";"')
@@ -261,6 +263,11 @@ class TpParser(Parser):
         print(f'Falta de "," o ";" en declaracion de linea {p.lineno}')
         return ("error",)
 
+    @_('declaracion_clase : tipo IDEN "(" error ";"')
+    def declaracion_error_parametros(self, p):
+        print(f'Falta de parametros formales en linea {p.lineno}')
+        return ("error",)
+
     @_('declaracion : tipo FUNCTION error ";"', 'declaracion_func : tipo FUNCTION error ";"')
     def declaracion_error_function_name(self, p):
         print(f'Falta de nombre de funcion en linea {p.lineno}')
@@ -268,7 +275,7 @@ class TpParser(Parser):
 
     @_('declaracion : tipo FUNCTION IDEN "(" error ";"', 'declaracion_func : tipo FUNCTION IDEN "(" error ";"')
     def declaracion_error_function_paramf(self, p):
-        print(f'Falta de nombre o tipo de parametro en linea {p.lineno}')
+        print(f'Falta de nombre o tipo de parametro formal en linea {p.lineno}')
         return ("error",)
 
     @_('declaracion : CLASS IDEN error BEGIN declaraciones_clase END ";"')
