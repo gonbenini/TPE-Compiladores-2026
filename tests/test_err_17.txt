@@ -1,4 +1,4 @@
-test_cod17
+program test_cod17
 longint v;
 
 // Clase valida con codigo de estructura 'c10' (Tema 24)

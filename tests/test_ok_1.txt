@@ -1,4 +1,4 @@
-program_1
+program program_1
 // en este test vemos como el Lexer reconoce Tokens en situaciones de:
 // - declaraciones constantes y funciones (y sus declaraciones).
 // - sentencias ejecutables como seleccion, llamado a funciones, etc.

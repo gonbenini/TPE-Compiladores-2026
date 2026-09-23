@@ -1,4 +1,4 @@
-test_cod18
+program test_cod18
 longint v;
 
 class cbase c10
