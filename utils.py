@@ -22,6 +22,19 @@ def get_logger_Lex(fn="./logLex.txt"):
     _logger = logging.getLogger(__name__)
     return _logger
 
+def get_logger_Err_Parsec(fn="./logParsec.txt"):
+    # instanciar logger
+    open(fn, "w").close()
+    logging.basicConfig(
+        filename=fn,
+        level=logging.DEBUG,
+        format="%(asctime)s | %(funcName)s | %(message)s",
+        force=True
+    )
+
+    _logger = logging.getLogger(__name__)
+    return _logger
+
 def get_logger_Parsec(fn="./InfoParsec.txt"):
     # instanciar logger
     open(fn, "w").close()
