@@ -55,7 +55,7 @@ class TpParser(Parser):
 
     @_('tipo IDEN "(" parametros_f ")" cuerpo_ejecutable')
     def metodo(self, p):
-        self._logger.info("Declaracion de metodo")
+        self._logger.info(f"Linea {p.lineno} | Declaracion de metodo")
         return p
 
     @_('BEGIN ejecutables END ";"')
@@ -68,6 +68,7 @@ class TpParser(Parser):
     
     @_('tipo id_vars')
     def dec_var(self, p):
+        self._logger.info(f"Linea {p.lineno} | Declaracion de variable/s")
         return p
 
     @_('SINGLEF', 'LONGINT', 'IDEN')
@@ -89,14 +90,17 @@ class TpParser(Parser):
     @_('tipo FUNCTION IDEN "(" parametros_f ")" declaraciones_func cuerpo_ejecutable',
        'tipo FUNCTION IDEN "(" parametros_f ")" cuerpo_ejecutable')
     def funcion(self, p):
+        self._logger.info(f"Linea {p.lineno} | Declaracion de funcion")
         return p
 
     @_('CLASS IDEN IDEN BEGIN declaraciones_clase END ";"', 'CLASS IDEN IDEN BEGIN declaraciones_clase EXTENDS id_vars ";" END ";"')
     def clase(self, p):
+        self._logger.info(f"Linea {p.lineno} | Declaracion de clase")
         return p
 
     @_('TYPEDEF IDEN ASSIGN "[" constantes "]" ";"')
     def tipoUsuario(self, p):
+        self._logger.info(f"Linea {p.lineno} | Declaracion de tipo usuario")
         return p
 
     @_('constantes "," constante', 'constante')
@@ -145,10 +149,12 @@ class TpParser(Parser):
 
     @_('RET "(" expr ")" ";"')
     def retorno(self, p):
+        self._logger.info(f"Linea {p.lineno} | Sentencia retorno")
         return p
 
     @_('POUT "(" expr ")" ";"', 'POUT "(" CADN ")" ";"')
     def pout(self, p):
+        self._logger.info(f"Linea {p.lineno} | Sentencia pout")
         return p
 
     #desambiguamos la gramatica ya que sino cuando venia un IDEN y un ".", la gramatica no sabia si reducir el IDEN
@@ -157,10 +163,12 @@ class TpParser(Parser):
     #ademas, ahora gracias a esto podemos invocar metodos de atributos de objetos, por ejemplo a.b.c.d();
     @_('asignable "." invocacion_funcion')
     def invocacion_metodo(self, p): #invocacion_m . invocacion_f -> invocacion_m . invocacion_f . invocacion_f - > a.b.c.m().m1().m2()
+        self._logger.info(f"Linea {p.lineno} | Invocacion a metodo")
         return p
 
     @_('IDEN "(" parametros ")" "[" posicionales "]"', 'IDEN "(" parametros ")"')
     def invocacion_funcion(self, p):
+        self._logger.info(f"Linea {p.lineno} | Invocacion a funcion")
         return p
 
     @_('posicionales "," CONSTANTE_E', 'posicionales "," MINUS CONSTANTE_E', 
@@ -170,10 +178,12 @@ class TpParser(Parser):
 
     @_('asignable ASSIGN expr ";"')
     def asignacion(self, p):
+        self._logger.info(f"Linea {p.lineno} | Sentencia de asignacion")
         return p
 
     @_('asignable ASSIGN2P expr_linea ";"')
     def asignacion_linea(self, p):
+        self._logger.info(f"Linea {p.lineno} | Sentencia asignacion de linea")
         return p
 
     @_('asignable "." IDEN', 'IDEN') #asingable.IDEN -> asignable.IDEN.IDEN
@@ -227,10 +237,12 @@ class TpParser(Parser):
     @_('IF "(" condicion ")" cuerpo_control END_IF ";"',
        'IF "(" condicion ")" cuerpo_control ELSE cuerpo_control END_IF ";"')
     def seleccion(self, p):
+        self._logger.info(f"Linea {p.lineno} | Sentencia de seleccion")
         return p
 
     @_('FROM IDEN ASSIGN2P constante TO constante BY constante REPEAT cuerpo_control')
     def iteracion(self, p):
+        self._logger.info(f"Linea {p.lineno} | Sentencia de iteracion")
         return p
     
     @_('cuerpo_ejecutable', 'ejecutable')
