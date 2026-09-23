@@ -22,31 +22,42 @@ def get_logger_Lex(fn="./logLex.txt"):
     _logger = logging.getLogger(__name__)
     return _logger
 
-def get_logger_Err_Parsec(fn="./logParsec.txt"):
-    # instanciar logger
-    open(fn, "w").close()
-    logging.basicConfig(
-        filename=fn,
-        level=logging.DEBUG,
-        format="%(asctime)s | %(funcName)s | %(message)s",
-        force=True
+def get_logger_Err_Parsec(fn="./logParser.txt"):
+    logger = logging.getLogger("Err_Parsec")
+    logger.setLevel(logging.DEBUG)
+    logger.handlers.clear()
+
+    handler = logging.FileHandler(fn, mode="w")
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(
+        logging.Formatter(
+            "%(asctime)s | %(funcName)s | %(message)s"
+        )
     )
 
-    _logger = logging.getLogger(__name__)
-    return _logger
+    logger.addHandler(handler)
+    logger.propagate = False
 
-def get_logger_Parsec(fn="./InfoParsec.txt"):
-    # instanciar logger
-    open(fn, "w").close()
-    logging.basicConfig(
-        filename=fn,
-        level=logging.DEBUG,
-        format="%(asctime)s | %(message)s",
-        force=True
+    return logger
+
+
+def get_logger_Parsec(fn="./InfoParser.txt"):
+    logger = logging.getLogger("Parsec")
+    logger.setLevel(logging.DEBUG)
+    logger.handlers.clear()
+
+    handler = logging.FileHandler(fn, mode="w")
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(
+        logging.Formatter(
+            "%(asctime)s | %(message)s"
+        )
     )
 
-    _logger = logging.getLogger(__name__)
-    return _logger
+    logger.addHandler(handler)
+    logger.propagate = False
+
+    return logger
 
 def save_lexer_output(tokens, TS):
     # Guarda en un archivo los tokens generados
