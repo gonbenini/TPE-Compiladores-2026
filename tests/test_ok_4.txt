@@ -1,4 +1,4 @@
-program_constantes
+program program_constantes
 // en este test vemos como el Lexer reconoce Tokens en situaciones de:
 // - constantes enteras en sus limites numericos positivos.
 // - constantes flotantes en sus limites numericos positivos.

@@ -14,7 +14,7 @@ class TpLexer(Lexer):
         IDEN, PLUS, MINUS, TIMES, DIVIDE, EQ, ASSIGN2P, ASSIGN, LE, LT, GE, GT, NE, 
         CONSTANTE_E, CONSTANTE_F, CADN,
         IF, ELSE, END_IF, BEGIN, END, POUT, RET, CLASS, FUNCTION, 
-        LONGINT, SINGLEF, FROM, TO, BY, REPEAT, TYPEDEF, TOL, EXTENDS
+        LONGINT, SINGLEF, FROM, TO, BY, REPEAT, TYPEDEF, TOL, EXTENDS, PROGRAM
     }
 
     ignore = ' \t'
@@ -112,7 +112,10 @@ class TpLexer(Lexer):
             return # no devolvemos nada
 
         if not self.TS.get(t.value):
-            self.TS[t.value] = {'type': 'CONSTANTE ENTERA'}
+            self.TS[t.value] = {'type': 'CONSTANTE ENTERA', 'count': 1}
+
+        else:
+            self.TS[t.value]['count'] += 1
 
         #self.tokens_out.append(t)
         return t
@@ -133,7 +136,10 @@ class TpLexer(Lexer):
             return # no devolvemos nada
 
         if not self.TS.get(t.value):
-            self.TS[t.value] = {'type': 'CONSTANTE FLOTANTE'}
+            self.TS[t.value] = {'type': 'CONSTANTE FLOTANTE', 'count': 1}
+
+        else:
+            self.TS[t.value]['count'] += 1
 
         #self.tokens_out.append(t)
         return t

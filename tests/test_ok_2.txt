@@ -1,4 +1,4 @@
-program_2
+program program_2
 // en este test vemos como el Lexer reconoce Tokens en situaciones de:
 // - declaraciones de clases con atributos, metodos y herencia.
 // - declaracion tipo enumerado.

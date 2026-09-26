@@ -1,0 +1,25 @@
+program test_cod18
+longint v;
+
+class cbase c10
+begin
+    longint x;
+end;
+
+// Clase valida con herencia multiple (Tema 30-32)
+class ca c11
+begin
+    longint a;
+    extends cbase;
+end;
+
+// Clase invalida sin nombre de clase despues de extends (Dispara COD 18)
+class cb c12
+begin
+    longint b;
+    extends ;
+end;
+
+begin
+    v := 1$l;
+end

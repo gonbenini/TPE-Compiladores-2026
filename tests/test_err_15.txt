@@ -1,0 +1,25 @@
+program test_cod15_ext
+longint a, b, i;
+begin
+    // Asignacion de sentencia principal (Correcta)
+    a := 5$l;
+
+    // Asignacion en expresion con '=' (Correcta)
+    a := b = 10$l;
+
+    // Asignacion en expresion con ':=' (INCORRECTA)
+    a := b := 15$l;
+
+    if ( a := 20$l == 20$l ) // asignacion incorrecta
+    begin
+        b := a = 25$l; // cuerpo correcto
+    end
+    end_if;
+
+    // Test FROM (equivale al 'for') con asignaciones correctas
+    from i := 1$l to 5$l by 1$l repeat
+    begin
+        a := 30$l;
+        b := a = 35$l;
+    end
+end

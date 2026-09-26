@@ -9,18 +9,55 @@ def get_program_code(file_path='./archivo.txt'):
     return texto
 
 
-def get_logger(fn="./log.txt"):
+def get_logger_Lex(fn="./logLex.txt"):
     # instanciar logger
     open(fn, "w").close()
     logging.basicConfig(
         filename=fn,
         level=logging.DEBUG,
-        format="%(asctime)s | %(levelname)s | %(name)s | %(funcName)s | %(message)s",
+        format="%(asctime)s | %(funcName)s | %(message)s",
         force=True
     )
 
     _logger = logging.getLogger(__name__)
     return _logger
+
+def get_logger_Err_Parsec(fn="./logParser.txt"):
+    logger = logging.getLogger("Err_Parsec")
+    logger.setLevel(logging.DEBUG)
+    logger.handlers.clear()
+
+    handler = logging.FileHandler(fn, mode="w")
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(
+        logging.Formatter(
+            "%(asctime)s | %(funcName)s | %(message)s"
+        )
+    )
+
+    logger.addHandler(handler)
+    logger.propagate = False
+
+    return logger
+
+
+def get_logger_Parsec(fn="./InfoParser.txt"):
+    logger = logging.getLogger("Parsec")
+    logger.setLevel(logging.DEBUG)
+    logger.handlers.clear()
+
+    handler = logging.FileHandler(fn, mode="w")
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(
+        logging.Formatter(
+            "%(asctime)s | %(message)s"
+        )
+    )
+
+    logger.addHandler(handler)
+    logger.propagate = False
+
+    return logger
 
 def save_lexer_output(tokens, TS):
     # Guarda en un archivo los tokens generados
@@ -35,18 +72,21 @@ def save_lexer_output(tokens, TS):
             atrs = TS[t]
             f.write(f"{t} {atrs} \n")
 
-'''
-def token_line_generator(lexer, texto):
-    # utilidad para mandarle al Tokenize del lexer por linea en vez de por archivo.
-    # se instancia haciendo `tokens = token_producer()` y luego se puede iterar.
-    f = open("tokens.txt", "r", encoding="utf-8")
-    for linea in texto.splitlines():
-        for token in lexer.tokenize(linea): 
-            f.write(token) 
-            yield token
+def check_flt_range(num):
+    
+    if num == 0.0:
+        return True
+    if -3.40282347e38 < num < -1.17549435e-38:
+        return True
+    if 1.17549435e-38 < num < 3.40282347e38:
+        return True
+    return False
 
-    close(f)
-'''
+def check_int_range(num, max_num = (2**31) - 1, min_num = -2**31):
+    if num > max_num or num < min_num:
+        return False
+    else:
+        return True
 
 def imprimir_arbol(nodo, prefijo="", es_ultimo=True, es_raiz=True):
     # Si el nodo no es una tupla (es decir, es un string o número final como 'begin' o 4)

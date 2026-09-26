@@ -1,0 +1,8 @@
+program hola
+class ca c1 begin
+    longint a;
+    function;
+end;
+begin
+    pout(a +b);
+end
