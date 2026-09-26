@@ -4,6 +4,9 @@ tokens.txt
 TS.txt
 # Archivos generados por SLY
 parser.out
+InfoParser.txt
+logLex.txt
+logParser.txt
 
 # Ignorar todos los tests
 tests/*.txt

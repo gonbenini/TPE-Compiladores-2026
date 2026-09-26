@@ -19,15 +19,18 @@ TS = {
     # ejemplo de identificador, donde los mismos usan siempre tipo IDEN.
 }
 
+AS = []
+
 ### Instanciaciones
 
 tokens_out = []
 lexer = TpLexer(_loggerLex, TS, PR, tokens_out)
-parser = TpParser(TS, _InfoParsec, _loggerParsec)
+parser = TpParser(TS,AS, _InfoParsec, _loggerParsec)
 
 ### Invocacion
 
 tokens = lexer.tokenize(program_code)
 result = parser.parse(tokens)
+print(AS)
 imprimir_arbol(result)
 save_lexer_output(tokens_out, TS)

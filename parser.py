@@ -4,9 +4,10 @@ from utils import check_flt_range, check_int_range
 
 class TpParser(Parser):
 
-    def __init__(self, TS, _info, _logger):
+    def __init__(self, TS, AS, _info, _logger):
         # Inyectamos dependencias
         self.TS = TS
+        self.AS = AS
         self._InfoLogger = _info
         self._logger = _logger
 
