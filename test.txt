@@ -1,10 +1,19 @@
 program compi
-longint a;
-longint function f1(longint a)
+longint function f3(longint a)
     longint b;
+    longint function f4(longint a)
+        longint c;
+        begin
+            pout("hola");
+        end;
 begin
     pout("hola");
 end;
+
+class ca c1 begin
+    longint a;
+end;
+
 begin
     a = a + b;
     pout(a);

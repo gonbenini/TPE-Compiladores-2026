@@ -118,6 +118,7 @@ class TpParser(Parser):
 
     @_('id_vars "," IDEN', 'IDEN')
     def id_vars(self, p):
+        print(self.ambito)
         return p
 
     @_('parametros_f "," parametro_f', 'parametro_f')
@@ -132,6 +133,7 @@ class TpParser(Parser):
        'ambito_func "(" parametros_f ")" cuerpo_ejecutable')
     def funcion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de funcion")
+        self.ambito = self.ambito.rsplit(":", 1)[0] #desacoplamos ambito
         return p
 
     @_('tipo FUNCTION IDEN')
@@ -139,9 +141,15 @@ class TpParser(Parser):
         self.ambito = self.ambito + ':' + p[2]
         return p
 
-    @_('CLASS IDEN IDEN BEGIN declaraciones_clase END ";"', 'CLASS IDEN IDEN BEGIN declaraciones_clase EXTENDS id_vars ";" END ";"')
+    @_('ambito_clase BEGIN declaraciones_clase END ";"', 'ambito_clase BEGIN declaraciones_clase EXTENDS id_vars ";" END ";"')
     def clase(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de clase")
+        self.ambito = self.ambito.rsplit(":", 1)[0] #desacoplamos ambito
+        return p
+
+    @_('CLASS IDEN IDEN')
+    def ambito_clase(self, p):
+        self.ambito = self.ambito + ':' + p[1]
         return p
 
     @_('TYPEDEF IDEN ASSIGN "[" constantes "]" ";"')
@@ -366,7 +374,7 @@ class TpParser(Parser):
         self._logger.error(f"Linea {p.lineno} | Falta de codigo en declaracion de clase")
         return ("error",)
 
-    @_('declaracion : CLASS IDEN IDEN BEGIN declaraciones_clase EXTENDS error ";" END ";"')
+    @_('declaracion : ambito_clase BEGIN declaraciones_clase EXTENDS error ";" END ";"')
     def clase_error_extends(self, p):
         self._logger.error(f"Linea {p.lineno} | Falta de identificadores luego del 'extends'")
         return ("error",)
