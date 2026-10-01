@@ -10,6 +10,7 @@ class TpParser(Parser):
         self._InfoLogger = _info
         self._logger = _logger
         self.ambito = ambito
+        self.arboles={}
 
     debugfile = 'parser.out'
     tokens = TpLexer.tokens
@@ -65,6 +66,7 @@ class TpParser(Parser):
     @_('program_in declaraciones cuerpo_ejecutable')
     def programa(self, p):
         self.imprimir_arbol(p.cuerpo_ejecutable)
+        #print(self.arboles)
         return p
 
     @_('PROGRAM IDEN')
@@ -134,12 +136,15 @@ class TpParser(Parser):
     def funcion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de funcion")
         self.ambito = self.ambito.rsplit(":", 1)[0] #desacoplamos ambito
+        self.arboles[p.ambito_func] = {'nodo': p.cuerpo_ejecutable}
         return p
 
     @_('tipo FUNCTION IDEN')
     def ambito_func(self, p):
+        name = p.IDEN + ':' + self.ambito
         self.ambito = self.ambito + ':' + p[2]
-        return p
+        #aca deberiamos guardar el nombre de la funcion en la TS
+        return name
 
     @_('ambito_clase BEGIN declaraciones_clase END ";"', 'ambito_clase BEGIN declaraciones_clase EXTENDS id_vars ";" END ";"')
     def clase(self, p):
@@ -226,7 +231,9 @@ class TpParser(Parser):
     @_('IDEN "(" parametros ")" "[" posicionales "]"', 'IDEN "(" parametros ")"')
     def invocacion_funcion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Invocacion a funcion")
-        return p
+        #aca me parece que deberia ir una func que busque la funcion a traves de los ambitos
+        return self.NodoUnario('CALL', self.arboles['f3:main']['nodo'])
+        #return p
 
     @_('posicionales "," CONSTANTE_E', 'posicionales "," MINUS CONSTANTE_E', 
        'CONSTANTE_E', 'MINUS CONSTANTE_E')
