@@ -1,0 +1,7 @@
+2026-10-01 16:04:52,987 | Linea 2 | Declaracion de variable/s
+2026-10-01 16:04:52,988 | Linea 4 | Declaracion de variable/s
+2026-10-01 16:04:52,988 | Linea 6 | Sentencia pout
+2026-10-01 16:04:52,988 | Linea 3 | Declaracion de funcion
+2026-10-01 16:04:52,988 | Linea 9 | Sentencia de asignacion
+2026-10-01 16:04:52,988 | Linea 10 | Sentencia pout
+2026-10-01 16:04:52,988 | Linea 11 | Sentencia pout

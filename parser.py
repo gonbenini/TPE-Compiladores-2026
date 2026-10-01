@@ -4,11 +4,12 @@ from utils import check_flt_range, check_int_range
 
 class TpParser(Parser):
 
-    def __init__(self, TS, _info, _logger):
+    def __init__(self, TS, _info, _logger, ambito):
         # Inyectamos dependencias
         self.TS = TS
         self._InfoLogger = _info
         self._logger = _logger
+        self.ambito = ambito
 
     debugfile = 'parser.out'
     tokens = TpLexer.tokens
@@ -18,6 +19,43 @@ class TpParser(Parser):
         ('right', 'END', ';'),
     )
 
+    class NodoUnario:
+        def __init__(self, op, son='NIL'):
+            self.op = op
+            self.son = son
+
+    class NodoBinario:
+        def __init__(self, op, left='NIL', right='NIL'):
+            self.op = op
+            self.left = left
+            self.right = right    
+
+
+    def imprimir_arbol(self, nodo, nivel=0, relacion="Raíz"):
+        sangria = "    " * nivel
+        
+        # Si el nodo es 'NIL' o None, no hacemos nada
+        if nodo == 'NIL' or nodo is None:
+            return
+
+        # Verificamos si es un objeto de tipo Nodo (tiene el atributo 'op')
+        if hasattr(nodo, 'op'):
+            print(f"{sangria}[{relacion}] -> {nodo.op}")
+            
+            # Llamada recursiva para el hijo izquierdo
+            if hasattr(nodo, 'left'):
+                self.imprimir_arbol(nodo.left, nivel + 1, "Hijo izq")
+                
+            # Llamada recursiva para el hijo derecho
+            if hasattr(nodo, 'right'):
+                self.imprimir_arbol(nodo.right, nivel + 1, "Hijo der")
+
+            if hasattr(nodo, 'son'):
+                self.imprimir_arbol(nodo.son, nivel + 1, "Hijo")
+        else:
+            # Si no es un nodo (es un string o número final), entra acá
+            print(f"{sangria}[{relacion}] -> {nodo}")
+
     #----------------------------ESTRUCTURA PRINCIPAL---------------------------------------------
 
     @_('programa')
@@ -26,6 +64,7 @@ class TpParser(Parser):
 
     @_('program_in declaraciones cuerpo_ejecutable')
     def programa(self, p):
+        self.imprimir_arbol(p.cuerpo_ejecutable)
         return p
 
     @_('PROGRAM IDEN')
@@ -61,6 +100,7 @@ class TpParser(Parser):
 
     @_('BEGIN ejecutables END ";"')
     def cuerpo_ejecutable(self, p):
+        return p.ejecutables
         return p
     
     @_('dec_var ";"', 'clase', 'funcion', 'tipoUsuario')
@@ -88,10 +128,15 @@ class TpParser(Parser):
     def parametro_f(self, p):
         return p
 
-    @_('tipo FUNCTION IDEN "(" parametros_f ")" declaraciones_func cuerpo_ejecutable',
-       'tipo FUNCTION IDEN "(" parametros_f ")" cuerpo_ejecutable')
+    @_('ambito_func "(" parametros_f ")" declaraciones_func cuerpo_ejecutable',
+       'ambito_func "(" parametros_f ")" cuerpo_ejecutable')
     def funcion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de funcion")
+        return p
+
+    @_('tipo FUNCTION IDEN')
+    def ambito_func(self, p):
+        self.ambito = self.ambito + ':' + p[2]
         return p
 
     @_('CLASS IDEN IDEN BEGIN declaraciones_clase END ";"', 'CLASS IDEN IDEN BEGIN declaraciones_clase EXTENDS id_vars ";" END ";"')
@@ -142,22 +187,25 @@ class TpParser(Parser):
     #----------------------------EJECUTABLES---------------------------------------------
     @_('ejecutables ejecutable', 'ejecutable')
     def ejecutables(self, p):
-        return p
+        if len(p) == 1:
+            return self.NodoUnario('S', p.ejecutable)
+        else:
+            return self.NodoBinario('S', p.ejecutables, p.ejecutable)
 
     @_('asignacion', 'asignacion_linea', 'control', 'invocacion_funcion ";"', 'invocacion_metodo ";"', 'retorno', 'pout')
     def ejecutable(self, p):
-        return p
+        return p[0]
 
     @_('RET "(" expr ")" ";"')
     def retorno(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia retorno")
-        return p
-
+        return self.NodoUnario('RET', p.expr)
+    
     @_('POUT "(" expr ")" ";"', 'POUT "(" CADN ")" ";"')
     def pout(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia pout")
-        return p
-
+        return self.NodoUnario('POUT', p[2])
+    
     #desambiguamos la gramatica ya que sino cuando venia un IDEN y un ".", la gramatica no sabia si reducir el IDEN
     #a "asignable" o consumirlo para que luego viniera una invocacion a metodo y reducirlo a invocacion_metodo.
     #a si, siempre que viene un IDEN lo convierte en asignable y opera a partir de ahi.
@@ -180,46 +228,67 @@ class TpParser(Parser):
     @_('asignable ASSIGN expr ";"')
     def asignacion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia de asignacion")
-        return p
+        return self.NodoBinario('=', p.asignable, p.expr)
 
     @_('asignable ASSIGN2P expr_linea ";"')
     def asignacion_linea(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia asignacion de linea")
-        return p
+        return self.NodoBinario(':=', p.asignable, p.expr_linea)
 
     @_('asignable "." IDEN', 'IDEN') #asingable.IDEN -> asignable.IDEN.IDEN
     def asignable(self, p):
-        return p
+        if len(p) == 3:
+            return (p.asignable + '.' + p.IDEN)
+        else:
+            return p.IDEN
 
     @_('expr PLUS term', 'expr MINUS term', 'term')
     def expr(self, p):
-        return p
+        if len(p) == 3:
+            return self.NodoBinario(p[1], p.expr, p.term)
+        else:
+            return p.term
 
     @_('term TIMES factor', 'term DIVIDE factor', 'factor')
     def term(self, p):
-        return p
+        if len(p) == 3:
+            return self.NodoBinario(p[1], p.term, p.factor)
+        else:
+            return p.factor
 
     @_('constante', 'invocacion_funcion', 'invocacion_metodo', 
         'asignable', 'TOL "(" expr ")"')
     def factor(self, p):
-        return p
+        if len(p) == 1:
+            return p[0]
+        else:
+            return self.NodoBinario('TOL', p.expr)
 
     @_('expr_linea PLUS term_linea', 'expr_linea MINUS term_linea', 'term_linea')
     def expr_linea(self, p):
-        return p
+        if len(p) == 3:
+            return self.NodoBinario(p[1], p.expr_linea, p.term_linea)
+        else:
+            return p.term_linea
     
     @_('term_linea TIMES factor_linea', 'term_linea DIVIDE factor_linea', 'factor_linea')
     def term_linea(self, p):
-        return p
+        if len(p) == 3:
+            return self.NodoBinario(p[1], p.term_linea, p.factor_linea)
+        else:
+            return p.factor_linea
     
     @_('constante', 'invocacion_funcion', 'invocacion_metodo', 
         'asignable', 'asignacion_de_linea', 'TOL "(" expr ")"')
     def factor_linea(self, p):
-        return p
+        if len(p) == 1:
+            return p[0]
+        else:
+            return self.NodoBinario('TOL', p.expr)
 
     @_('asignable ASSIGN IDEN', 'asignable ASSIGN constante')
     def asignacion_de_linea(self, p):
-        return p
+        return self.NodoBinario('=', p.asignable, p[2])
 
     @_('parametros "," expr', 'expr')
     def parametros(self, p):
@@ -287,7 +356,7 @@ class TpParser(Parser):
         self._logger.error(f"Linea {p.lineno} | Falta de nombre de funcion")
         return ("error",)
 
-    @_('declaracion : tipo FUNCTION IDEN "(" error ";"', 'declaracion_func : tipo FUNCTION IDEN "(" error ";"')
+    @_('declaracion : ambito_func "(" error ";"', 'declaracion_func : ambito_func "(" error ";"')
     def declaracion_error_function_paramf(self, p):
         self._logger.error(f"Linea {p.lineno} | Falta de nombre o tipo de parametro formal")
         return ("error",)

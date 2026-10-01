@@ -1,0 +1,12 @@
+program compi
+longint a;
+longint function f1(longint a)
+    longint b;
+begin
+    pout("hola");
+end;
+begin
+    a = a + b;
+    pout(a);
+    pout(xd);
+end;
