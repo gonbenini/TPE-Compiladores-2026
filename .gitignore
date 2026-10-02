@@ -12,3 +12,4 @@ tests/*.txt
 !tests/test_ok_*.txt
 
 venv*
+test.txt
