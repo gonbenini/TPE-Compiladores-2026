@@ -73,6 +73,7 @@ class TpParser(Parser):
 
     @_('PROGRAM IDEN')
     def program_in(self, p):
+        self.TS[p.IDEN]['uso'] = 'Nombre de programa'
         return p
 
     #----------------------------DECLARACIONES---------------------------------------------
@@ -97,13 +98,21 @@ class TpParser(Parser):
     def declaracion_clase(self, p):
         return p
 
-    @_('tipo IDEN "(" parametros_f ")" cuerpo_ejecutable')
+    @_('ambito_metodo parametros_f ")" cuerpo_ejecutable')
     def metodo(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de metodo")
-        new_name = p.IDEN + ':' + self.ambito
-        self.TS[new_name] = self.TS.pop(p.IDEN)
-        self.TS[new_name]['type'] = p.tipo
+        self.ambito = self.ambito.rsplit(":", 1)[0] #desacoplamos ambito
+        new_name = p.ambito_metodo['name'] + ':' + self.ambito
+        self.TS[new_name] = self.TS.pop(p.ambito_metodo['name'])
+        self.TS[new_name]['type'] = p.ambito_metodo['tipo']
+        self.TS[new_name]['uso'] = 'Nombre de metodo'
+
         return p
+
+    @_('tipo IDEN "("')
+    def ambito_metodo(self, p):
+        self.ambito = self.ambito + ':' + p.IDEN
+        return {'tipo': p.tipo, 'name': p.IDEN}
 
     @_('BEGIN ejecutables END ";"')
     def cuerpo_ejecutable(self, p):
@@ -120,6 +129,7 @@ class TpParser(Parser):
             new_name = i + ':' + self.ambito
             self.TS[new_name] = self.TS.pop(i)
             self.TS[new_name]['type'] = p.tipo
+            self.TS[new_name]['uso'] = 'Nombre de variable'
         return p
 
     @_('SINGLEF', 'LONGINT', 'IDEN')
@@ -128,7 +138,6 @@ class TpParser(Parser):
 
     @_('id_vars "," IDEN', 'IDEN')
     def id_vars(self, p):
-        #print(self.ambito)
         if len(p) == 1:
             return p.IDEN
         else:
@@ -145,6 +154,7 @@ class TpParser(Parser):
         new_name = p.IDEN + ':' + self.ambito
         self.TS[new_name] = self.TS.pop(p.IDEN)
         self.TS[new_name]['type'] = p.tipo
+        self.TS[new_name]['uso'] = 'Nombre de variable'
         return p
 
     @_('ambito_func "(" parametros_f ")" declaraciones_func cuerpo_ejecutable',
@@ -156,13 +166,12 @@ class TpParser(Parser):
         new_name = p.ambito_func['name'] + ':' + self.ambito
         self.TS[new_name] = self.TS.pop(p.ambito_func['name'])
         self.TS[new_name]['type'] = p.ambito_func['tipo']
+        self.TS[new_name]['uso'] = 'Nombre de funcion'
         return p
 
     @_('tipo FUNCTION IDEN')
     def ambito_func(self, p):
-        name = p.IDEN + ':' + self.ambito
         self.ambito = self.ambito + ':' + p[2]
-        #aca deberiamos guardar el nombre de la funcion en la TS
         return {'tipo': p.tipo, 'name': p.IDEN}
 
     @_('ambito_clase BEGIN declaraciones_clase END ";"', 'ambito_clase BEGIN declaraciones_clase EXTENDS id_vars ";" END ";"')
@@ -172,6 +181,7 @@ class TpParser(Parser):
         new_name = p.ambito_clase + ':' + self.ambito
         self.TS[new_name] = self.TS.pop(p.ambito_clase)
         self.TS[new_name]['type'] = 'CLASS'
+        self.TS[new_name]['uso'] = 'Nombre de clase'
         return p
 
     @_('CLASS IDEN IDEN')
