@@ -1,3 +1,5 @@
+from hmac import new
+
 from sly import Parser
 from lexer import TpLexer
 from utils import check_flt_range, check_int_range
@@ -112,7 +114,9 @@ class TpParser(Parser):
     def dec_var(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de variable/s")
         for i in p.id_vars:
-            self.TS[i]['type'] = p.tipo
+            new_name = i + ':' + self.ambito
+            self.TS[new_name] = self.TS.pop(i)
+            self.TS[new_name]['type'] = p.tipo
         return p
 
     @_('SINGLEF', 'LONGINT', 'IDEN')
@@ -135,14 +139,20 @@ class TpParser(Parser):
 
     @_('tipo IDEN')
     def parametro_f(self, p):
+        new_name = p.IDEN + ':' + self.ambito
+        self.TS[new_name] = self.TS.pop(p.IDEN)
+        self.TS[new_name]['type'] = p.tipo
         return p
 
     @_('ambito_func "(" parametros_f ")" declaraciones_func cuerpo_ejecutable',
        'ambito_func "(" parametros_f ")" cuerpo_ejecutable')
     def funcion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de funcion")
+        self.arboles[p.ambito_func['name']] = {'nodo': p.cuerpo_ejecutable} #guardamos arbol sintactico de la funcion
         self.ambito = self.ambito.rsplit(":", 1)[0] #desacoplamos ambito
-        self.arboles[p.ambito_func] = {'nodo': p.cuerpo_ejecutable}
+        new_name = p.ambito_func['name'] + ':' + self.ambito
+        self.TS[new_name] = self.TS.pop(p.ambito_func['name'])
+        self.TS[new_name]['type'] = p.ambito_func['tipo']
         return p
 
     @_('tipo FUNCTION IDEN')
@@ -150,18 +160,21 @@ class TpParser(Parser):
         name = p.IDEN + ':' + self.ambito
         self.ambito = self.ambito + ':' + p[2]
         #aca deberiamos guardar el nombre de la funcion en la TS
-        return name
+        return {'tipo': p.tipo, 'name': p.IDEN}
 
     @_('ambito_clase BEGIN declaraciones_clase END ";"', 'ambito_clase BEGIN declaraciones_clase EXTENDS id_vars ";" END ";"')
     def clase(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de clase")
         self.ambito = self.ambito.rsplit(":", 1)[0] #desacoplamos ambito
+        new_name = p.ambito_clase + ':' + self.ambito
+        self.TS[new_name] = self.TS.pop(p.ambito_clase)
+        self.TS[new_name]['type'] = 'CLASS'
         return p
 
     @_('CLASS IDEN IDEN')
     def ambito_clase(self, p):
-        self.ambito = self.ambito + ':' + p[1]
-        return p
+        self.ambito = self.ambito + ':' + '(' + p[1] + ')'
+        return p.IDEN0
 
     @_('TYPEDEF IDEN ASSIGN "[" constantes "]" ";"')
     def tipoUsuario(self, p):
