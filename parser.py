@@ -59,6 +59,34 @@ class TpParser(Parser):
             # Si no es un nodo (es un string o número final), entra acá
             print(f"{sangria}[{relacion}] -> {nodo}")
 
+    def alcance(self, name):
+        ambito_aux = self.ambito
+        encontrado = False
+        search_name = name + ':' + ambito_aux
+        while ambito_aux != 'main':
+            search_name = name + ':' + ambito_aux
+            if search_name in self.TS:
+                encontrado = True
+                break
+            ambito_aux = ambito_aux.rsplit(":", 1)[0]
+
+        if ambito_aux == 'main' and not encontrado:
+            if (name + ':' + 'main') in self.TS:
+                print(f"Variable {search_name} encontrada")
+                return True
+
+            else:
+                print(f"Variable {name} no declarada o no alcanzable")
+                return False
+            
+        elif encontrado:
+            print(f"Variable {search_name} encontrada")
+            return True
+
+        else: 
+            print(f"Variable {name} no declarada o no alcanzable")
+            return False
+
     #----------------------------ESTRUCTURA PRINCIPAL---------------------------------------------
 
     @_('programa')
@@ -140,7 +168,7 @@ class TpParser(Parser):
     @_('id_vars "," IDEN', 'IDEN')
     def id_vars(self, p):
         if len(p) == 1:
-            return p.IDEN
+            return [p.IDEN]
         else:
             arr = p.id_vars.split(',')
             arr.append(p.IDEN)
@@ -256,13 +284,16 @@ class TpParser(Parser):
     def invocacion_metodo(self, p): #invocacion_m . invocacion_f -> invocacion_m . invocacion_f . invocacion_f - > a.b.c.m().m1().m2()
         self._InfoLogger.info(f"Linea {p.lineno} | Invocacion a metodo")
         call_name = p.asignable + '.' + p.IDEN
+        # if self.alcance(p.asignable):
+        #     clase = self.TS[]
+
         return self.NodoUnario('CALL ' + call_name, self.arboles['m:main:(ca)']['nodo'])
 
     @_('IDEN "(" parametros ")" "[" posicionales "]"', 'IDEN "(" parametros ")"')
     def invocacion_funcion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Invocacion a funcion")
-        #aca me parece que deberia ir una func que busque la funcion a traves de los ambitos
-        return self.NodoUnario('CALL ' + p[0], self.arboles['m:main:(ca)']['nodo'])
+        self.alcance(p.IDEN)
+        return self.NodoUnario('CALL ' + p[0], self.arboles['f1:main']['nodo'])
 
     @_('posicionales "," CONSTANTE_E', 'posicionales "," MINUS CONSTANTE_E', 
        'CONSTANTE_E', 'MINUS CONSTANTE_E')
@@ -304,6 +335,7 @@ class TpParser(Parser):
         'asignable', 'TOL "(" expr ")"')
     def factor(self, p):
         if len(p) == 1:
+            if hasattr(p, 'asignable'): self.alcance(p.asignable)
             return p[0]
         else:
             return self.NodoBinario('TOL', p.expr)
