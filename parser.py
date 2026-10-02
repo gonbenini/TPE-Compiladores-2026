@@ -67,8 +67,8 @@ class TpParser(Parser):
 
     @_('program_in declaraciones cuerpo_ejecutable')
     def programa(self, p):
-        #self.imprimir_arbol(p.cuerpo_ejecutable)
-        #print(self.arboles)
+        self.imprimir_arbol(p.cuerpo_ejecutable)
+        print(self.arboles)
         return p
 
     @_('PROGRAM IDEN')
@@ -103,6 +103,7 @@ class TpParser(Parser):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de metodo")
         self.ambito = self.ambito.rsplit(":", 1)[0] #desacoplamos ambito
         new_name = p.ambito_metodo['name'] + ':' + self.ambito
+        self.arboles[new_name] = {'nodo': p.cuerpo_ejecutable} #guardamos arbol sintactico de la funcion
         self.TS[new_name] = self.TS.pop(p.ambito_metodo['name'])
         self.TS[new_name]['type'] = p.ambito_metodo['tipo']
         self.TS[new_name]['uso'] = 'Nombre de metodo'
@@ -161,9 +162,9 @@ class TpParser(Parser):
        'ambito_func "(" parametros_f ")" cuerpo_ejecutable')
     def funcion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de funcion")
-        self.arboles[p.ambito_func['name']] = {'nodo': p.cuerpo_ejecutable} #guardamos arbol sintactico de la funcion
         self.ambito = self.ambito.rsplit(":", 1)[0] #desacoplamos ambito
         new_name = p.ambito_func['name'] + ':' + self.ambito
+        self.arboles[new_name] = {'nodo': p.cuerpo_ejecutable} #guardamos arbol sintactico de la funcion
         self.TS[new_name] = self.TS.pop(p.ambito_func['name'])
         self.TS[new_name]['type'] = p.ambito_func['tipo']
         self.TS[new_name]['uso'] = 'Nombre de funcion'
@@ -251,21 +252,17 @@ class TpParser(Parser):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia pout")
         return self.NodoUnario('POUT', p[2])
     
-    #desambiguamos la gramatica ya que sino cuando venia un IDEN y un ".", la gramatica no sabia si reducir el IDEN
-    #a "asignable" o consumirlo para que luego viniera una invocacion a metodo y reducirlo a invocacion_metodo.
-    #a si, siempre que viene un IDEN lo convierte en asignable y opera a partir de ahi.
-    #ademas, ahora gracias a esto podemos invocar metodos de atributos de objetos, por ejemplo a.b.c.d();
-    @_('asignable "." invocacion_funcion')
+    @_('asignable "." IDEN "(" parametros ")" "[" posicionales "]"', 'asignable "." IDEN "(" parametros ")"')
     def invocacion_metodo(self, p): #invocacion_m . invocacion_f -> invocacion_m . invocacion_f . invocacion_f - > a.b.c.m().m1().m2()
         self._InfoLogger.info(f"Linea {p.lineno} | Invocacion a metodo")
-        return p
+        call_name = p.asignable + '.' + p.IDEN
+        return self.NodoUnario('CALL ' + call_name, self.arboles['m:main:(ca)']['nodo'])
 
     @_('IDEN "(" parametros ")" "[" posicionales "]"', 'IDEN "(" parametros ")"')
     def invocacion_funcion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Invocacion a funcion")
         #aca me parece que deberia ir una func que busque la funcion a traves de los ambitos
-        #return self.NodoUnario('CALL', self.arboles['f3:main']['nodo'])
-        #return p
+        return self.NodoUnario('CALL ' + p[0], self.arboles['m:main:(ca)']['nodo'])
 
     @_('posicionales "," CONSTANTE_E', 'posicionales "," MINUS CONSTANTE_E', 
        'CONSTANTE_E', 'MINUS CONSTANTE_E')
