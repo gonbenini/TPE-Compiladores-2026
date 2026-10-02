@@ -67,7 +67,7 @@ class TpParser(Parser):
 
     @_('program_in declaraciones cuerpo_ejecutable')
     def programa(self, p):
-        self.imprimir_arbol(p.cuerpo_ejecutable)
+        #self.imprimir_arbol(p.cuerpo_ejecutable)
         #print(self.arboles)
         return p
 
@@ -100,6 +100,9 @@ class TpParser(Parser):
     @_('tipo IDEN "(" parametros_f ")" cuerpo_ejecutable')
     def metodo(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de metodo")
+        new_name = p.IDEN + ':' + self.ambito
+        self.TS[new_name] = self.TS.pop(p.IDEN)
+        self.TS[new_name]['type'] = p.tipo
         return p
 
     @_('BEGIN ejecutables END ";"')
