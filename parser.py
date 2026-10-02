@@ -103,7 +103,6 @@ class TpParser(Parser):
     @_('BEGIN ejecutables END ";"')
     def cuerpo_ejecutable(self, p):
         return p.ejecutables
-        return p
     
     @_('dec_var ";"', 'clase', 'funcion', 'tipoUsuario')
     def declaracion(self, p):
@@ -112,16 +111,23 @@ class TpParser(Parser):
     @_('tipo id_vars')
     def dec_var(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de variable/s")
+        for i in p.id_vars:
+            self.TS[i]['type'] = p.tipo
         return p
 
     @_('SINGLEF', 'LONGINT', 'IDEN')
     def tipo(self, p):
-        return p
+        return p[0]
 
     @_('id_vars "," IDEN', 'IDEN')
     def id_vars(self, p):
-        print(self.ambito)
-        return p
+        #print(self.ambito)
+        if len(p) == 1:
+            return p.IDEN
+        else:
+            arr = p.id_vars.split(',')
+            arr.append(p.IDEN)
+            return arr
 
     @_('parametros_f "," parametro_f', 'parametro_f')
     def parametros_f(self, p):
@@ -232,7 +238,7 @@ class TpParser(Parser):
     def invocacion_funcion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Invocacion a funcion")
         #aca me parece que deberia ir una func que busque la funcion a traves de los ambitos
-        return self.NodoUnario('CALL', self.arboles['f3:main']['nodo'])
+        #return self.NodoUnario('CALL', self.arboles['f3:main']['nodo'])
         #return p
 
     @_('posicionales "," CONSTANTE_E', 'posicionales "," MINUS CONSTANTE_E', 
