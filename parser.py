@@ -187,6 +187,11 @@ class TpParser(Parser):
 
     @_('SINGLEF', 'LONGINT', 'IDEN')
     def tipo(self, p):
+        #print(p[0])
+        if p[0] not in ('singlef', 'longint'):
+            valido, _ = self.alcance(p[0])
+            if not valido: print("Error | Tipo fuera de alcance")
+            return "error"
         return p[0]
 
     @_('id_vars "," IDEN', 'IDEN')
