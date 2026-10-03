@@ -94,11 +94,17 @@ class TpParser(Parser):
 
     def atributo_valido(self, p):
         check = (p.asignable.operando).split(".")[-1]
-        if (check + ':' + self.ambito) in self.TS:
+
+        if (check + ':' + 'main:(' + p.asignable.tipo + ')') in self.TS:
+            clase = self.TS[check + ':' + 'main:(' + p.asignable.tipo + ')']['type']
+            #aca habia un problema si una var se llamaba igual que un atributo de una clase
+            #asique priorizamos la busqueda de atributos/metodos
+            #print(check + ':' + 'main:(' + p.asignable.tipo + ')')
+        else:
             clase = self.TS[check + ':' + self.ambito]['type']
+            #print(check + ':' + self.ambito)
 
-        else: clase = self.TS[check + ':' + 'main:(' + p.asignable.tipo + ')']['type']
-
+        #print(clase)
         if self.TS[clase + ':' + 'main']['type'] == 'CLASS':
             if (p.IDEN + ':' + 'main' + ':(' + clase + ')') in self.TS:
                 print('valido')
