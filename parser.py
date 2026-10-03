@@ -154,6 +154,11 @@ class TpParser(Parser):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de metodo")
         self.ambito = self.ambito.rsplit(":", 1)[0] #desacoplamos ambito
         new_name = p.ambito_metodo['name'] + ':' + self.ambito
+        if new_name in self.TS:
+            print(f"Error | redeclaracion de {p.ambito_metodo['name']}")
+            self.TS.pop(p.ambito_metodo['name'])
+            return
+
         self.arboles[new_name] = {'nodo': p.cuerpo_ejecutable} #guardamos arbol sintactico de la funcion
         self.TS[new_name] = self.TS.pop(p.ambito_metodo['name'])
         self.TS[new_name]['type'] = p.ambito_metodo['tipo']
@@ -187,11 +192,12 @@ class TpParser(Parser):
 
     @_('SINGLEF', 'LONGINT', 'IDEN')
     def tipo(self, p):
-        #print(p[0])
         if p[0] not in ('singlef', 'longint'):
             valido, _ = self.alcance(p[0])
-            if not valido: print("Error | Tipo fuera de alcance")
-            return "error"
+            #print(valido)
+            if not valido:
+                print("Error | Tipo fuera de alcance")
+                return "error"
         return p[0]
 
     @_('id_vars "," IDEN', 'IDEN')
@@ -254,6 +260,15 @@ class TpParser(Parser):
     def tipoUsuario(self, p):
         #acomodar lo de uso y renombar tambien
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de tipo usuario")
+        new_name = p.IDEN + ':main'
+        if new_name in self.TS:
+            print(f"Error | redeclaracion de {new_name}")
+            self.TS.pop(p.ambito_metodo['name'])
+            return
+        
+        self.TS[new_name] = self.TS.pop(p.IDEN)
+        self.TS[new_name]['type'] = 'Tipo usuario'
+        self.TS[new_name]['uso'] = 'Nombre de tipo'
         return p
 
     @_('constantes "," constante', 'constante')
