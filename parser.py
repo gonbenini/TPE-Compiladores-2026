@@ -33,6 +33,11 @@ class TpParser(Parser):
             self.left = left
             self.right = right    
 
+    class NodoHoja:
+        def __init__(self, tipo, operando) -> None:
+            self.tipo=tipo
+            self.operando=operando
+
 
     def imprimir_arbol(self, nodo, nivel=0, relacion="Raíz"):
         sangria = "    " * nivel
@@ -86,6 +91,20 @@ class TpParser(Parser):
         else: 
             print(f"Variable {name} no declarada o no alcanzable")
             return False
+
+    def atributo_valido(self, p):
+        check = (p.asignable.operando).split(".")[-1]
+        if (check + ':' + self.ambito) in self.TS:
+            clase = self.TS[check + ':' + self.ambito]['type']
+
+        else: clase = self.TS[check + ':' + 'main:(' + p.asignable.tipo + ')']['type']
+
+        if self.TS[clase + ':' + 'main']['type'] == 'CLASS':
+            if (p.IDEN + ':' + 'main' + ':(' + clase + ')') in self.TS:
+                print('valido')
+            else:
+                print('no valido')
+        else: print('xd')
 
     #----------------------------ESTRUCTURA PRINCIPAL---------------------------------------------
 
@@ -283,10 +302,8 @@ class TpParser(Parser):
     @_('asignable "." IDEN "(" parametros ")" "[" posicionales "]"', 'asignable "." IDEN "(" parametros ")"')
     def invocacion_metodo(self, p): #invocacion_m . invocacion_f -> invocacion_m . invocacion_f . invocacion_f - > a.b.c.m().m1().m2()
         self._InfoLogger.info(f"Linea {p.lineno} | Invocacion a metodo")
-        call_name = p.asignable + '.' + p.IDEN
-        # if self.alcance(p.asignable):
-        #     clase = self.TS[]
-
+        call_name = p.asignable.operando + '.' + p.IDEN
+        self.atributo_valido(p)
         return self.NodoUnario('CALL ' + call_name, self.arboles['m:main:(ca)']['nodo'])
 
     @_('IDEN "(" parametros ")" "[" posicionales "]"', 'IDEN "(" parametros ")"')
@@ -303,19 +320,28 @@ class TpParser(Parser):
     @_('asignable ASSIGN expr ";"')
     def asignacion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia de asignacion")
-        return self.NodoBinario('=', p.asignable, p.expr)
+        return self.NodoBinario('=', p.asignable.operando, p.expr)
 
     @_('asignable ASSIGN2P expr_linea ";"')
     def asignacion_linea(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia asignacion de linea")
-        return self.NodoBinario(':=', p.asignable, p.expr_linea)
+        return self.NodoBinario(':=', p.asignable.operando, p.expr_linea)
 
     @_('asignable "." IDEN', 'IDEN') #asingable.IDEN -> asignable.IDEN.IDEN
+    #la idea seria desde aca controlar que todas las vars esten al alcance y ademas
+    #para atributos de clases chequear que justamente esa clase contenga esos atributos
     def asignable(self, p):
         if len(p) == 3:
-            return (p.asignable + '.' + p.IDEN)
+            self.atributo_valido(p)
+            check = (p.asignable.operando).split(".")[-1]
+            if (check + ':' + self.ambito) in self.TS:
+                clase = self.TS[check + ':' + self.ambito]['type']
+
+            else: clase = self.TS[check + ':' + 'main:(' + p.asignable.tipo + ')']['type']
+            return self.NodoHoja(clase, p.asignable.operando + '.' + p.IDEN)
         else:
-            return p.IDEN
+            self.alcance(p.IDEN)
+            return self.NodoHoja(self.TS[p.IDEN + ':' + self.ambito]['type'], p.IDEN)
 
     @_('expr PLUS term', 'expr MINUS term', 'term')
     def expr(self, p):
@@ -335,8 +361,9 @@ class TpParser(Parser):
         'asignable', 'TOL "(" expr ")"')
     def factor(self, p):
         if len(p) == 1:
-            if hasattr(p, 'asignable'): self.alcance(p.asignable)
-            return p[0]
+            if hasattr(p, 'asignable'): return p.asignable.operando
+            else:
+                return p[0]
         else:
             return self.NodoBinario('TOL', p.expr)
 
