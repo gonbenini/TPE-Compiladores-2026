@@ -108,11 +108,15 @@ class TpParser(Parser):
         if self.TS[clase + ':' + 'main']['type'] == 'CLASS':
             if (p.IDEN + ':' + 'main' + ':(' + clase + ')') in self.TS:
                 print('valido')
-                return (p.IDEN + ':main' + ':(' + clase + ')')
+                return True, (p.IDEN + ':main' + ':(' + clase + ')')
                 #manejar bien los errores de retorno
             else:
                 print('no valido')
-        else: print('xd')
+                return False, 'NIL'
+
+        else:
+            print('xd')
+            return False, 'NIL'
 
     #----------------------------ESTRUCTURA PRINCIPAL---------------------------------------------
 
@@ -311,7 +315,8 @@ class TpParser(Parser):
     def invocacion_metodo(self, p): #invocacion_m . invocacion_f -> invocacion_m . invocacion_f . invocacion_f - > a.b.c.m().m1().m2()
         self._InfoLogger.info(f"Linea {p.lineno} | Invocacion a metodo")
         call_name = p.asignable.operando + '.' + p.IDEN
-        path = self.atributo_valido(p)
+        valido, path = self.atributo_valido(p)
+        if not valido: print(f'Error | {p.asignable.operando} no posee un metodo {p.IDEN}')
         return self.NodoUnario('CALL ' + call_name, self.arboles[path]['nodo'])
 
     @_('IDEN "(" parametros ")" "[" posicionales "]"', 'IDEN "(" parametros ")"')
@@ -340,7 +345,8 @@ class TpParser(Parser):
     #para atributos de clases chequear que justamente esa clase contenga esos atributos
     def asignable(self, p):
         if len(p) == 3:
-            self.atributo_valido(p)
+            valido, path = self.atributo_valido(p)
+            if not valido: print(f'Error | {p.asignable.operando} no posee un atributo {p.IDEN}')
             check = (p.asignable.operando).split(".")[-1]
             if (check + ':' + self.ambito) in self.TS:
                 clase = self.TS[check + ':' + self.ambito]['type']
