@@ -77,45 +77,37 @@ class TpParser(Parser):
 
         if ambito_aux == 'main' and not encontrado:
             if (name + ':' + 'main') in self.TS:
-                print(f"Variable {name + ':main'} encontrada")
+                #print(f"Variable {name + ':main'} encontrada")
                 return True, name + ':main'
 
             else:
-                print(f"Variable {name} no declarada o no alcanzable")
+                #print(f"Variable {name} no declarada o no alcanzable")
                 return False, 'NIL'
             
         elif encontrado:
-            print(f"Variable {search_name} encontrada")
+            #print(f"Variable {search_name} encontrada")
             return True, search_name
 
         else: 
-            print(f"Variable {name} no declarada o no alcanzable")
+            #print(f"Variable {name} no declarada o no alcanzable")
             return False, 'NIL'
 
     def atributo_valido(self, p):
-        check = (p.asignable.operando).split(".")[-1]
+        if (p.asignable.tipo + ':main') in self.TS:
+            clase = p.asignable.tipo
 
-        if (check + ':' + 'main:(' + p.asignable.tipo + ')') in self.TS:
-            clase = self.TS[check + ':' + 'main:(' + p.asignable.tipo + ')']['type']
-            #aca habia un problema si una var se llamaba igual que un atributo de una clase
-            #asique priorizamos la busqueda de atributos/metodos
-            #print(check + ':' + 'main:(' + p.asignable.tipo + ')')
-        else:
-            clase = self.TS[check + ':' + self.ambito]['type']
-            #print(check + ':' + self.ambito)
+        else: return False, 'NIL'
 
-        #print(clase)
         if self.TS[clase + ':' + 'main']['type'] == 'CLASS':
             if (p.IDEN + ':' + 'main' + ':(' + clase + ')') in self.TS:
-                print('valido')
                 return True, (p.IDEN + ':main' + ':(' + clase + ')')
                 #manejar bien los errores de retorno
             else:
-                print('no valido')
+                #print('no valido')
                 return False, 'NIL'
 
         else:
-            print('xd')
+            #print('xd')
             return False, 'NIL'
 
     #----------------------------ESTRUCTURA PRINCIPAL---------------------------------------------
@@ -184,6 +176,7 @@ class TpParser(Parser):
     
     @_('tipo id_vars')
     def dec_var(self, p):
+        # se debe chequear que el tipo es valido
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de variable/s")
         for i in p.id_vars:
             new_name = i + ':' + self.ambito
@@ -211,6 +204,9 @@ class TpParser(Parser):
 
     @_('tipo IDEN')
     def parametro_f(self, p):
+        #ver como asociarla cada parametro_f con su funcion
+        # para luego poder hacer las asignaciones de parametros reales
+        # a formales
         new_name = p.IDEN + ':' + self.ambito
         self.TS[new_name] = self.TS.pop(p.IDEN)
         self.TS[new_name]['type'] = p.tipo
@@ -251,6 +247,7 @@ class TpParser(Parser):
 
     @_('TYPEDEF IDEN ASSIGN "[" constantes "]" ";"')
     def tipoUsuario(self, p):
+        #acomodar lo de uso y renombar tambien
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de tipo usuario")
         return p
 
@@ -316,18 +313,26 @@ class TpParser(Parser):
         self._InfoLogger.info(f"Linea {p.lineno} | Invocacion a metodo")
         call_name = p.asignable.operando + '.' + p.IDEN
         valido, path = self.atributo_valido(p)
-        if not valido: print(f'Error | {p.asignable.operando} no posee un metodo {p.IDEN}')
-        return self.NodoUnario('CALL ' + call_name, self.arboles[path]['nodo'])
+        if not valido:
+            print(f'Error | {p.asignable.operando} no posee un metodo {p.IDEN}')
+            return self.NodoUnario('error', 'error')
+        else:
+            return self.NodoUnario('CALL ' + call_name, self.arboles[path]['nodo'])
 
     @_('IDEN "(" parametros ")" "[" posicionales "]"', 'IDEN "(" parametros ")"')
     def invocacion_funcion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Invocacion a funcion")
-        _, path = self.alcance(p.IDEN)
-        return self.NodoUnario('CALL ' + p[0], self.arboles[path]['nodo'])
+        valido, path = self.alcance(p.IDEN)
+        if not valido:
+            print(f"Error | funcion {p.IDEN} no declarada o no alcanzable")
+            return self.NodoUnario('CALL', 'error')
+        else:
+            return self.NodoUnario('CALL ' + p[0], self.arboles[path]['nodo'])
 
     @_('posicionales "," CONSTANTE_E', 'posicionales "," MINUS CONSTANTE_E', 
        'CONSTANTE_E', 'MINUS CONSTANTE_E')
     def posicionales(self, p):
+        #ver como devolver para que lo use la funcion
         return p
 
     @_('asignable ASSIGN expr ";"')
@@ -346,17 +351,19 @@ class TpParser(Parser):
     def asignable(self, p):
         if len(p) == 3:
             valido, path = self.atributo_valido(p)
-            if not valido: print(f'Error | {p.asignable.operando} no posee un atributo {p.IDEN}')
-            check = (p.asignable.operando).split(".")[-1]
-            if (check + ':' + self.ambito) in self.TS:
-                clase = self.TS[check + ':' + self.ambito]['type']
+            if not valido:
+                print(f'Error | {p.asignable.operando} no posee un atributo {p.IDEN}')
+                return self.NodoHoja('error', 'error')
+            else:
+                return self.NodoHoja(self.TS[path]['type'], p.asignable.operando + '.' + p.IDEN)
 
-            else: clase = self.TS[check + ':' + 'main:(' + p.asignable.tipo + ')']['type']
-            #esta var. clase estoy seguro que no devuelve el tipo correcto.
-            return self.NodoHoja(clase, p.asignable.operando + '.' + p.IDEN)
         else:
-            _, path = self.alcance(p.IDEN)
-            return self.NodoHoja(self.TS[path]['type'], p.IDEN)
+            valido, path = self.alcance(p.IDEN)
+            if not valido:
+                print(f"Error | variable {p.IDEN} no declarada o no alcanzable")
+                return self.NodoHoja('error', 'error')
+            else:
+                return self.NodoHoja(self.TS[path]['type'], p.IDEN)
 
     @_('expr PLUS term', 'expr MINUS term', 'term')
     def expr(self, p):
