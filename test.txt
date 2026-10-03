@@ -1,21 +1,24 @@
 program compi
-longint function f3(longint a)
-    longint b;
-    longint function f4(longint a)
-        longint c;
-        begin
-            pout("hola");
-        end;
-begin
-    pout("hola");
-end;
-
 class ca c1 begin
     longint a;
+    longint m(longint x) begin
+        pout("hola");
+    end;
+end;
+class cb c1 begin
+    ca c;
 end;
 
+longint a;
+
+singlef function f1(longint b)
 begin
-    a = a + b;
     pout(a);
-    pout(xd);
+end;
+
+cb clase1;
+singlef c;
+begin
+    a = clase1.c.m(f1(c));
+    //f1(c);
 end;

@@ -77,20 +77,20 @@ class TpParser(Parser):
 
         if ambito_aux == 'main' and not encontrado:
             if (name + ':' + 'main') in self.TS:
-                print(f"Variable {search_name} encontrada")
-                return True
+                print(f"Variable {name + ':main'} encontrada")
+                return True, name + ':main'
 
             else:
                 print(f"Variable {name} no declarada o no alcanzable")
-                return False
+                return False, 'NIL'
             
         elif encontrado:
             print(f"Variable {search_name} encontrada")
-            return True
+            return True, search_name
 
         else: 
             print(f"Variable {name} no declarada o no alcanzable")
-            return False
+            return False, 'NIL'
 
     def atributo_valido(self, p):
         check = (p.asignable.operando).split(".")[-1]
@@ -108,6 +108,8 @@ class TpParser(Parser):
         if self.TS[clase + ':' + 'main']['type'] == 'CLASS':
             if (p.IDEN + ':' + 'main' + ':(' + clase + ')') in self.TS:
                 print('valido')
+                return (p.IDEN + ':main' + ':(' + clase + ')')
+                #manejar bien los errores de retorno
             else:
                 print('no valido')
         else: print('xd')
@@ -309,14 +311,14 @@ class TpParser(Parser):
     def invocacion_metodo(self, p): #invocacion_m . invocacion_f -> invocacion_m . invocacion_f . invocacion_f - > a.b.c.m().m1().m2()
         self._InfoLogger.info(f"Linea {p.lineno} | Invocacion a metodo")
         call_name = p.asignable.operando + '.' + p.IDEN
-        self.atributo_valido(p)
-        return self.NodoUnario('CALL ' + call_name, self.arboles['m:main:(ca)']['nodo'])
+        path = self.atributo_valido(p)
+        return self.NodoUnario('CALL ' + call_name, self.arboles[path]['nodo'])
 
     @_('IDEN "(" parametros ")" "[" posicionales "]"', 'IDEN "(" parametros ")"')
     def invocacion_funcion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Invocacion a funcion")
-        self.alcance(p.IDEN)
-        return self.NodoUnario('CALL ' + p[0], self.arboles['f1:main']['nodo'])
+        _, path = self.alcance(p.IDEN)
+        return self.NodoUnario('CALL ' + p[0], self.arboles[path]['nodo'])
 
     @_('posicionales "," CONSTANTE_E', 'posicionales "," MINUS CONSTANTE_E', 
        'CONSTANTE_E', 'MINUS CONSTANTE_E')
@@ -344,10 +346,11 @@ class TpParser(Parser):
                 clase = self.TS[check + ':' + self.ambito]['type']
 
             else: clase = self.TS[check + ':' + 'main:(' + p.asignable.tipo + ')']['type']
+            #esta var. clase estoy seguro que no devuelve el tipo correcto.
             return self.NodoHoja(clase, p.asignable.operando + '.' + p.IDEN)
         else:
-            self.alcance(p.IDEN)
-            return self.NodoHoja(self.TS[p.IDEN + ':' + self.ambito]['type'], p.IDEN)
+            _, path = self.alcance(p.IDEN)
+            return self.NodoHoja(self.TS[path]['type'], p.IDEN)
 
     @_('expr PLUS term', 'expr MINUS term', 'term')
     def expr(self, p):
@@ -367,6 +370,7 @@ class TpParser(Parser):
         'asignable', 'TOL "(" expr ")"')
     def factor(self, p):
         if len(p) == 1:
+            #este probablemente haya que devolver tipos para todos.
             if hasattr(p, 'asignable'): return p.asignable.operando
             else:
                 return p[0]
