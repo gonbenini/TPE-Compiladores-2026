@@ -1,24 +1,10 @@
 program compi
-class ca c1 begin
-    longint a;
-    longint m(longint x) begin
-        pout("hola");
-    end;
-end;
-class cb c1 begin
-    ca c;
-end;
-
 longint a;
-
-singlef function f1(longint b)
+longint b;
 begin
-    pout(a);
-end;
-
-cb clase1;
-singlef c;
-begin
-    a = clase1.c.m(f1(c));
-    //f1(c);
+    if (a==b)
+        pout("hola");
+    else
+        pout("holasssssss");
+    end_if;
 end;

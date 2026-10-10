@@ -23,20 +23,23 @@ class TpParser(Parser):
     )
 
     class NodoUnario:
-        def __init__(self, op, son='NIL'):
+        def __init__(self, op, son=None):
             self.op = op
-            self.son = son
+            self.son = son if son else 'NIL' 
 
     class NodoBinario:
-        def __init__(self, op, left='NIL', right='NIL'):
+        def __init__(self, op, left='NIL', right=None):
             self.op = op
             self.left = left
-            self.right = right    
+            self.right = right if right else 'NIL'   
 
     class NodoHoja:
         def __init__(self, tipo, operando) -> None:
             self.tipo=tipo
             self.operando=operando
+
+        def __str__(self) -> str:
+            return self.operando
 
 
     def imprimir_arbol(self, nodo, nivel=0, relacion="Raíz"):
@@ -60,6 +63,8 @@ class TpParser(Parser):
 
             if hasattr(nodo, 'son'):
                 self.imprimir_arbol(nodo.son, nivel + 1, "Hijo")
+
+                
         else:
             # Si no es un nodo (es un string o número final), entra acá
             print(f"{sangria}[{relacion}] -> {nodo}")
@@ -430,7 +435,7 @@ class TpParser(Parser):
         if len(p) == 1:
             return p[0]
         else:
-            return self.NodoBinario('TOL', p.expr)
+            return self.NodoUnario('TOL', p.expr)
 
     @_('asignable ASSIGN IDEN', 'asignable ASSIGN constante')
     def asignacion_de_linea(self, p):
@@ -442,19 +447,28 @@ class TpParser(Parser):
 
     @_('seleccion', 'iteracion')
     def control(self, p):
-        return p
+        return p[0]
 
     @_('expr_linea GT expr_linea', 'expr_linea LT expr_linea',
        'expr_linea GE expr_linea', 'expr_linea LE expr_linea',
        'expr_linea NE expr_linea', 'expr_linea EQ expr_linea')
     def condicion(self, p):
-        return p
+        return self.NodoBinario(p[1], p[0], p[2])
 
     @_('IF "(" condicion ")" cuerpo_control END_IF ";"',
        'IF "(" condicion ")" cuerpo_control ELSE cuerpo_control END_IF ";"')
     def seleccion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia de seleccion")
-        return p
+        condicion = self.NodoUnario('COND', p.condicion)
+        if not hasattr(p, 'ELSE'):
+            cuerpo_then = self.NodoUnario('THEN', p.cuerpo_control)
+            cuerpo = self.NodoUnario('CUERPO', cuerpo_then)
+            return self.NodoBinario('IF', condicion, cuerpo)
+        else:
+            cuerpo_then = self.NodoUnario('THEN', p.cuerpo_control0)
+            cuerpo_else = self.NodoUnario('ELSE', p.cuerpo_control1)
+            cuerpo = self.NodoBinario('CUERPO', cuerpo_then, cuerpo_else)
+            return self.NodoBinario('IF', condicion, cuerpo)
 
     @_('FROM IDEN ASSIGN2P constante TO constante BY constante REPEAT cuerpo_control')
     def iteracion(self, p):
@@ -463,7 +477,7 @@ class TpParser(Parser):
     
     @_('cuerpo_ejecutable', 'ejecutable')
     def cuerpo_control(self, p):
-        return p
+        return p[0]
 
     def error(self, p):
         pass
