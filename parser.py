@@ -473,7 +473,25 @@ class TpParser(Parser):
     @_('FROM IDEN ASSIGN2P constante TO constante BY constante REPEAT cuerpo_control')
     def iteracion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia de iteracion")
-        return p
+        
+        #IDEN, constante0 -> IDEN = constante0
+        inicializacion = self.NodoBinario(":=", p.IDEN, p.constante0)
+
+        #condicion -> IDEN <= constante1
+        condicion = self.NodoBinario("<=", p.IDEN, p.constante1)
+        condicion = self.NodoUnario("COND", condicion)
+
+        #constante2 -> constante0 += constante2
+        sum = self.NodoBinario("+", p.IDEN, p.constante2)
+        incremento = self.NodoBinario("=", p.IDEN, sum)
+
+        cuerpo_for = self.NodoBinario("CUERPO", p.cuerpo_control, incremento)
+        
+        composicion_while = self.NodoBinario("COMPWHILE", condicion, cuerpo_for)
+
+        arbol_for = self.NodoBinario("FOR", inicializacion, composicion_while)
+
+        return arbol_for
     
     @_('cuerpo_ejecutable', 'ejecutable')
     def cuerpo_control(self, p):

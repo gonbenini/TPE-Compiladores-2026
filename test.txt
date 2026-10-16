@@ -7,4 +7,11 @@ begin
     else
         pout("holasssssss");
     end_if;
+
+    from i := 1$l to 5$l by 2$l repeat
+    begin
+        a := 30$l;
+        b := a = 35$l;
+    end;
+
 end;
