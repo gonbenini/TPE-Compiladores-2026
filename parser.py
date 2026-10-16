@@ -2,7 +2,6 @@ from hmac import new
 
 from sly import Parser
 from lexer import TpLexer
-from utils import check_flt_range, check_int_range
 
 class TpParser(Parser):
 
@@ -115,6 +114,11 @@ class TpParser(Parser):
             #print('xd')
             return False, 'NIL'
 
+    def renameToken(self, new_name, old_name, type, use):
+        self.TS[new_name] = self.TS.pop(old_name)
+        self.TS[new_name]['type'] = type
+        self.TS[new_name]['uso'] = use
+
     #----------------------------ESTRUCTURA PRINCIPAL---------------------------------------------
 
     @_('programa')
@@ -165,9 +169,10 @@ class TpParser(Parser):
             return
 
         self.arboles[new_name] = {'nodo': p.cuerpo_ejecutable} #guardamos arbol sintactico de la funcion
-        self.TS[new_name] = self.TS.pop(p.ambito_metodo['name'])
-        self.TS[new_name]['type'] = p.ambito_metodo['tipo']
-        self.TS[new_name]['uso'] = 'Nombre de metodo'
+        self.renameToken(new_name, p.ambito_metodo['name'], p.ambito_metodo['tipo'], 'Nombre de metodo')
+            # self.TS[new_name] = self.TS.pop(p.ambito_metodo['name'])
+            # self.TS[new_name]['type'] = p.ambito_metodo['tipo']
+            # self.TS[new_name]['uso'] = 'Nombre de metodo'
 
         return p
 
@@ -190,9 +195,10 @@ class TpParser(Parser):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de variable/s")
         for i in p.id_vars:
             new_name = i + ':' + self.ambito
-            self.TS[new_name] = self.TS.pop(i)
-            self.TS[new_name]['type'] = p.tipo
-            self.TS[new_name]['uso'] = 'Nombre de variable'
+            self.renameToken(new_name, i, p.tipo, 'Nombre de variable')
+                # self.TS[new_name] = self.TS.pop(i)
+                # self.TS[new_name]['type'] = p.tipo
+                # self.TS[new_name]['uso'] = 'Nombre de variable'
         return p
 
     @_('SINGLEF', 'LONGINT', 'IDEN')
@@ -224,9 +230,10 @@ class TpParser(Parser):
         # para luego poder hacer las asignaciones de parametros reales
         # a formales
         new_name = p.IDEN + ':' + self.ambito
-        self.TS[new_name] = self.TS.pop(p.IDEN)
-        self.TS[new_name]['type'] = p.tipo
-        self.TS[new_name]['uso'] = 'Nombre de variable'
+        self.renameToken(new_name, p.IDEN, p.tipo, 'Nombre de variable')
+            # self.TS[new_name] = self.TS.pop(p.IDEN)
+            # self.TS[new_name]['type'] = p.tipo
+            # self.TS[new_name]['uso'] = 'Nombre de variable'
         return p
 
     @_('ambito_func "(" parametros_f ")" declaraciones_func cuerpo_ejecutable',
@@ -236,9 +243,10 @@ class TpParser(Parser):
         self.ambito = self.ambito.rsplit(":", 1)[0] #desacoplamos ambito
         new_name = p.ambito_func['name'] + ':' + self.ambito
         self.arboles[new_name] = {'nodo': p.cuerpo_ejecutable} #guardamos arbol sintactico de la funcion
-        self.TS[new_name] = self.TS.pop(p.ambito_func['name'])
-        self.TS[new_name]['type'] = p.ambito_func['tipo']
-        self.TS[new_name]['uso'] = 'Nombre de funcion'
+        self.renameToken(new_name, p.ambito_func['name'], p.ambito_func['tipo'], 'Nombre de funcion')
+            # self.TS[new_name] = self.TS.pop(p.ambito_func['name'])
+            # self.TS[new_name]['type'] = p.ambito_func['tipo']
+            # self.TS[new_name]['uso'] = 'Nombre de funcion'
         return p
 
     @_('tipo FUNCTION IDEN')
@@ -251,9 +259,10 @@ class TpParser(Parser):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de clase")
         self.ambito = self.ambito.rsplit(":", 1)[0] #desacoplamos ambito
         new_name = p.ambito_clase + ':' + self.ambito
-        self.TS[new_name] = self.TS.pop(p.ambito_clase)
-        self.TS[new_name]['type'] = 'CLASS'
-        self.TS[new_name]['uso'] = 'Nombre de clase'
+        self.renameToken(new_name, p.ambito_clase, 'CLASS', 'Nombre de clase')
+            # self.TS[new_name] = self.TS.pop(p.ambito_clase)
+            # self.TS[new_name]['type'] = 'CLASS'
+            # self.TS[new_name]['uso'] = 'Nombre de clase'
         return p
 
     @_('CLASS IDEN IDEN')
@@ -270,10 +279,11 @@ class TpParser(Parser):
             print(f"Error | redeclaracion de {new_name}")
             self.TS.pop(p.ambito_metodo['name'])
             return
-        
-        self.TS[new_name] = self.TS.pop(p.IDEN)
-        self.TS[new_name]['type'] = 'Tipo usuario'
-        self.TS[new_name]['uso'] = 'Nombre de tipo'
+
+        self.renameToken(new_name, p.IDEN, 'Tipo usuario','Nombre de tipo')
+            # self.TS[new_name] = self.TS.pop(p.IDEN)
+            # self.TS[new_name]['type'] = 'Tipo usuario'
+            # self.TS[new_name]['uso'] = 'Nombre de tipo'
         return p
 
     @_('constantes "," constante', 'constante')
@@ -311,7 +321,7 @@ class TpParser(Parser):
     @_('ejecutables ejecutable', 'ejecutable')
     def ejecutables(self, p):
         if len(p) == 1:
-            return self.NodoUnario('S', p.ejecutable)
+            return p.ejecutable
         else:
             return self.NodoBinario('S', p.ejecutables, p.ejecutable)
 
