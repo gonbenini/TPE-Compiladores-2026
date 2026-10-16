@@ -303,13 +303,9 @@ class TpParser(Parser):
                 # Diccionario corregido
                 self.TS[nueva_key] = {'type': tipo_dato, 'count': 1}
 
-            if (tipo_dato == 'CONSTANTE_E') & (not check_int_range(key)):
-                print("Error constante negativa fuera de rango")
+            return p[1]
 
-            elif (tipo_dato == 'CONSTANTE_F') & (not check_flt_range(key)):
-                print("Error constante negativa fuera de rango")
-
-        return p
+        return p[0]
 
     #----------------------------EJECUTABLES---------------------------------------------
     @_('ejecutables ejecutable', 'ejecutable')
