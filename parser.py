@@ -216,9 +216,8 @@ class TpParser(Parser):
         if len(p) == 1:
             return [p.IDEN]
         else:
-            arr = p.id_vars.split(',')
-            arr.append(p.IDEN)
-            return arr
+            p.id_vars.append(p.IDEN)
+            return p.id_vars
 
     @_('parametros_f "," parametro_f', 'parametro_f')
     def parametros_f(self, p):
@@ -344,6 +343,8 @@ class TpParser(Parser):
         self._InfoLogger.info(f"Linea {p.lineno} | Invocacion a metodo")
         call_name = p.asignable.operando + '.' + p.IDEN
         valido, path = self.atributo_valido(p)
+        print(path)
+
         if not valido:
             print(f'Error | {p.asignable.operando} no posee un metodo {p.IDEN}')
             return self.NodoUnario('error', 'error')
