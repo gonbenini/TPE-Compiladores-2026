@@ -119,6 +119,14 @@ class TpParser(Parser):
         self.TS[new_name]['type'] = type
         self.TS[new_name]['uso'] = use
 
+    def check_duplicate(self, new_name, old_name):
+        if new_name in self.TS:
+            print(f"Error | redeclaracion de {new_name.rsplit(':')[0]} en ambito {self.ambito}")
+            self.TS.pop(old_name)
+            return False
+        else:
+            return True
+
     #----------------------------ESTRUCTURA PRINCIPAL---------------------------------------------
 
     @_('programa')
@@ -128,7 +136,6 @@ class TpParser(Parser):
     @_('program_in declaraciones cuerpo_ejecutable')
     def programa(self, p):
         self.imprimir_arbol(p.cuerpo_ejecutable)
-        print(self.arboles)
         return p
 
     @_('PROGRAM IDEN')
@@ -163,10 +170,11 @@ class TpParser(Parser):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de metodo")
         self.ambito = self.ambito.rsplit(":", 1)[0] #desacoplamos ambito
         new_name = p.ambito_metodo['name'] + ':' + self.ambito
-        if new_name in self.TS:
-            print(f"Error | redeclaracion de {p.ambito_metodo['name']}")
-            self.TS.pop(p.ambito_metodo['name'])
-            return
+        # if new_name in self.TS:
+        #     print(f"Error | redeclaracion de {p.ambito_metodo['name']}")
+        #     self.TS.pop(p.ambito_metodo['name'])
+        #     return
+        if not self.check_duplicate(new_name, p.ambito_metodo['name']): return
 
         self.arboles[new_name] = {'nodo': p.cuerpo_ejecutable} #guardamos arbol sintactico de la funcion
         self.renameToken(new_name, p.ambito_metodo['name'], p.ambito_metodo['tipo'], 'Nombre de metodo')
@@ -195,6 +203,7 @@ class TpParser(Parser):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de variable/s")
         for i in p.id_vars:
             new_name = i + ':' + self.ambito
+            if not self.check_duplicate(new_name, i): return
             self.renameToken(new_name, i, p.tipo, 'Nombre de variable')
                 # self.TS[new_name] = self.TS.pop(i)
                 # self.TS[new_name]['type'] = p.tipo
@@ -245,6 +254,9 @@ class TpParser(Parser):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de funcion")
         self.ambito = self.ambito.rsplit(":", 1)[0] #desacoplamos ambito
         new_name = p.ambito_func['name'] + ':' + self.ambito
+
+        if not self.check_duplicate(new_name, p.ambito_func['name']): return
+
         self.arboles[new_name] = {'nodo': p.cuerpo_ejecutable} #guardamos arbol sintactico de la funcion
         self.renameToken(new_name, p.ambito_func['name'], p.ambito_func['tipo'], 'Nombre de funcion')
             # self.TS[new_name] = self.TS.pop(p.ambito_func['name'])
@@ -263,6 +275,9 @@ class TpParser(Parser):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de clase")
         self.ambito = self.ambito.rsplit(":", 1)[0] #desacoplamos ambito
         new_name = p.ambito_clase + ':' + self.ambito
+
+        if not self.check_duplicate(new_name, p.ambito_clase): return
+
         self.renameToken(new_name, p.ambito_clase, 'CLASS', 'Nombre de clase')
             # self.TS[new_name] = self.TS.pop(p.ambito_clase)
             # self.TS[new_name]['type'] = 'CLASS'
@@ -279,10 +294,11 @@ class TpParser(Parser):
         #acomodar lo de uso y renombar tambien
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de tipo usuario")
         new_name = p.IDEN + ':main'
-        if new_name in self.TS:
-            print(f"Error | redeclaracion de {new_name}")
-            self.TS.pop(p.ambito_metodo['name'])
-            return
+        # if new_name in self.TS:
+        #     print(f"Error | redeclaracion de {new_name}")
+        #     self.TS.pop(p.ambito_metodo['name'])
+        #     return
+        if not self.check_duplicate(new_name, p.IDEN): return
 
         self.renameToken(new_name, p.IDEN, 'Tipo usuario','Nombre de tipo')
             # self.TS[new_name] = self.TS.pop(p.IDEN)
