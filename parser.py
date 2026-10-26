@@ -21,24 +21,33 @@ class TpParser(Parser):
         ('right', 'END', ';'),
     )
 
+    #la idea es con este manejar todas aquellas operaciones que tengan un solo hijo, tales como
+    #retornos, impresiones, conversiones, etc. La idea de que tenga es tipo es simplemente por ir
+    #representando los tipos a lo largo del arbol
     class NodoUnario:
-        def __init__(self, op, son=None):
+        def __init__(self, op, son=None, type=None):
             self.op = op
-            self.son = son if son else 'NIL' 
+            self.son = son if son else 'NIL'
+            self.type = type
 
+    #la idea con este es manejar todas aquellas operaciones binarias. La idea del tipo es ir
+    #representando los tipos de diferentes operaciones.
     class NodoBinario:
-        def __init__(self, op, left='NIL', right=None):
+        def __init__(self, op, left='NIL', right=None, type=None):
             self.op = op
             self.left = left
-            self.right = right if right else 'NIL'   
+            self.right = right if right else 'NIL'
+            self.type = type 
 
+    #la idea con este es manejar los operandos individuales por si solo, con la inclusion
+    #del tipo para poder ir elevandolo a traves del arbol
     class NodoHoja:
         def __init__(self, tipo, operando) -> None:
-            self.tipo=tipo
+            self.type=tipo
             self.operando=operando
 
         def __str__(self) -> str:
-            return self.operando
+            return str(self.operando)
 
 
     def imprimir_arbol(self, nodo, nivel=0, relacion="Raíz"):
@@ -316,9 +325,9 @@ class TpParser(Parser):
             key = p[1]
 
             if hasattr(p, 'CONSTANTE_E'):
-                tipo_dato = 'CONSTANTE_E'  # (O el string exacto que uses en tu TS)
+                tipo_dato = 'longint'  # (O el string exacto que uses en tu TS)
             else:
-                tipo_dato = 'CONSTANTE_F'
+                tipo_dato = 'singlef'
 
             if self.TS[key]['count'] == 1:
                 del self.TS[key]
@@ -333,9 +342,11 @@ class TpParser(Parser):
                 # Diccionario corregido
                 self.TS[nueva_key] = {'type': tipo_dato, 'count': 1}
 
-            return p[1]
+            #return p[1]
+            return self.NodoHoja(tipo_dato, p[1])
 
-        return p[0]
+        #return p[0]
+        return self.NodoHoja(self.TS[p[0]]['type'], p[0])
 
     #----------------------------EJECUTABLES---------------------------------------------
     @_('ejecutables ejecutable', 'ejecutable')
@@ -370,7 +381,7 @@ class TpParser(Parser):
             print(f'Error | {p.asignable.operando} no posee un metodo {p.IDEN}')
             return self.NodoUnario('error', 'error')
         else:
-            return self.NodoUnario('CALL ' + call_name, self.arboles[path]['nodo'])
+            return self.NodoUnario('CALL ' + call_name, self.arboles[path]['nodo'], self.TS[path]['type'])
 
     @_('IDEN "(" parametros ")" "[" posicionales "]"', 'IDEN "(" parametros ")"')
     def invocacion_funcion(self, p):
@@ -380,7 +391,7 @@ class TpParser(Parser):
             print(f"Error | funcion {p.IDEN} no declarada o no alcanzable")
             return self.NodoUnario('CALL', 'error')
         else:
-            return self.NodoUnario('CALL ' + p[0], self.arboles[path]['nodo'])
+            return self.NodoUnario('CALL ' + p[0], self.arboles[path]['nodo'], self.TS[path]['type'])
 
     @_('posicionales "," CONSTANTE_E', 'posicionales "," MINUS CONSTANTE_E', 
        'CONSTANTE_E', 'MINUS CONSTANTE_E')
@@ -391,7 +402,11 @@ class TpParser(Parser):
     @_('asignable ASSIGN expr ";"')
     def asignacion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia de asignacion")
-        return self.NodoBinario('=', p.asignable.operando, p.expr)
+        if p.asignable.type == p.expr.type:
+            return self.NodoBinario('=', p.asignable.operando, p.expr, p.asignable.type)
+
+        print(f"Error | No es posible asignar un {p.expr.type} a un {p.asignable.type}")
+        return self.NodoBinario('error', 'error', 'error')
 
     @_('asignable ASSIGN2P expr_linea ";"')
     def asignacion_linea(self, p):
@@ -421,14 +436,22 @@ class TpParser(Parser):
     @_('expr PLUS term', 'expr MINUS term', 'term')
     def expr(self, p):
         if len(p) == 3:
-            return self.NodoBinario(p[1], p.expr, p.term)
+            if p.expr.type == p.term.type:
+                return self.NodoBinario(p[1], p.expr, p.term, p.expr.type)
+            
+            print(f"Error | tipos incompatibles")
+            return self.NodoBinario('error', 'error', 'error')
         else:
             return p.term
 
     @_('term TIMES factor', 'term DIVIDE factor', 'factor')
     def term(self, p):
         if len(p) == 3:
-            return self.NodoBinario(p[1], p.term, p.factor)
+            if p.term.type == p.factor.type:
+                return self.NodoBinario(p[1], p.term, p.factor, p.term.type)
+
+            print(f"Error | tipos incompatibles")
+            return self.NodoBinario('error', 'error', 'error')
         else:
             return p.factor
 
@@ -437,11 +460,9 @@ class TpParser(Parser):
     def factor(self, p):
         if len(p) == 1:
             #este probablemente haya que devolver tipos para todos.
-            if hasattr(p, 'asignable'): return p.asignable.operando
-            else:
-                return p[0]
+            return p[0]
         else:
-            return self.NodoBinario('TOL', p.expr)
+            return self.NodoUnario('TOL', p.expr, 'longint')
 
     @_('expr_linea PLUS term_linea', 'expr_linea MINUS term_linea', 'term_linea')
     def expr_linea(self, p):

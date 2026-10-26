@@ -112,7 +112,7 @@ class TpLexer(Lexer):
             return # no devolvemos nada
 
         if not self.TS.get(t.value):
-            self.TS[t.value] = {'type': 'CONSTANTE ENTERA', 'count': 1}
+            self.TS[t.value] = {'type': 'longint', 'count': 1}
 
         else:
             self.TS[t.value]['count'] += 1
@@ -136,7 +136,7 @@ class TpLexer(Lexer):
             return # no devolvemos nada
 
         if not self.TS.get(t.value):
-            self.TS[t.value] = {'type': 'CONSTANTE FLOTANTE', 'count': 1}
+            self.TS[t.value] = {'type': 'singlef', 'count': 1}
 
         else:
             self.TS[t.value]['count'] += 1
