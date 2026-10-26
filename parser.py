@@ -173,7 +173,7 @@ class TpParser(Parser):
             # self.TS[new_name] = self.TS.pop(p.ambito_metodo['name'])
             # self.TS[new_name]['type'] = p.ambito_metodo['tipo']
             # self.TS[new_name]['uso'] = 'Nombre de metodo'
-
+        self.TS[new_name]['parametros'] = p.parametros_f
         return p
 
     @_('tipo IDEN "("')
@@ -221,7 +221,11 @@ class TpParser(Parser):
 
     @_('parametros_f "," parametro_f', 'parametro_f')
     def parametros_f(self, p):
-        return p
+        if len(p) == 1:
+            return [p.parametro_f]
+        else:
+            p.parametros_f.append(p.parametro_f)
+            return p.parametros_f
 
     @_('tipo IDEN')
     def parametro_f(self, p):
@@ -233,7 +237,7 @@ class TpParser(Parser):
             # self.TS[new_name] = self.TS.pop(p.IDEN)
             # self.TS[new_name]['type'] = p.tipo
             # self.TS[new_name]['uso'] = 'Nombre de variable'
-        return p
+        return new_name
 
     @_('ambito_func "(" parametros_f ")" declaraciones_func cuerpo_ejecutable',
        'ambito_func "(" parametros_f ")" cuerpo_ejecutable')
@@ -246,6 +250,7 @@ class TpParser(Parser):
             # self.TS[new_name] = self.TS.pop(p.ambito_func['name'])
             # self.TS[new_name]['type'] = p.ambito_func['tipo']
             # self.TS[new_name]['uso'] = 'Nombre de funcion'
+        self.TS[new_name]['parametros'] = p.parametros_f
         return p
 
     @_('tipo FUNCTION IDEN')
