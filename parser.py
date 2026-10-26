@@ -5,12 +5,12 @@ from lexer import TpLexer
 
 class TpParser(Parser):
 
-    def __init__(self, TS, _info, _logger, ambito):
+    def __init__(self, TS, _info, _logger):
         # Inyectamos dependencias
         self.TS = TS
         self._InfoLogger = _info
         self._logger = _logger
-        self.ambito = ambito
+        self.ambito = 'main'
         self.arboles={}
 
     debugfile = 'parser.out'
