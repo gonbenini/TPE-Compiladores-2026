@@ -149,6 +149,35 @@ class TpParser(Parser):
             print(f"Error | Tipos incompatibles entre {type2} y {type1}")
             return False
 
+    def assign_generate(self, params_f, params_r, posic=None):
+        raiz = None
+        posic = params_r if posic == None else posic
+        if len(params_f) == len(params_r) == len(posic):
+            if len(params_f) == 1:
+                valido = self.check_type(self.TS[params_f[0]]['type'], params_r[0].type)
+                if valido:
+                    s = self.NodoBinario('=', params_f[0], params_r[0], params_r[0].type)
+                else:
+                    s = self.NodoBinario('error', 'error', 'error')
+                return True, s
+            else:
+                cadena_asignacion = None  
+                for i in range(len(params_f)):
+                    valido = self.check_type(self.TS[params_f[i]]['type'], params_r[i].type)
+                    if valido:
+                        nodo_asignacion = self.NodoBinario('=', params_f[i], params_r[i], params_r[i].type)
+                        nodo_cadena = self.NodoBinario('asign.', 'None', nodo_asignacion)
+                        if not cadena_asignacion:
+                            cadena_asignacion = nodo_cadena
+                            raiz = nodo_cadena
+                        else:
+                            cadena_asignacion.left = nodo_asignacion
+                            cadena_asignacion = nodo_asignacion
+                    else:
+                        nodo_asignacion = self.NodoBinario('error', 'error', 'error')
+
+                return True, raiz
+        return False, None
     #----------------------------ESTRUCTURA PRINCIPAL---------------------------------------------
 
     @_('programa')
@@ -412,38 +441,16 @@ class TpParser(Parser):
             posic = p.posicionales if hasattr(p, 'posicionales') else p.parametros
             raiz = None
             parametros_reales = p.parametros
-            if len(params) == len(p.parametros) == len(posic):
-                if len(params) == 1:
-                    valido = self.check_type(self.TS[params[0]]['type'], parametros_reales[0].type)
-                    if valido:
-                        s = self.NodoBinario('=', params[0], parametros_reales[0], parametros_reales[0].type)
-                    else:
-                        s = self.NodoBinario('error', 'error', 'error')
-                else:
-                    cadena_asignacion = None
-                    if len(p) == 7:
-                        ord = {}
-                        for i in range(len(p.posicionales)):
-                            ord[p.posicionales[i]] = parametros_reales[i]
-                        keys = [key for key in ord]
-                        keys.sort()
-                        parametros_reales = [ord[k] for k in keys]
-                    
-                    for i in range(len(params)):
-                        valido = self.check_type(self.TS[params[i]]['type'], parametros_reales[i].type)
-                        if valido:
-                            nodo_asignacion = self.NodoBinario('=', params[i], parametros_reales[i], parametros_reales[i].type)
-                            nodo_cadena = self.NodoBinario('asign.', 'None', nodo_asignacion)
-                            if not cadena_asignacion:
-                                cadena_asignacion = nodo_cadena
-                                raiz = nodo_cadena
-                            else:
-                                cadena_asignacion.left = nodo_asignacion
-                                cadena_asignacion = nodo_asignacion
-                        else:
-                            s = self.NodoBinario('error', 'error', 'error')
-                        
+            if len(p) == 7:
+                ord = {}
+                for i in range(len(p.posicionales)):
+                    ord[p.posicionales[i]] = parametros_reales[i]
+                keys = [key for key in ord]
+                keys.sort()
+                parametros_reales = [ord[k] for k in keys]
 
+            valido, raiz = self.assign_generate(params, parametros_reales, posic)
+            if valido:
                 return self.NodoBinario('CALL ' + p[0], raiz , self.arboles[path]['nodo'], self.TS[path]['type'])
 
             print("ERROR | La cantidad de parametros reales o posicionales no coincide con los parametros formales")
