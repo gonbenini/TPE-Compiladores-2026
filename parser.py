@@ -146,7 +146,7 @@ class TpParser(Parser):
         if type1 == type2:
             return True
         else:
-            print(f"Error | No es posible asignar un {type2} a un {type1}")
+            print(f"Error | Tipos incompatibles entre {type2} y {type1}")
             return False
 
     #----------------------------ESTRUCTURA PRINCIPAL---------------------------------------------
@@ -495,10 +495,10 @@ class TpParser(Parser):
     @_('expr PLUS term', 'expr MINUS term', 'term')
     def expr(self, p):
         if len(p) == 3:
-            if p.expr.type == p.term.type:
+            valido = self.check_type(p.expr.type, p.term.type)
+            if valido:
                 return self.NodoBinario(p[1], p.expr, p.term, p.expr.type)
             
-            print(f"Error | tipos incompatibles")
             return self.NodoBinario('error', 'error', 'error')
         else:
             return p.term
@@ -506,10 +506,10 @@ class TpParser(Parser):
     @_('term TIMES factor', 'term DIVIDE factor', 'factor')
     def term(self, p):
         if len(p) == 3:
-            if p.term.type == p.factor.type:
+            valido = self.check_type(p.term.type, p.factor.type)
+            if valido:
                 return self.NodoBinario(p[1], p.term, p.factor, p.term.type)
-
-            print(f"Error | tipos incompatibles")
+            
             return self.NodoBinario('error', 'error', 'error')
         else:
             return p.factor
@@ -518,7 +518,6 @@ class TpParser(Parser):
         'asignable', 'TOL "(" expr ")"')
     def factor(self, p):
         if len(p) == 1:
-            #este probablemente haya que devolver tipos para todos.
             return p[0]
         else:
             return self.NodoUnario('TOL', p.expr, 'longint')
@@ -526,14 +525,22 @@ class TpParser(Parser):
     @_('expr_linea PLUS term_linea', 'expr_linea MINUS term_linea', 'term_linea')
     def expr_linea(self, p):
         if len(p) == 3:
-            return self.NodoBinario(p[1], p.expr_linea, p.term_linea)
+            valido = self.check_type(p.expr_linea.type, p.term_linea.type)
+            if valido:
+                return self.NodoBinario(p[1], p.expr_linea, p.term_linea, p.expr_linea.type)
+                    
+            return self.NodoBinario('error', 'error', 'error')
         else:
             return p.term_linea
     
     @_('term_linea TIMES factor_linea', 'term_linea DIVIDE factor_linea', 'factor_linea')
     def term_linea(self, p):
         if len(p) == 3:
-            return self.NodoBinario(p[1], p.term_linea, p.factor_linea)
+            valido = self.check_type(p.term_linea.type, p.factor_linea.type)
+            if valido:
+                return self.NodoBinario(p[1], p.term_linea, p.factor_linea, p.term_linea.type)
+            
+            return self.NodoBinario('error', 'error', 'error')
         else:
             return p.factor_linea
     
@@ -543,7 +550,7 @@ class TpParser(Parser):
         if len(p) == 1:
             return p[0]
         else:
-            return self.NodoUnario('TOL', p.expr)
+            return self.NodoUnario('TOL', p.expr, 'longint')
 
     @_('asignable ASSIGN IDEN', 'asignable ASSIGN constante')
     def asignacion_de_linea(self, p):
