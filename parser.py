@@ -1,4 +1,5 @@
 from hmac import new
+from turtle import pos
 
 from sly import Parser
 from lexer import TpLexer
@@ -38,6 +39,10 @@ class TpParser(Parser):
             self.left = left
             self.right = right if right else 'NIL'
             self.type = type 
+
+        def __str__(self) -> str:
+            a = self.left.__str__() if self.left else ''
+            return ' '.join([a, self.op, self.right.__str__(), ';'])
 
     #la idea con este es manejar los operandos individuales por si solo, con la inclusion
     #del tipo para poder ir elevandolo a traves del arbol
@@ -238,6 +243,7 @@ class TpParser(Parser):
             return p.id_vars
 
     @_('parametros_f "," parametro_f', 'parametro_f')
+    #capaz deberia devolver un nodo hoja por parametro formal?
     def parametros_f(self, p):
         if len(p) == 1:
             return [p.parametro_f]
@@ -250,7 +256,10 @@ class TpParser(Parser):
         #ver como asociarla cada parametro_f con su funcion
         # para luego poder hacer las asignaciones de parametros reales
         # a formales
+
+        #deberiamos chequear que no haya redeclaracion tambien
         new_name = p.IDEN + ':' + self.ambito
+        if not self.check_duplicate(new_name, p.IDEN): return
         self.renameToken(new_name, p.IDEN, p.tipo, 'Nombre de variable')
             # self.TS[new_name] = self.TS.pop(p.IDEN)
             # self.TS[new_name]['type'] = p.tipo
@@ -375,7 +384,7 @@ class TpParser(Parser):
         self._InfoLogger.info(f"Linea {p.lineno} | Invocacion a metodo")
         call_name = p.asignable.operando + '.' + p.IDEN
         valido, path = self.atributo_valido(p)
-        print(path)
+        #print(path)
 
         if not valido:
             print(f'Error | {p.asignable.operando} no posee un metodo {p.IDEN}')
@@ -391,13 +400,46 @@ class TpParser(Parser):
             print(f"Error | funcion {p.IDEN} no declarada o no alcanzable")
             return self.NodoUnario('CALL', 'error')
         else:
-            return self.NodoUnario('CALL ' + p[0], self.arboles[path]['nodo'], self.TS[path]['type'])
+            params = self.TS[path]['parametros']
+            raiz = None
+            if len(params) == len(p.parametros):# == len(p.posicionales):
+                if len(params) == 1:
+                    s = self.NodoBinario('=', params[0], p.parametros[0])
+                else:
+                    parametros_reales = p.parametros
+                    cadena_asignacion = None
+                    if len(p) == 7:
+                        ord = {}
+                        for i in range(len(p.posicionales)):
+                            ord[p.posicionales[i]] = parametros_reales[i]
+                        keys = [key for key in ord]
+                        keys.sort()
+                        parametros_reales = [ord[k] for k in keys]
 
-    @_('posicionales "," CONSTANTE_E', 'posicionales "," MINUS CONSTANTE_E', 
-       'CONSTANTE_E', 'MINUS CONSTANTE_E')
+                    for i in range(len(params)):
+                        nodo_asignacion = self.NodoBinario('=', params[i], parametros_reales[i])
+                        nodo_cadena = self.NodoBinario('asign.', 'None', nodo_asignacion)
+                        if not cadena_asignacion:
+                            cadena_asignacion = nodo_cadena
+                            raiz = nodo_cadena
+                        else:
+                            cadena_asignacion.left = nodo_asignacion
+                            cadena_asignacion = nodo_asignacion
+                        
+
+                return self.NodoBinario('CALL ' + p[0], raiz , self.arboles[path]['nodo'], self.TS[path]['type'])
+
+            print("ERROR | La cantidad de parametros reales o posicionales no coincide con los parametros formales")
+            return self.NodoUnario('error', 'error', 'error')
+
+    @_('posicionales "," CONSTANTE_E', 'CONSTANTE_E')
     def posicionales(self, p):
         #ver como devolver para que lo use la funcion
-        return p
+        if len(p) == 1:
+            return [p.CONSTANTE_E]
+        else:
+            p.posicionales.append(p.CONSTANTE_E)
+            return p.posicionales
 
     @_('asignable ASSIGN expr ";"')
     def asignacion(self, p):
@@ -492,7 +534,11 @@ class TpParser(Parser):
 
     @_('parametros "," expr', 'expr')
     def parametros(self, p):
-        return p
+        if len(p) == 1:
+            return [p.expr]
+        else:
+            p.parametros.append(p.expr)
+            return p.parametros
 
     @_('seleccion', 'iteracion')
     def control(self, p):
