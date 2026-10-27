@@ -14,6 +14,8 @@ class TpParser(Parser):
         self._logger = _logger
         self.ambito = 'main'
         self.arboles={}
+        self.ret = False
+        self.type_func = None
 
     debugfile = 'parser.out'
     tokens = TpLexer.tokens
@@ -178,6 +180,17 @@ class TpParser(Parser):
 
                 return True, raiz
         return False, None
+
+    def check_ret(self, new_name, type, nodo):
+        if self.ret:
+            self.ret = False
+        else:
+            op = 0 if type == 'longint' else 0.0
+            hoja = self.NodoHoja(type, op)
+            if hasattr(nodo, 'right'):
+                self.arboles[new_name]['nodo'].right = self.NodoBinario('S', self.arboles[new_name]['nodo'].right, self.NodoUnario('RET', hoja))
+            else:
+                self.arboles[new_name]['nodo'] = self.NodoBinario('S', self.arboles[new_name]['nodo'], self.NodoUnario('RET', hoja))
     
     #----------------------------ESTRUCTURA PRINCIPAL---------------------------------------------
 
@@ -233,12 +246,15 @@ class TpParser(Parser):
             # self.TS[new_name] = self.TS.pop(p.ambito_metodo['name'])
             # self.TS[new_name]['type'] = p.ambito_metodo['tipo']
             # self.TS[new_name]['uso'] = 'Nombre de metodo'
+
+        self.check_ret(new_name, p.ambito_metodo['tipo'], p.cuerpo_ejecutable)
         self.TS[new_name]['parametros'] = p.parametros_f
         return p
 
     @_('tipo IDEN "("')
     def ambito_metodo(self, p):
         self.ambito = self.ambito + ':' + p.IDEN
+        self.type_func = p.tipo
         return {'tipo': p.tipo, 'name': p.IDEN}
 
     @_('BEGIN ejecutables END ";"')
@@ -318,12 +334,15 @@ class TpParser(Parser):
             # self.TS[new_name] = self.TS.pop(p.ambito_func['name'])
             # self.TS[new_name]['type'] = p.ambito_func['tipo']
             # self.TS[new_name]['uso'] = 'Nombre de funcion'
+
+        self.check_ret(new_name, p.ambito_func['tipo'], p.cuerpo_ejecutable)
         self.TS[new_name]['parametros'] = p.parametros_f
         return p
 
     @_('tipo FUNCTION IDEN')
     def ambito_func(self, p):
         self.ambito = self.ambito + ':' + p[2]
+        self.type_func = p.tipo
         return {'tipo': p.tipo, 'name': p.IDEN}
 
     @_('ambito_clase BEGIN declaraciones_clase END ";"', 'ambito_clase BEGIN declaraciones_clase EXTENDS id_vars ";" END ";"')
@@ -397,8 +416,7 @@ class TpParser(Parser):
             #return p[1]
             return self.NodoHoja(tipo_dato, p[1])
 
-        #return p[0]
-        return self.NodoHoja(self.TS[p[0]]['type'], p[0])
+        return self.NodoHoja(self.TS[str(p[0])]['type'], p[0])
 
     #----------------------------EJECUTABLES---------------------------------------------
     @_('ejecutables ejecutable', 'ejecutable')
@@ -415,6 +433,10 @@ class TpParser(Parser):
     @_('RET "(" expr ")" ";"')
     def retorno(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia retorno")
+        self.ret = True
+
+        if self.type_func and self.type_func != p.expr.type:
+            print(f"ERROR | Se esperaba retornar {self.type_func} y se recibio {p.expr.type} en linea {p.lineno}")
         return self.NodoUnario('RET', p.expr)
     
     @_('POUT "(" expr ")" ";"', 'POUT "(" CADN ")" ";"')
