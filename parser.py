@@ -112,8 +112,8 @@ class TpParser(Parser):
             return False, 'NIL'
 
     def atributo_valido(self, p):
-        if (p.asignable.tipo + ':main') in self.TS:
-            clase = p.asignable.tipo
+        if (p.asignable.type + ':main') in self.TS:
+            clase = p.asignable.type
 
         else: return False, 'NIL'
 
@@ -178,6 +178,7 @@ class TpParser(Parser):
 
                 return True, raiz
         return False, None
+    
     #----------------------------ESTRUCTURA PRINCIPAL---------------------------------------------
 
     @_('programa')
@@ -332,6 +333,11 @@ class TpParser(Parser):
         new_name = p.ambito_clase + ':' + self.ambito
 
         if not self.check_duplicate(new_name, p.ambito_clase): return
+
+        if len(p) == 8:
+            for i in p.id_vars:
+                valido, _ = self.alcance(i)
+                if not valido: print(f"ERROR | Clase {i} fuera de alcance")
 
         self.renameToken(new_name, p.ambito_clase, 'CLASS', 'Nombre de clase')
             # self.TS[new_name] = self.TS.pop(p.ambito_clase)
@@ -489,7 +495,7 @@ class TpParser(Parser):
                 print(f'Error | {p.asignable.operando} no posee un atributo {p.IDEN}')
                 return self.NodoHoja('error', 'error')
             else:
-                return self.NodoHoja(self.TS[path]['type'], p.asignable.operando + '.' + p.IDEN)
+                return self.NodoHoja(self.TS[path]['type'], path)
 
         else:
             valido, path = self.alcance(p.IDEN)
@@ -497,7 +503,7 @@ class TpParser(Parser):
                 print(f"Error | variable {p.IDEN} no declarada o no alcanzable")
                 return self.NodoHoja('error', 'error')
             else:
-                return self.NodoHoja(self.TS[path]['type'], p.IDEN)
+                return self.NodoHoja(self.TS[path]['type'], path)
 
     @_('expr PLUS term', 'expr MINUS term', 'term')
     def expr(self, p):
