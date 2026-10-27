@@ -2,6 +2,7 @@ from hmac import new
 from turtle import pos
 
 from sly import Parser
+from zmq import has
 from lexer import TpLexer
 
 class TpParser(Parser):
@@ -140,6 +141,13 @@ class TpParser(Parser):
             return False
         else:
             return True
+
+    def check_type(self, type1, type2):
+        if type1 == type2:
+            return True
+        else:
+            print(f"Error | No es posible asignar un {type2} a un {type1}")
+            return False
 
     #----------------------------ESTRUCTURA PRINCIPAL---------------------------------------------
 
@@ -401,12 +409,17 @@ class TpParser(Parser):
             return self.NodoUnario('CALL', 'error')
         else:
             params = self.TS[path]['parametros']
+            posic = p.posicionales if hasattr(p, 'posicionales') else p.parametros
             raiz = None
-            if len(params) == len(p.parametros):# == len(p.posicionales):
+            parametros_reales = p.parametros
+            if len(params) == len(p.parametros) == len(posic):
                 if len(params) == 1:
-                    s = self.NodoBinario('=', params[0], p.parametros[0])
+                    valido = self.check_type(self.TS[params[0]]['type'], parametros_reales[0].type)
+                    if valido:
+                        s = self.NodoBinario('=', params[0], parametros_reales[0], parametros_reales[0].type)
+                    else:
+                        s = self.NodoBinario('error', 'error', 'error')
                 else:
-                    parametros_reales = p.parametros
                     cadena_asignacion = None
                     if len(p) == 7:
                         ord = {}
@@ -415,16 +428,20 @@ class TpParser(Parser):
                         keys = [key for key in ord]
                         keys.sort()
                         parametros_reales = [ord[k] for k in keys]
-
+                    
                     for i in range(len(params)):
-                        nodo_asignacion = self.NodoBinario('=', params[i], parametros_reales[i])
-                        nodo_cadena = self.NodoBinario('asign.', 'None', nodo_asignacion)
-                        if not cadena_asignacion:
-                            cadena_asignacion = nodo_cadena
-                            raiz = nodo_cadena
+                        valido = self.check_type(self.TS[params[i]]['type'], parametros_reales[i].type)
+                        if valido:
+                            nodo_asignacion = self.NodoBinario('=', params[i], parametros_reales[i], parametros_reales[i].type)
+                            nodo_cadena = self.NodoBinario('asign.', 'None', nodo_asignacion)
+                            if not cadena_asignacion:
+                                cadena_asignacion = nodo_cadena
+                                raiz = nodo_cadena
+                            else:
+                                cadena_asignacion.left = nodo_asignacion
+                                cadena_asignacion = nodo_asignacion
                         else:
-                            cadena_asignacion.left = nodo_asignacion
-                            cadena_asignacion = nodo_asignacion
+                            s = self.NodoBinario('error', 'error', 'error')
                         
 
                 return self.NodoBinario('CALL ' + p[0], raiz , self.arboles[path]['nodo'], self.TS[path]['type'])
@@ -444,10 +461,10 @@ class TpParser(Parser):
     @_('asignable ASSIGN expr ";"')
     def asignacion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia de asignacion")
-        if p.asignable.type == p.expr.type:
+        valido = self.check_type(p.asignable.type, p.expr.type)
+        if valido:
             return self.NodoBinario('=', p.asignable.operando, p.expr, p.asignable.type)
 
-        print(f"Error | No es posible asignar un {p.expr.type} a un {p.asignable.type}")
         return self.NodoBinario('error', 'error', 'error')
 
     @_('asignable ASSIGN2P expr_linea ";"')
