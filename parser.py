@@ -1,12 +1,42 @@
 from hmac import new
 from turtle import pos
 import numbers
-
+from abc import ABC, abstractmethod
 
 from sly import Parser
 from zmq import has
 from lexer import TpLexer
 
+class Lista(ABC):
+
+    def __init__(self, lista):
+        self.items = lista
+
+    def get(self, i):
+        return self.items[i]
+
+    def __len__(self):
+        return len(self.items)
+
+    @abstractmethod
+    def get_type(self, i):
+        pass
+
+
+class ParamR(Lista):
+
+    def get_type(self, i):
+        return self.items[i].type
+
+
+class Atributos(Lista):
+
+    def __init__(self, lista, TS):
+        super().__init__(lista)
+        self.TS = TS
+
+    def get_type(self, i):
+        return self.TS[self.items[i]]['type']
 class TpParser(Parser):
 
     def __init__(self, TS, _info, _logger):
@@ -26,7 +56,7 @@ class TpParser(Parser):
         ('right', 'error'),
         ('right', 'END', ';'),
     )
-
+        
     #la idea es con este manejar todas aquellas operaciones que tengan un solo hijo, tales como
     #retornos, impresiones, conversiones, etc. La idea de que tenga es tipo es simplemente por ir
     #representando los tipos a lo largo del arbol
@@ -147,7 +177,7 @@ class TpParser(Parser):
             return True
 
     def check_type(self, type1, type2, value=None):
-        if value and isinstance(value, self.NodoHoja):
+        if value and isinstance(value.operando, numbers.Number):
 
             if f"{type1}:main" in self.TS:
 
@@ -162,7 +192,16 @@ class TpParser(Parser):
                         return True
                 print(f"Error | Valor {value} no pertenece al tipo {type1}")
                 return False
-            
+
+        key1 = f"{type1}:main"
+        key2 = f"{type2}:main"
+        if key1 in self.TS and key2 in self.TS:
+            class1 = self.TS[key1]['type'] == 'CLASS'
+            class2 = self.TS[key2]['type'] == 'CLASS'
+            if class1 and class2:
+                if self.TS[key1]['code'] == self.TS[key2]['code']:
+                    return True
+        
         if type1 == type2:
             return True
         else:
@@ -174,19 +213,19 @@ class TpParser(Parser):
         posic = params_r if posic == None else posic
         if len(params_f) == len(params_r) == len(posic):
             if len(params_f) == 1:
-                valido = self.check_type(self.TS[params_f[0]]['type'], params_r[0].type)
+                valido = self.check_type(self.TS[params_f.get(0)]['type'], params_r.get_type(0))
                 if valido:
-                    s = self.NodoBinario('=', params_f[0], params_r[0], params_r[0].type)
+                    s = self.NodoBinario('=', params_f.get(0), params_r.get(0), params_r.get_type(0))
                 else:
                     s = self.NodoBinario('error', 'error', 'error')
                 return True, s
             else:
                 cadena_asignacion = None  
                 for i in range(len(params_f)):
-                    valido = self.check_type(self.TS[params_f[i]]['type'], params_r[i].type)
+                    valido = self.check_type(self.TS[params_f.get(i)]['type'], params_r.get_type(i))
                     if valido:
-                        nodo_asignacion = self.NodoBinario('=', params_f[i], params_r[i], params_r[i].type)
-                        nodo_cadena = self.NodoBinario('asign.', 'None', nodo_asignacion)
+                        nodo_asignacion = self.NodoBinario('=', params_f.get(i), params_r.get(i), params_r.get_type(i))
+                        nodo_cadena = self.NodoBinario('S', 'None', nodo_asignacion)
                         if not cadena_asignacion:
                             cadena_asignacion = nodo_cadena
                             raiz = nodo_cadena
@@ -302,7 +341,7 @@ class TpParser(Parser):
                 # self.TS[new_name]['uso'] = 'Nombre de variable'
         vars = []
         for i in p.id_vars:
-            vars.append({'type': p.tipo, 'name': i + ':' + self.ambito})
+            vars.append(i + ':' + self.ambito)
         return vars
 
     @_('SINGLEF', 'LONGINT', 'IDEN')
@@ -386,17 +425,22 @@ class TpParser(Parser):
                 if not valido: print(f"ERROR | Clase {i} fuera de alcance")
 
         self.renameToken(new_name, p.ambito_clase['name'], 'CLASS', 'Nombre de clase')
+
+        vars = Atributos(p.declaraciones_clase, self.TS)
+        self.TS[new_name]['vars'] = vars
+        self.TS[new_name]['code'] = p.ambito_clase['code']
         if not p.ambito_clase['valido']:
-            self.TS[p.ambito_clase['code'] + ':main'] = {'class': new_name, 'uso': 'Nombre de codigo', 'vars': p.declaraciones_clase}
+            self.TS[p.ambito_clase['code'] + ':main'] = {'class': new_name, 'uso': 'Nombre de codigo'}
         else:
-            vars_code = self.TS[p.ambito_clase['code'] + ':main']['vars']
-            vars = p.declaraciones_clase
+            first_class = self.TS[p.ambito_clase['code'] + ':main']['class']
+            vars_code = self.TS[first_class]['vars']
             if len(vars_code) != len(vars):
-                print(f"Error | Cantidad de atributos de clase {p.ambito_clase['code']} no coincide con la cantidad de atributos de la clase compatible")
+                print(f"Error | Cantidad de atributos de clase {p.ambito_clase['name']} no coincide con la cantidad de atributos de la clase compatible")
                 return
-            for i, j in zip(vars_code, vars):
-                if i['type'] != j['type']:
-                    print(f"Error | Tipo del atributo {j['name'].split(':')[0]} de clase {p.ambito_clase['name']} no coincide con su par {i['name'].split(':')[0]} en la clase compatible {i['name'].split(':')[2].strip('()')}")
+            err = False
+            for i, j in zip(vars_code.items, vars.items):
+                if self.TS[i]['type'] != self.TS[j]['type']:
+                    print(f"Error | Tipo del atributo {self.TS[j]['name'].split(':')[0]} de clase {p.ambito_clase['name']} no coincide con su par {self.TS[i]['name'].split(':')[0]} en la clase compatible {self.TS[i]['name'].split(':')[2].strip('()')}")
                     err = True
             if err:
                 return
@@ -510,17 +554,17 @@ class TpParser(Parser):
             print(f"Error | funcion {p.IDEN} no declarada o no alcanzable")
             return self.NodoUnario('CALL', 'error')
         else:
-            params = self.TS[path]['parametros']
+            params = ParamR(self.TS[path]['parametros'])
             posic = p.posicionales if hasattr(p, 'posicionales') else p.parametros
             raiz = None
-            parametros_reales = p.parametros
+            parametros_reales = ParamR(p.parametros)
             if len(p) == 7:
                 ord = {}
                 for i in range(len(p.posicionales)):
-                    ord[p.posicionales[i]] = parametros_reales[i]
+                    ord[p.posicionales[i]] = parametros_reales.get(i)
                 keys = [key for key in ord]
                 keys.sort()
-                parametros_reales = [ord[k] for k in keys]
+                parametros_reales.items = [ord[k] for k in keys]
 
             valido, raiz = self.assign_generate(params, parametros_reales, posic)
             if valido:
@@ -543,6 +587,18 @@ class TpParser(Parser):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia de asignacion")
         valido = self.check_type(p.asignable.type, p.expr.type, p.expr)
         if valido:
+            path_1 = self.TS[p.asignable.operando]['type'] + ':main'
+            path_2 = self.TS[p.expr.operando]['type'] + ':main'
+            clase = self.TS[path_1]['type']
+            if p.asignable.operando in self.TS:
+                clase = self.TS[path_1]['type']
+                if clase == 'CLASS':
+                    assign_valid, raiz = self.assign_generate(self.TS[path_1]['vars'], self.TS[path_2]['vars'])
+                    if assign_valid:
+                        return self.NodoUnario('TRANSFER_OBJECT', raiz, p.asignable.type)
+                    else:
+                        print("ERROR | La cantidad de atributos entre clases no coincide o los tipos de atributos no son compatibles")
+                        return self.NodoBinario('error', 'error', 'error')
             return self.NodoBinario('=', p.asignable.operando, p.expr, p.asignable.type)
 
         return self.NodoBinario('error', 'error', 'error')
@@ -552,7 +608,20 @@ class TpParser(Parser):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia asignacion de linea")
         valido = self.check_type(p.asignable.type, p.expr_linea.type, p.expr_linea)
         if valido:
+            path_1 = self.TS[p.asignable.operando]['type'] + ':main'
+            path_2 = self.TS[p.expr.operando]['type'] + ':main'
+            clase = self.TS[path_1]['type']
+            if p.asignable.operando in self.TS:
+                clase = self.TS[path_1]['type']
+                if clase == 'CLASS':
+                    assign_valid, raiz = self.assign_generate(self.TS[path_1]['vars'], self.TS[path_2]['vars'])
+                    if assign_valid:
+                        return self.NodoUnario('TRANSFER_OBJECT', raiz, p.asignable.type)
+                    else:
+                        print("ERROR | La cantidad de atributos entre clases no coincide o los tipos de atributos no son compatibles")
+                        return self.NodoBinario('error', 'error', 'error')
             return self.NodoBinario(':=', p.asignable.operando, p.expr_linea, p.asignable.type)
+        
         return self.NodoBinario('error', 'error', 'error')
 
     @_('asignable "." IDEN', 'IDEN') #asingable.IDEN -> asignable.IDEN.IDEN
