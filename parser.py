@@ -1,5 +1,7 @@
 from hmac import new
 from turtle import pos
+import numbers
+
 
 from sly import Parser
 from zmq import has
@@ -144,7 +146,24 @@ class TpParser(Parser):
         else:
             return True
 
-    def check_type(self, type1, type2):
+    def check_type(self, type1, type2, value=None):
+
+        if value and isinstance(value, self.NodoHoja):
+
+            if f"{type1}:main" in self.TS:
+
+                values = self.TS[f"{type1}:main"]['valores']
+            elif f"{type2}:main" in self.TS:
+                values = self.TS[f"{type2}:main"]['valores']
+            else:
+                values = None
+            if values:
+                for i in values:
+                    if i.type == value.type and i.operando == value.operando:
+                        return True
+                print(f"Error | Valor {value} no pertenece al tipo {type1}")
+                return False
+            
         if type1 == type2:
             return True
         else:
@@ -381,6 +400,7 @@ class TpParser(Parser):
         if not self.check_duplicate(new_name, p.IDEN): return
 
         self.renameToken(new_name, p.IDEN, 'Tipo usuario','Nombre de tipo')
+        self.TS[new_name]['valores'] = p.constantes
             # self.TS[new_name] = self.TS.pop(p.IDEN)
             # self.TS[new_name]['type'] = 'Tipo usuario'
             # self.TS[new_name]['uso'] = 'Nombre de tipo'
@@ -388,7 +408,11 @@ class TpParser(Parser):
 
     @_('constantes "," constante', 'constante')
     def constantes(self, p):
-        return p
+        if len(p) == 1:
+            return [p.constante]
+        else:
+            p.constantes.append(p.constante)
+            return p.constantes
 
     @_('CONSTANTE_E', 'CONSTANTE_F', 'MINUS CONSTANTE_E', 'MINUS CONSTANTE_F')
     def constante(self, p):
@@ -496,7 +520,7 @@ class TpParser(Parser):
     @_('asignable ASSIGN expr ";"')
     def asignacion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia de asignacion")
-        valido = self.check_type(p.asignable.type, p.expr.type)
+        valido = self.check_type(p.asignable.type, p.expr.type, p.expr)
         if valido:
             return self.NodoBinario('=', p.asignable.operando, p.expr, p.asignable.type)
 
