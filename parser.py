@@ -234,7 +234,11 @@ class TpParser(Parser):
 
     @_('declaraciones_clase declaracion_clase', 'declaracion_clase')
     def declaraciones_clase(self, p):
-        return p
+        if len(p) == 1:
+            return p.declaracion_clase
+        else:
+            p.declaraciones_clase.extend(p.declaracion_clase)
+            return p.declaraciones_clase
 
     @_('declaraciones_func declaracion_func', 'declaracion_func')
     def declaraciones_func(self, p):
@@ -246,7 +250,9 @@ class TpParser(Parser):
     
     @_('dec_var ";"', 'metodo')
     def declaracion_clase(self, p):
-        return p
+        if not p[0]:
+            return []
+        return p[0]
 
     @_('ambito_metodo parametros_f ")" cuerpo_ejecutable')
     def metodo(self, p):
@@ -267,7 +273,7 @@ class TpParser(Parser):
 
         self.check_ret(new_name, p.ambito_metodo['tipo'], p.cuerpo_ejecutable)
         self.TS[new_name]['parametros'] = p.parametros_f
-        return p
+        return []
 
     @_('tipo IDEN "("')
     def ambito_metodo(self, p):
@@ -294,7 +300,10 @@ class TpParser(Parser):
                 # self.TS[new_name] = self.TS.pop(i)
                 # self.TS[new_name]['type'] = p.tipo
                 # self.TS[new_name]['uso'] = 'Nombre de variable'
-        return p
+        vars = []
+        for i in p.id_vars:
+            vars.append({'type': p.tipo, 'name': i + ':' + self.ambito})
+        return vars
 
     @_('SINGLEF', 'LONGINT', 'IDEN')
     def tipo(self, p):
@@ -367,25 +376,38 @@ class TpParser(Parser):
     def clase(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de clase")
         self.ambito = self.ambito.rsplit(":", 1)[0] #desacoplamos ambito
-        new_name = p.ambito_clase + ':' + self.ambito
+        new_name = p.ambito_clase['name'] + ':' + self.ambito
 
-        if not self.check_duplicate(new_name, p.ambito_clase): return
+        if not self.check_duplicate(new_name, p.ambito_clase['name']): return
 
         if len(p) == 8:
             for i in p.id_vars:
                 valido, _ = self.alcance(i)
                 if not valido: print(f"ERROR | Clase {i} fuera de alcance")
 
-        self.renameToken(new_name, p.ambito_clase, 'CLASS', 'Nombre de clase')
-            # self.TS[new_name] = self.TS.pop(p.ambito_clase)
-            # self.TS[new_name]['type'] = 'CLASS'
-            # self.TS[new_name]['uso'] = 'Nombre de clase'
+        self.renameToken(new_name, p.ambito_clase['name'], 'CLASS', 'Nombre de clase')
+        if not p.ambito_clase['valido']:
+            self.TS[p.ambito_clase['code'] + ':main'] = {'class': new_name, 'uso': 'Nombre de codigo', 'vars': p.declaraciones_clase}
+        else:
+            vars_code = self.TS[p.ambito_clase['code'] + ':main']['vars']
+            vars = p.declaraciones_clase
+            if len(vars_code) != len(vars):
+                print(f"Error | Cantidad de atributos de clase {p.ambito_clase['code']} no coincide con la cantidad de atributos de la clase compatible")
+                return
+            for i, j in zip(vars_code, vars):
+                if i['type'] != j['type']:
+                    print(f"Error | Tipo del atributo {j['name'].split(':')[0]} de clase {p.ambito_clase['name']} no coincide con su par {i['name'].split(':')[0]} en la clase compatible {i['name'].split(':')[2].strip('()')}")
+                    err = True
+            if err:
+                return
+
         return p
 
     @_('CLASS IDEN IDEN')
     def ambito_clase(self, p):
+        valido, _ = self.alcance(p.IDEN1)
         self.ambito = self.ambito + ':' + '(' + p[1] + ')'
-        return p.IDEN0
+        return {'name': p.IDEN0, 'valido': valido, 'code': p.IDEN1}
 
     @_('TYPEDEF IDEN ASSIGN "[" constantes "]" ";"')
     def tipoUsuario(self, p):
