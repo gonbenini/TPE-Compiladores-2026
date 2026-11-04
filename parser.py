@@ -147,7 +147,6 @@ class TpParser(Parser):
             return True
 
     def check_type(self, type1, type2, value=None):
-
         if value and isinstance(value, self.NodoHoja):
 
             if f"{type1}:main" in self.TS:
@@ -529,7 +528,10 @@ class TpParser(Parser):
     @_('asignable ASSIGN2P expr_linea ";"')
     def asignacion_linea(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia asignacion de linea")
-        return self.NodoBinario(':=', p.asignable.operando, p.expr_linea)
+        valido = self.check_type(p.asignable.type, p.expr_linea.type, p.expr_linea)
+        if valido:
+            return self.NodoBinario(':=', p.asignable.operando, p.expr_linea, p.asignable.type)
+        return self.NodoBinario('error', 'error', 'error')
 
     @_('asignable "." IDEN', 'IDEN') #asingable.IDEN -> asignable.IDEN.IDEN
     #la idea seria desde aca controlar que todas las vars esten al alcance y ademas
@@ -613,7 +615,11 @@ class TpParser(Parser):
 
     @_('asignable ASSIGN IDEN', 'asignable ASSIGN constante')
     def asignacion_de_linea(self, p):
-        return self.NodoBinario('=', p.asignable, p[2])
+        valido = self.check_type(p.asignable.type, p[2].type, p[2])
+        if valido:
+            return self.NodoBinario('=', p.asignable, p[2], p.asignable.type)
+        else:
+            return self.NodoBinario('error', 'error', 'error')
 
     @_('parametros "," expr', 'expr')
     def parametros(self, p):
