@@ -208,23 +208,23 @@ class TpParser(Parser):
             print(f"Error | Tipos incompatibles entre {type2} y {type1}")
             return False
 
-    def assign_generate(self, params_f, params_r, posic=None):
+    def assign_generate(self, asignables, asignados, valido=False, posic=None):
         raiz = None
-        posic = params_r if posic == None else posic
-        if len(params_f) == len(params_r) == len(posic):
-            if len(params_f) == 1:
-                valido = self.check_type(self.TS[params_f.get(0)]['type'], params_r.get_type(0))
+        posic = asignados if posic == None else posic
+        if len(asignables) == len(asignados) == len(posic):
+            if len(asignables) == 1:
+                valido = self.check_type(asignables.get_type(0), asignados.get_type(0))
                 if valido:
-                    s = self.NodoBinario('=', params_f.get(0), params_r.get(0), params_r.get_type(0))
+                    s = self.NodoBinario('=', asignables.get(0), asignados.get(0), asignados.get_type(0))
                 else:
                     s = self.NodoBinario('error', 'error', 'error')
                 return True, s
             else:
                 cadena_asignacion = None  
-                for i in range(len(params_f)):
-                    valido = self.check_type(self.TS[params_f.get(i)]['type'], params_r.get_type(i))
+                for i in range(len(asignables)):
+                    valido = self.check_type(asignables.get_type(i), asignados.get_type(i)) if not valido else valido
                     if valido:
-                        nodo_asignacion = self.NodoBinario('=', params_f.get(i), params_r.get(i), params_r.get_type(i))
+                        nodo_asignacion = self.NodoBinario('=', asignables.get(i), asignados.get(i), asignados.get_type(i))
                         nodo_cadena = self.NodoBinario('S', 'None', nodo_asignacion)
                         if not cadena_asignacion:
                             cadena_asignacion = nodo_cadena
@@ -439,7 +439,7 @@ class TpParser(Parser):
                 return
             err = False
             for i, j in zip(vars_code.items, vars.items):
-                if self.TS[i]['type'] != self.TS[j]['type']:
+                if not self.check_type(self.TS[i]['type'], self.TS[j]['type']):
                     print(f"Error | Tipo del atributo {self.TS[j]['name'].split(':')[0]} de clase {p.ambito_clase['name']} no coincide con su par {self.TS[i]['name'].split(':')[0]} en la clase compatible {self.TS[i]['name'].split(':')[2].strip('()')}")
                     err = True
             if err:
@@ -554,7 +554,7 @@ class TpParser(Parser):
             print(f"Error | funcion {p.IDEN} no declarada o no alcanzable")
             return self.NodoUnario('CALL', 'error')
         else:
-            params = ParamR(self.TS[path]['parametros'])
+            params = Atributos(self.TS[path]['parametros'], self.TS)
             posic = p.posicionales if hasattr(p, 'posicionales') else p.parametros
             raiz = None
             parametros_reales = ParamR(p.parametros)
@@ -589,17 +589,16 @@ class TpParser(Parser):
         if valido:
             path_1 = self.TS[p.asignable.operando]['type'] + ':main'
             path_2 = self.TS[p.expr.operando]['type'] + ':main'
-            clase = self.TS[path_1]['type']
-            if p.asignable.operando in self.TS:
-                clase = self.TS[path_1]['type']
-                if clase == 'CLASS':
-                    assign_valid, raiz = self.assign_generate(self.TS[path_1]['vars'], self.TS[path_2]['vars'])
-                    if assign_valid:
-                        return self.NodoUnario('TRANSFER_OBJECT', raiz, p.asignable.type)
-                    else:
-                        print("ERROR | La cantidad de atributos entre clases no coincide o los tipos de atributos no son compatibles")
-                        return self.NodoBinario('error', 'error', 'error')
-            return self.NodoBinario('=', p.asignable.operando, p.expr, p.asignable.type)
+            clase1 = self.TS[path_1]['type']
+            clase2 = self.TS[path_2]['type']
+            if clase1 == 'CLASS' and clase2 == 'CLASS':
+                if self.TS[path_1]['code'] == self.TS[path_2]['code']:
+                    _, raiz = self.assign_generate(self.TS[path_1]['vars'], self.TS[path_2]['vars'], True)
+                    return self.NodoUnario('TRANSFER_OBJECT', raiz, p.asignable.type)
+                else:
+                    print("ERROR | El codigo entre clases no coincide")
+                    return self.NodoBinario('error', 'error', 'error')
+            return self.NodoBinario(':=', p.asignable.operando, p.expr, p.asignable.type)
 
         return self.NodoBinario('error', 'error', 'error')
 
@@ -609,17 +608,16 @@ class TpParser(Parser):
         valido = self.check_type(p.asignable.type, p.expr_linea.type, p.expr_linea)
         if valido:
             path_1 = self.TS[p.asignable.operando]['type'] + ':main'
-            path_2 = self.TS[p.expr.operando]['type'] + ':main'
-            clase = self.TS[path_1]['type']
-            if p.asignable.operando in self.TS:
-                clase = self.TS[path_1]['type']
-                if clase == 'CLASS':
-                    assign_valid, raiz = self.assign_generate(self.TS[path_1]['vars'], self.TS[path_2]['vars'])
-                    if assign_valid:
-                        return self.NodoUnario('TRANSFER_OBJECT', raiz, p.asignable.type)
-                    else:
-                        print("ERROR | La cantidad de atributos entre clases no coincide o los tipos de atributos no son compatibles")
-                        return self.NodoBinario('error', 'error', 'error')
+            path_2 = self.TS[p.expr_linea.operando]['type'] + ':main'
+            clase1 = self.TS[path_1]['type']
+            clase2 = self.TS[path_2]['type']
+            if clase1 == 'CLASS' and clase2 == 'CLASS':
+                if self.TS[path_1]['code'] == self.TS[path_2]['code']:
+                    _, raiz = self.assign_generate(self.TS[path_1]['vars'], self.TS[path_2]['vars'], True)
+                    return self.NodoUnario('TRANSFER_OBJECT', raiz, p.asignable.type)
+                else:
+                    print("ERROR | El codigo entre clases no coincide")
+                    return self.NodoBinario('error', 'error', 'error')
             return self.NodoBinario(':=', p.asignable.operando, p.expr_linea, p.asignable.type)
         
         return self.NodoBinario('error', 'error', 'error')
