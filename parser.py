@@ -544,8 +544,25 @@ class TpParser(Parser):
             print(f'Error | {p.asignable.operando} no posee un metodo {p.IDEN}')
             return self.NodoUnario('error', 'error')
         else:
-            return self.NodoUnario('CALL ' + call_name, self.arboles[path]['nodo'], self.TS[path]['type'])
+            params = Atributos(self.TS[path]['parametros'], self.TS)
+            posic = p.posicionales if hasattr(p, 'posicionales') else p.parametros
+            raiz = None
+            parametros_reales = ParamR(p.parametros)
+            if len(p) == 7:
+                ord = {}
+                for i in range(len(p.posicionales)):
+                    ord[p.posicionales[i]] = parametros_reales.get(i)
+                keys = [key for key in ord]
+                keys.sort()
+                parametros_reales.items = [ord[k] for k in keys]
 
+            valido, raiz = self.assign_generate(params, parametros_reales, posic)
+            if valido:
+                return self.NodoBinario('CALL ' + p[0], raiz , self.arboles[path]['nodo'], self.TS[path]['type'])
+
+            print("ERROR | La cantidad de parametros reales o posicionales no coincide con los parametros formales")
+            return self.NodoUnario('error', 'error', 'error')
+        
     @_('IDEN "(" parametros ")" "[" posicionales "]"', 'IDEN "(" parametros ")"')
     def invocacion_funcion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Invocacion a funcion")
