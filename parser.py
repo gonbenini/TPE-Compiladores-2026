@@ -21,15 +21,18 @@ class Lista(ABC):
     @abstractmethod
     def get_type(self, i):
         pass
+class Atributo(Lista):
+    def __init__(self, lista, TS):
+        super().__init__(lista)
+        self.TS = TS
 
-
+    def get_type(self, i):
+        return self.TS[self.items[i]]['type']
 class ParamR(Lista):
 
     def get_type(self, i):
         return self.items[i].type
-
-
-class Atributos(Lista):
+class ParamF(Lista): #parametros formales
 
     def __init__(self, lista, TS):
         super().__init__(lista)
@@ -48,6 +51,7 @@ class TpParser(Parser):
         self.arboles={}
         self.ret = False
         self.type_func = None
+        self.decClass = False
 
     debugfile = 'parser.out'
     tokens = TpLexer.tokens
@@ -85,6 +89,7 @@ class TpParser(Parser):
         def __init__(self, tipo, operando) -> None:
             self.type=tipo
             self.operando=operando
+            self.op = self.operando
 
         def __str__(self) -> str:
             return str(self.operando)
@@ -168,16 +173,17 @@ class TpParser(Parser):
         self.TS[new_name]['type'] = type
         self.TS[new_name]['uso'] = use
 
-    def check_duplicate(self, new_name, old_name):
+    def check_duplicate(self, new_name, old_name=None):
         if new_name in self.TS:
             print(f"Error | redeclaracion de {new_name.rsplit(':')[0]} en ambito {self.ambito}")
-            self.TS.pop(old_name)
+            if old_name:
+                self.TS.pop(old_name)
             return False
         else:
             return True
 
     def check_type(self, type1, type2, value=None):
-        if value and isinstance(value.operando, numbers.Number):
+        if value and isinstance(value, numbers.Number):
 
             if f"{type1}:main" in self.TS:
 
@@ -334,21 +340,33 @@ class TpParser(Parser):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de variable/s")
         for i in p.id_vars:
             new_name = i + ':' + self.ambito
-            if not self.check_duplicate(new_name, i): return
+            if not self.check_duplicate(new_name, i) or self.decClass: break
             self.renameToken(new_name, i, p.tipo, 'Nombre de variable')
+            self.TS[new_name]['vars'] = Atributo([], self.TS)
                 # self.TS[new_name] = self.TS.pop(i)
                 # self.TS[new_name]['type'] = p.tipo
                 # self.TS[new_name]['uso'] = 'Nombre de variable'
+        
+            _, path = self.alcance(p.tipo)
+            if path != 'NIL' and self.TS[path]['type'] == 'CLASS':
+                vars = self.TS[path]['vars']
+                for j in vars.items:
+                    if not self.check_duplicate(j['name'] + ':' + self.ambito + ':' + '(' + i + ')'): break
+                    self.TS[j['name'] + ':' + self.ambito + ':' + '(' + i + ')' ] = {'type': j['type'], 'uso': 'Nombre de variable'}
+                    self.TS[new_name]['vars'].items.append(j['name'] + ':' + self.ambito + ':' + '(' + i + ')')
+
+
         vars = []
         for i in p.id_vars:
-            vars.append(i + ':' + self.ambito)
+            vars.append({'name': i, 'type': p.tipo})
+
         return vars
 
     @_('SINGLEF', 'LONGINT', 'IDEN')
     def tipo(self, p):
         if p[0] not in ('singlef', 'longint'):
-            valido, _ = self.alcance(p[0])
-            #print(valido)
+            valido, path = self.alcance(p[0])
+            #print(path)
             if not valido:
                 print("Error | Tipo fuera de alcance")
                 return "error"
@@ -416,6 +434,7 @@ class TpParser(Parser):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de clase")
         self.ambito = self.ambito.rsplit(":", 1)[0] #desacoplamos ambito
         new_name = p.ambito_clase['name'] + ':' + self.ambito
+        self.decClass = False
 
         if not self.check_duplicate(new_name, p.ambito_clase['name']): return
 
@@ -426,7 +445,7 @@ class TpParser(Parser):
 
         self.renameToken(new_name, p.ambito_clase['name'], 'CLASS', 'Nombre de clase')
 
-        vars = Atributos(p.declaraciones_clase, self.TS)
+        vars = Atributo(p.declaraciones_clase, self.TS)
         self.TS[new_name]['vars'] = vars
         self.TS[new_name]['code'] = p.ambito_clase['code']
         if not p.ambito_clase['valido']:
@@ -439,8 +458,8 @@ class TpParser(Parser):
                 return
             err = False
             for i, j in zip(vars_code.items, vars.items):
-                if not self.check_type(self.TS[i]['type'], self.TS[j]['type']):
-                    print(f"Error | Tipo del atributo {self.TS[j]['name'].split(':')[0]} de clase {p.ambito_clase['name']} no coincide con su par {self.TS[i]['name'].split(':')[0]} en la clase compatible {self.TS[i]['name'].split(':')[2].strip('()')}")
+                if not self.check_type(i['type'], j['type']):
+                    print(f"Error | Tipo del atributo {j['name']} de clase {p.ambito_clase['name']} no coincide con su par {i['name']} en la clase compatible {first_class.split(':')[0]}")
                     err = True
             if err:
                 return
@@ -449,6 +468,7 @@ class TpParser(Parser):
 
     @_('CLASS IDEN IDEN')
     def ambito_clase(self, p):
+        self.decClass = True
         valido, _ = self.alcance(p.IDEN1)
         self.ambito = self.ambito + ':' + '(' + p[1] + ')'
         return {'name': p.IDEN0, 'valido': valido, 'code': p.IDEN1}
@@ -544,7 +564,7 @@ class TpParser(Parser):
             print(f'Error | {p.asignable.operando} no posee un metodo {p.IDEN}')
             return self.NodoUnario('error', 'error')
         else:
-            params = Atributos(self.TS[path]['parametros'], self.TS)
+            params = ParamF(self.TS[path]['parametros'], self.TS)
             posic = p.posicionales if hasattr(p, 'posicionales') else p.parametros
             raiz = None
             parametros_reales = ParamR(p.parametros)
@@ -558,7 +578,7 @@ class TpParser(Parser):
 
             valido, raiz = self.assign_generate(params, parametros_reales, posic)
             if valido:
-                return self.NodoBinario('CALL ' + p[0], raiz , self.arboles[path]['nodo'], self.TS[path]['type'])
+                return self.NodoBinario('CALL ' + call_name, raiz , self.arboles[path]['nodo'], self.TS[path]['type'])
 
             print("ERROR | La cantidad de parametros reales o posicionales no coincide con los parametros formales")
             return self.NodoUnario('error', 'error', 'error')
@@ -571,7 +591,7 @@ class TpParser(Parser):
             print(f"Error | funcion {p.IDEN} no declarada o no alcanzable")
             return self.NodoUnario('CALL', 'error')
         else:
-            params = Atributos(self.TS[path]['parametros'], self.TS)
+            params = ParamF(self.TS[path]['parametros'], self.TS)
             posic = p.posicionales if hasattr(p, 'posicionales') else p.parametros
             raiz = None
             parametros_reales = ParamR(p.parametros)
@@ -602,19 +622,21 @@ class TpParser(Parser):
     @_('asignable ASSIGN expr ";"')
     def asignacion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia de asignacion")
-        valido = self.check_type(p.asignable.type, p.expr.type, p.expr)
+        valido = self.check_type(p.asignable.type, p.expr.type, p.expr.op)
         if valido:
-            path_1 = self.TS[p.asignable.operando]['type'] + ':main'
-            path_2 = self.TS[p.expr.operando]['type'] + ':main'
-            clase1 = self.TS[path_1]['type']
-            clase2 = self.TS[path_2]['type']
-            if clase1 == 'CLASS' and clase2 == 'CLASS':
-                if self.TS[path_1]['code'] == self.TS[path_2]['code']:
-                    _, raiz = self.assign_generate(self.TS[path_1]['vars'], self.TS[path_2]['vars'], True)
-                    return self.NodoUnario('TRANSFER_OBJECT', raiz, p.asignable.type)
-                else:
-                    print("ERROR | El codigo entre clases no coincide")
-                    return self.NodoBinario('error', 'error', 'error')
+
+            if p.expr.op in self.TS:
+                path_1 = self.TS[p.asignable.operando]['type'] + ':main'
+                path_2 = self.TS[p.expr.op]['type'] + ':main'
+                clase1 = self.TS[path_1]['type']
+                clase2 = self.TS[path_2]['type']
+                if clase1 == 'CLASS' and clase2 == 'CLASS':
+                    if self.TS[path_1]['code'] == self.TS[path_2]['code']:
+                        _, raiz = self.assign_generate(self.TS[p.asignable.operando]['vars'], self.TS[p.expr.op]['vars'], True)
+                        return self.NodoUnario('TRANSFER_OBJECT', raiz, p.asignable.type)
+                    else:
+                        print("ERROR | El codigo entre clases no coincide")
+                        return self.NodoBinario('error', 'error', 'error')
             return self.NodoBinario(':=', p.asignable.operando, p.expr, p.asignable.type)
 
         return self.NodoBinario('error', 'error', 'error')
@@ -622,19 +644,20 @@ class TpParser(Parser):
     @_('asignable ASSIGN2P expr_linea ";"')
     def asignacion_linea(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia asignacion de linea")
-        valido = self.check_type(p.asignable.type, p.expr_linea.type, p.expr_linea)
+        valido = self.check_type(p.asignable.type, p.expr_linea.type, p.expr_linea.op)
         if valido:
             path_1 = self.TS[p.asignable.operando]['type'] + ':main'
-            path_2 = self.TS[p.expr_linea.operando]['type'] + ':main'
-            clase1 = self.TS[path_1]['type']
-            clase2 = self.TS[path_2]['type']
-            if clase1 == 'CLASS' and clase2 == 'CLASS':
-                if self.TS[path_1]['code'] == self.TS[path_2]['code']:
-                    _, raiz = self.assign_generate(self.TS[path_1]['vars'], self.TS[path_2]['vars'], True)
-                    return self.NodoUnario('TRANSFER_OBJECT', raiz, p.asignable.type)
-                else:
-                    print("ERROR | El codigo entre clases no coincide")
-                    return self.NodoBinario('error', 'error', 'error')
+            if p.expr_linea.op in self.TS:
+                path_2 = self.TS[p.expr_linea.op]['type'] + ':main'
+                clase1 = self.TS[path_1]['type']
+                clase2 = self.TS[path_2]['type']
+                if clase1 == 'CLASS' and clase2 == 'CLASS':
+                    if self.TS[path_1]['code'] == self.TS[path_2]['code']:
+                        _, raiz = self.assign_generate(self.TS[path_1]['vars'], self.TS[path_2]['vars'], True)
+                        return self.NodoUnario('TRANSFER_OBJECT', raiz, p.asignable.type)
+                    else:
+                        print("ERROR | El codigo entre clases no coincide")
+                        return self.NodoBinario('error', 'error', 'error')
             return self.NodoBinario(':=', p.asignable.operando, p.expr_linea, p.asignable.type)
         
         return self.NodoBinario('error', 'error', 'error')
