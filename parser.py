@@ -345,13 +345,10 @@ class TpParser(Parser):
             new_name = i + ':' + self.ambito
             if not self.check_duplicate(new_name, i) or self.decClass: break
             self.renameToken(new_name, i, p.tipo, 'Nombre de variable')
-            self.TS[new_name]['vars'] = Atributo([], self.TS)
-                # self.TS[new_name] = self.TS.pop(i)
-                # self.TS[new_name]['type'] = p.tipo
-                # self.TS[new_name]['uso'] = 'Nombre de variable'
         
             _, path = self.alcance(p.tipo)
             if path != 'NIL' and self.TS[path]['type'] == 'CLASS':
+                self.TS[new_name]['vars'] = Atributo([], self.TS)
                 vars = self.TS[path]['vars']
                 for j in vars.items:
                     if not self.check_duplicate(j['name'] + ':' + self.ambito + ':' + '(' + i + ')'): break
@@ -799,8 +796,9 @@ class TpParser(Parser):
         condicion = self.NodoUnario("COND", condicion)
 
         #constante2 -> constante0 += constante2
-        sum = self.NodoBinario("+", p.IDEN, p.constante2)
-        incremento = self.NodoBinario("=", p.IDEN, sum)
+        sign = "+" if int(p.constante2.operando) >= 0 else "-"
+        step = self.NodoBinario(sign, p.IDEN, p.constante2)
+        incremento = self.NodoBinario("=", p.IDEN, step)
 
         cuerpo_for = self.NodoBinario("CUERPO", p.cuerpo_control, incremento)
         
