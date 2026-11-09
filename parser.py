@@ -509,11 +509,11 @@ class TpParser(Parser):
             else:
                 tipo_dato = 'singlef'
 
-            if self.TS[key]['count'] == 1:
-                del self.TS[key]
+            if self.TS[str(key)]['count'] == 1:
+                del self.TS[str(key)]
 
-            elif self.TS[key]['count'] > 1:
-                self.TS[key]['count'] -= 1
+            elif self.TS[str(key)]['count'] > 1:
+                self.TS[str(key)]['count'] -= 1
 
             nueva_key = '-' + str(key)
             if nueva_key in self.TS:
@@ -523,7 +523,7 @@ class TpParser(Parser):
                 self.TS[nueva_key] = {'type': tipo_dato, 'count': 1}
 
             #return p[1]
-            return self.NodoHoja(tipo_dato, p[1])
+            return self.NodoHoja(tipo_dato, -p[1])
 
         return self.NodoHoja(self.TS[str(p[0])]['type'], p[0])
 
@@ -792,7 +792,8 @@ class TpParser(Parser):
         inicializacion = self.NodoBinario(":=", p.IDEN, p.constante0)
 
         #condicion -> IDEN <= constante1
-        condicion = self.NodoBinario("<=", p.IDEN, p.constante1)
+        sentido = "<=" if p.constante0.operando <= p.constante1.operando else ">="
+        condicion = self.NodoBinario(sentido, p.IDEN, p.constante1)
         condicion = self.NodoUnario("COND", condicion)
 
         #constante2 -> constante0 += constante2
