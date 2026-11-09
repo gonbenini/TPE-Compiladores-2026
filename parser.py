@@ -172,15 +172,9 @@ class TpParser(Parser):
             return False, 'NIL'
 
     def renameToken(self, new_name, old_name, type, use):
-        borrar = self.TS.pop(old_name, None)
-        if borrar:
-            self.TS[new_name] = borrar
-            self.TS[new_name]['type'] = type
-            self.TS[new_name]['uso'] = use
-        else:
-            self.TS[new_name] = {}
-            self.TS[new_name]['type'] = type
-            self.TS[new_name]['uso'] = use
+        self.TS[new_name] = self.TS.pop(old_name, {})
+        self.TS[new_name]['type'] = type
+        self.TS[new_name]['uso'] = use
 
     def check_duplicate(self, new_name, old_name=None):
         if new_name in self.TS:
