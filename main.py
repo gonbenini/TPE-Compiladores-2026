@@ -25,8 +25,7 @@ AS = []
 
 tokens_out = []
 lexer = TpLexer(_loggerLex, TS, PR, tokens_out)
-ambito = 'main'
-parser = TpParser(TS, _InfoParsec, _loggerParsec)
+parser = TpParser(TS, AS, _InfoParsec, _loggerParsec)
 
 ### Invocacion
 
