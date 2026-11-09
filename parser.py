@@ -158,21 +158,29 @@ class TpParser(Parser):
         else: return False, 'NIL'
 
         if self.TS[clase + ':' + 'main']['type'] == 'CLASS':
-            if (p.IDEN + ':' + 'main' + ':(' + clase + ')') in self.TS:
-                return True, (p.IDEN + ':main' + ':(' + clase + ')')
+            metodo = (p.IDEN + ':' + 'main' + ':(' + clase + ')')
+            atributo = (p.IDEN + ':' + self.ambito + ':(' + p.asignable.operando.split(':')[0] + ')')
+            if metodo in self.TS: # buscar metodo
+                return True, metodo
                 #manejar bien los errores de retorno
+            elif atributo in self.TS: # buscar atributos
+                return True, atributo
             else:
-                #print('no valido')
                 return False, 'NIL'
-
+        
         else:
-            #print('xd')
             return False, 'NIL'
 
     def renameToken(self, new_name, old_name, type, use):
-        self.TS[new_name] = self.TS.pop(old_name)
-        self.TS[new_name]['type'] = type
-        self.TS[new_name]['uso'] = use
+        borrar = self.TS.pop(old_name, None)
+        if borrar:
+            self.TS[new_name] = borrar
+            self.TS[new_name]['type'] = type
+            self.TS[new_name]['uso'] = use
+        else:
+            self.TS[new_name] = {}
+            self.TS[new_name]['type'] = type
+            self.TS[new_name]['uso'] = use
 
     def check_duplicate(self, new_name, old_name=None):
         if new_name in self.TS:
@@ -673,7 +681,8 @@ class TpParser(Parser):
                 print(f'Error | {p.asignable.operando} no posee un atributo {p.IDEN}')
                 return self.NodoHoja('error', 'error')
             else:
-                return self.NodoHoja(self.TS[path]['type'], path)
+                aux = self.TS[path]
+                return self.NodoHoja(aux['type'], path)
 
         else:
             valido, path = self.alcance(p.IDEN)
