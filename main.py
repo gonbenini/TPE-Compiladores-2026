@@ -1,4 +1,4 @@
-from utils import get_logger_Lex, get_logger_Parsec, get_program_code, save_lexer_output, imprimir_arbol, get_logger_Err_Parsec
+from utils import get_logger_Lex, get_logger_Parsec, get_program_code, save_lexer_output, get_logger_Err_Parsec
 from lexer import TpLexer
 from parser import TpParser
 import sys
@@ -25,12 +25,11 @@ AS = []
 
 tokens_out = []
 lexer = TpLexer(_loggerLex, TS, PR, tokens_out)
-parser = TpParser(TS,AS, _InfoParsec, _loggerParsec)
+ambito = 'main'
+parser = TpParser(TS, _InfoParsec, _loggerParsec)
 
 ### Invocacion
 
 tokens = lexer.tokenize(program_code)
 result = parser.parse(tokens)
-print(AS)
-imprimir_arbol(result)
 save_lexer_output(tokens_out, TS)

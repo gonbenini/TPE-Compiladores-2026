@@ -1,7 +1,45 @@
-from sly import Parser
-from lexer import TpLexer
-from utils import check_flt_range, check_int_range
+from hmac import new
+from turtle import pos
+import numbers
+from abc import ABC, abstractmethod
 
+from sly import Parser
+from zmq import has
+from lexer import TpLexer
+
+class Lista(ABC):
+
+    def __init__(self, lista):
+        self.items = lista
+
+    def get(self, i):
+        return self.items[i]
+
+    def __len__(self):
+        return len(self.items)
+
+    @abstractmethod
+    def get_type(self, i):
+        pass
+class Atributo(Lista):
+    def __init__(self, lista, TS):
+        super().__init__(lista)
+        self.TS = TS
+
+    def get_type(self, i):
+        return self.TS[self.items[i]]['type']
+class ParamR(Lista):
+
+    def get_type(self, i):
+        return self.items[i].type
+class ParamF(Lista): #parametros formales
+
+    def __init__(self, lista, TS):
+        super().__init__(lista)
+        self.TS = TS
+
+    def get_type(self, i):
+        return self.TS[self.items[i]]['type']
 class TpParser(Parser):
 
     def __init__(self, TS, AS, _info, _logger):
@@ -10,6 +48,11 @@ class TpParser(Parser):
         self.AS = AS
         self._InfoLogger = _info
         self._logger = _logger
+        self.ambito = 'main'
+        self.arboles={}
+        self.ret = False
+        self.type_func = None
+        self.decClass = False
 
     debugfile = 'parser.out'
     tokens = TpLexer.tokens
@@ -18,7 +61,201 @@ class TpParser(Parser):
         ('right', 'error'),
         ('right', 'END', ';'),
     )
+        
+    #la idea es con este manejar todas aquellas operaciones que tengan un solo hijo, tales como
+    #retornos, impresiones, conversiones, etc. La idea de que tenga es tipo es simplemente por ir
+    #representando los tipos a lo largo del arbol
+    class NodoUnario:
+        def __init__(self, op, son=None, type=None):
+            self.op = op
+            self.son = son if son else 'NIL'
+            self.type = type
 
+    #la idea con este es manejar todas aquellas operaciones binarias. La idea del tipo es ir
+    #representando los tipos de diferentes operaciones.
+    class NodoBinario:
+        def __init__(self, op, left='NIL', right=None, type=None):
+            self.op = op
+            self.left = left
+            self.right = right if right else 'NIL'
+            self.type = type 
+
+        def __str__(self) -> str:
+            a = self.left.__str__() if self.left else ''
+            return ' '.join([a, self.op, self.right.__str__(), ';'])
+
+    #la idea con este es manejar los operandos individuales por si solo, con la inclusion
+    #del tipo para poder ir elevandolo a traves del arbol
+    class NodoHoja:
+        def __init__(self, tipo, operando) -> None:
+            self.type=tipo
+            self.operando=operando
+            self.op = self.operando
+
+        def __str__(self) -> str:
+            return str(self.operando)
+
+
+    def imprimir_arbol(self, nodo, nivel=0, relacion="Raíz"):
+        sangria = "    " * nivel
+        
+        # Si el nodo es 'NIL' o None, no hacemos nada
+        if nodo == 'NIL' or nodo is None:
+            return
+
+        # Verificamos si es un objeto de tipo Nodo (tiene el atributo 'op')
+        if hasattr(nodo, 'op'):
+            print(f"{sangria}[{relacion}] -> {nodo.op}")
+            
+            # Llamada recursiva para el hijo izquierdo
+            if hasattr(nodo, 'left'):
+                self.imprimir_arbol(nodo.left, nivel + 1, "Hijo izq")
+                
+            # Llamada recursiva para el hijo derecho
+            if hasattr(nodo, 'right'):
+                self.imprimir_arbol(nodo.right, nivel + 1, "Hijo der")
+
+            if hasattr(nodo, 'son'):
+                self.imprimir_arbol(nodo.son, nivel + 1, "Hijo")
+
+                
+        else:
+            # Si no es un nodo (es un string o número final), entra acá
+            print(f"{sangria}[{relacion}] -> {nodo}")
+
+    def alcance(self, name):
+        ambito_aux = self.ambito
+        encontrado = False
+        search_name = name + ':' + ambito_aux
+        while ambito_aux != 'main':
+            search_name = name + ':' + ambito_aux
+            if search_name in self.TS:
+                encontrado = True
+                break
+            ambito_aux = ambito_aux.rsplit(":", 1)[0]
+
+        if ambito_aux == 'main' and not encontrado:
+            if (name + ':' + 'main') in self.TS:
+                #print(f"Variable {name + ':main'} encontrada")
+                return True, name + ':main'
+
+            else:
+                #print(f"Variable {name} no declarada o no alcanzable")
+                return False, 'NIL'
+            
+        elif encontrado:
+            #print(f"Variable {search_name} encontrada")
+            return True, search_name
+
+        else: 
+            #print(f"Variable {name} no declarada o no alcanzable")
+            return False, 'NIL'
+
+    def atributo_valido(self, p):
+        if (p.asignable.type + ':main') in self.TS:
+            clase = p.asignable.type
+
+        else: return False, 'NIL'
+
+        if self.TS[clase + ':' + 'main']['type'] == 'CLASS':
+            if (p.IDEN + ':' + 'main' + ':(' + clase + ')') in self.TS:
+                return True, (p.IDEN + ':main' + ':(' + clase + ')')
+                #manejar bien los errores de retorno
+            else:
+                #print('no valido')
+                return False, 'NIL'
+
+        else:
+            #print('xd')
+            return False, 'NIL'
+
+    def renameToken(self, new_name, old_name, type, use):
+        self.TS[new_name] = self.TS.pop(old_name)
+        self.TS[new_name]['type'] = type
+        self.TS[new_name]['uso'] = use
+
+    def check_duplicate(self, new_name, old_name=None):
+        if new_name in self.TS:
+            print(f"Error | redeclaracion de {new_name.rsplit(':')[0]} en ambito {self.ambito}")
+            if old_name:
+                self.TS.pop(old_name)
+            return False
+        else:
+            return True
+
+    def check_type(self, type1, type2, value=None):
+        if value and isinstance(value, numbers.Number):
+
+            if f"{type1}:main" in self.TS:
+
+                values = self.TS[f"{type1}:main"]['valores']
+            elif f"{type2}:main" in self.TS:
+                values = self.TS[f"{type2}:main"]['valores']
+            else:
+                values = None
+            if values:
+                for i in values:
+                    if i.type == value.type and i.operando == value.operando:
+                        return True
+                print(f"Error | Valor {value} no pertenece al tipo {type1}")
+                return False
+
+        key1 = f"{type1}:main"
+        key2 = f"{type2}:main"
+        if key1 in self.TS and key2 in self.TS:
+            class1 = self.TS[key1]['type'] == 'CLASS'
+            class2 = self.TS[key2]['type'] == 'CLASS'
+            if class1 and class2:
+                if self.TS[key1]['code'] == self.TS[key2]['code']:
+                    return True
+        
+        if type1 == type2:
+            return True
+        else:
+            print(f"Error | Tipos incompatibles entre {type2} y {type1}")
+            return False
+
+    def assign_generate(self, asignables, asignados, valido=False, posic=None):
+        raiz = None
+        posic = asignados if posic == None else posic
+        if len(asignables) == len(asignados) == len(posic):
+            if len(asignables) == 1:
+                valido = self.check_type(asignables.get_type(0), asignados.get_type(0))
+                if valido:
+                    s = self.NodoBinario('=', asignables.get(0), asignados.get(0), asignados.get_type(0))
+                else:
+                    s = self.NodoBinario('error', 'error', 'error')
+                return True, s
+            else:
+                cadena_asignacion = None  
+                for i in range(len(asignables)):
+                    valido = self.check_type(asignables.get_type(i), asignados.get_type(i)) if not valido else valido
+                    if valido:
+                        nodo_asignacion = self.NodoBinario('=', asignables.get(i), asignados.get(i), asignados.get_type(i))
+                        nodo_cadena = self.NodoBinario('S', 'None', nodo_asignacion)
+                        if not cadena_asignacion:
+                            cadena_asignacion = nodo_cadena
+                            raiz = nodo_cadena
+                        else:
+                            cadena_asignacion.left = nodo_asignacion
+                            cadena_asignacion = nodo_asignacion
+                    else:
+                        nodo_asignacion = self.NodoBinario('error', 'error', 'error')
+
+                return True, raiz
+        return False, None
+
+    def check_ret(self, new_name, type, nodo):
+        if self.ret:
+            self.ret = False
+        else:
+            op = 0 if type == 'longint' else 0.0
+            hoja = self.NodoHoja(type, op)
+            if hasattr(nodo, 'right'):
+                self.arboles[new_name]['nodo'].right = self.NodoBinario('S', self.arboles[new_name]['nodo'].right, self.NodoUnario('RET', hoja))
+            else:
+                self.arboles[new_name]['nodo'] = self.NodoBinario('S', self.arboles[new_name]['nodo'], self.NodoUnario('RET', hoja))
+    
     #----------------------------ESTRUCTURA PRINCIPAL---------------------------------------------
 
     @_('programa')
@@ -27,10 +264,12 @@ class TpParser(Parser):
 
     @_('program_in declaraciones cuerpo_ejecutable')
     def programa(self, p):
+        self.imprimir_arbol(p.cuerpo_ejecutable)
         return p
 
     @_('PROGRAM IDEN')
     def program_in(self, p):
+        self.TS[p.IDEN]['uso'] = 'Nombre de programa'
         return p
 
     #----------------------------DECLARACIONES---------------------------------------------
@@ -41,7 +280,11 @@ class TpParser(Parser):
 
     @_('declaraciones_clase declaracion_clase', 'declaracion_clase')
     def declaraciones_clase(self, p):
-        return p
+        if len(p) == 1:
+            return p.declaracion_clase
+        else:
+            p.declaraciones_clase.extend(p.declaracion_clase)
+            return p.declaraciones_clase
 
     @_('declaraciones_func declaracion_func', 'declaracion_func')
     def declaraciones_func(self, p):
@@ -53,16 +296,40 @@ class TpParser(Parser):
     
     @_('dec_var ";"', 'metodo')
     def declaracion_clase(self, p):
-        return p
+        if not p[0]:
+            return []
+        return p[0]
 
-    @_('tipo IDEN "(" parametros_f ")" cuerpo_ejecutable')
+    @_('ambito_metodo parametros_f ")" cuerpo_ejecutable')
     def metodo(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de metodo")
-        return p
+        self.ambito = self.ambito.rsplit(":", 1)[0] #desacoplamos ambito
+        new_name = p.ambito_metodo['name'] + ':' + self.ambito
+        # if new_name in self.TS:
+        #     print(f"Error | redeclaracion de {p.ambito_metodo['name']}")
+        #     self.TS.pop(p.ambito_metodo['name'])
+        #     return
+        if not self.check_duplicate(new_name, p.ambito_metodo['name']): return
+
+        self.arboles[new_name] = {'nodo': p.cuerpo_ejecutable} #guardamos arbol sintactico de la funcion
+        self.renameToken(new_name, p.ambito_metodo['name'], p.ambito_metodo['tipo'], 'Nombre de metodo')
+            # self.TS[new_name] = self.TS.pop(p.ambito_metodo['name'])
+            # self.TS[new_name]['type'] = p.ambito_metodo['tipo']
+            # self.TS[new_name]['uso'] = 'Nombre de metodo'
+
+        self.check_ret(new_name, p.ambito_metodo['tipo'], p.cuerpo_ejecutable)
+        self.TS[new_name]['parametros'] = p.parametros_f
+        return []
+
+    @_('tipo IDEN "("')
+    def ambito_metodo(self, p):
+        self.ambito = self.ambito + ':' + p.IDEN
+        self.type_func = p.tipo
+        return {'tipo': p.tipo, 'name': p.IDEN}
 
     @_('BEGIN ejecutables END ";"')
     def cuerpo_ejecutable(self, p):
-        return p
+        return p.ejecutables
     
     @_('dec_var ";"', 'clase', 'funcion', 'tipoUsuario')
     def declaracion(self, p):
@@ -70,44 +337,168 @@ class TpParser(Parser):
     
     @_('tipo id_vars')
     def dec_var(self, p):
+        # se debe chequear que el tipo es valido
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de variable/s")
-        return p
+        for i in p.id_vars:
+            new_name = i + ':' + self.ambito
+            if not self.check_duplicate(new_name, i) or self.decClass: break
+            self.renameToken(new_name, i, p.tipo, 'Nombre de variable')
+            self.TS[new_name]['vars'] = Atributo([], self.TS)
+                # self.TS[new_name] = self.TS.pop(i)
+                # self.TS[new_name]['type'] = p.tipo
+                # self.TS[new_name]['uso'] = 'Nombre de variable'
+        
+            _, path = self.alcance(p.tipo)
+            if path != 'NIL' and self.TS[path]['type'] == 'CLASS':
+                vars = self.TS[path]['vars']
+                for j in vars.items:
+                    if not self.check_duplicate(j['name'] + ':' + self.ambito + ':' + '(' + i + ')'): break
+                    self.TS[j['name'] + ':' + self.ambito + ':' + '(' + i + ')' ] = {'type': j['type'], 'uso': 'Nombre de variable'}
+                    self.TS[new_name]['vars'].items.append(j['name'] + ':' + self.ambito + ':' + '(' + i + ')')
+
+
+        vars = []
+        for i in p.id_vars:
+            vars.append({'name': i, 'type': p.tipo})
+
+        return vars
 
     @_('SINGLEF', 'LONGINT', 'IDEN')
     def tipo(self, p):
-        return p
+        if p[0] not in ('singlef', 'longint'):
+            valido, path = self.alcance(p[0])
+            #print(path)
+            if not valido:
+                print("Error | Tipo fuera de alcance")
+                return "error"
+        return p[0]
 
     @_('id_vars "," IDEN', 'IDEN')
     def id_vars(self, p):
-        return p
+        if len(p) == 1:
+            return [p.IDEN]
+        else:
+            p.id_vars.append(p.IDEN)
+            return p.id_vars
 
     @_('parametros_f "," parametro_f', 'parametro_f')
+    #capaz deberia devolver un nodo hoja por parametro formal?
     def parametros_f(self, p):
-        return p
+        if len(p) == 1:
+            return [p.parametro_f]
+        else:
+            p.parametros_f.append(p.parametro_f)
+            return p.parametros_f
 
     @_('tipo IDEN')
     def parametro_f(self, p):
-        return p
+        #ver como asociarla cada parametro_f con su funcion
+        # para luego poder hacer las asignaciones de parametros reales
+        # a formales
 
-    @_('tipo FUNCTION IDEN "(" parametros_f ")" declaraciones_func cuerpo_ejecutable',
-       'tipo FUNCTION IDEN "(" parametros_f ")" cuerpo_ejecutable')
+        #deberiamos chequear que no haya redeclaracion tambien
+        new_name = p.IDEN + ':' + self.ambito
+        if not self.check_duplicate(new_name, p.IDEN): return
+        self.renameToken(new_name, p.IDEN, p.tipo, 'Nombre de variable')
+            # self.TS[new_name] = self.TS.pop(p.IDEN)
+            # self.TS[new_name]['type'] = p.tipo
+            # self.TS[new_name]['uso'] = 'Nombre de variable'
+        return new_name
+
+    @_('ambito_func "(" parametros_f ")" declaraciones_func cuerpo_ejecutable',
+       'ambito_func "(" parametros_f ")" cuerpo_ejecutable')
     def funcion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de funcion")
+        self.ambito = self.ambito.rsplit(":", 1)[0] #desacoplamos ambito
+        new_name = p.ambito_func['name'] + ':' + self.ambito
+
+        if not self.check_duplicate(new_name, p.ambito_func['name']): return
+
+        self.arboles[new_name] = {'nodo': p.cuerpo_ejecutable} #guardamos arbol sintactico de la funcion
+        self.renameToken(new_name, p.ambito_func['name'], p.ambito_func['tipo'], 'Nombre de funcion')
+            # self.TS[new_name] = self.TS.pop(p.ambito_func['name'])
+            # self.TS[new_name]['type'] = p.ambito_func['tipo']
+            # self.TS[new_name]['uso'] = 'Nombre de funcion'
+
+        self.check_ret(new_name, p.ambito_func['tipo'], p.cuerpo_ejecutable)
+        self.TS[new_name]['parametros'] = p.parametros_f
         return p
 
-    @_('CLASS IDEN IDEN BEGIN declaraciones_clase END ";"', 'CLASS IDEN IDEN BEGIN declaraciones_clase EXTENDS id_vars ";" END ";"')
+    @_('tipo FUNCTION IDEN')
+    def ambito_func(self, p):
+        self.ambito = self.ambito + ':' + p[2]
+        self.type_func = p.tipo
+        return {'tipo': p.tipo, 'name': p.IDEN}
+
+    @_('ambito_clase BEGIN declaraciones_clase END ";"', 'ambito_clase BEGIN declaraciones_clase EXTENDS id_vars ";" END ";"')
     def clase(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de clase")
+        self.ambito = self.ambito.rsplit(":", 1)[0] #desacoplamos ambito
+        new_name = p.ambito_clase['name'] + ':' + self.ambito
+        self.decClass = False
+
+        if not self.check_duplicate(new_name, p.ambito_clase['name']): return
+
+        if len(p) == 8:
+            for i in p.id_vars:
+                valido, _ = self.alcance(i)
+                if not valido: print(f"ERROR | Clase {i} fuera de alcance")
+
+        self.renameToken(new_name, p.ambito_clase['name'], 'CLASS', 'Nombre de clase')
+
+        vars = Atributo(p.declaraciones_clase, self.TS)
+        self.TS[new_name]['vars'] = vars
+        self.TS[new_name]['code'] = p.ambito_clase['code']
+        if not p.ambito_clase['valido']:
+            self.TS[p.ambito_clase['code'] + ':main'] = {'class': new_name, 'uso': 'Nombre de codigo'}
+        else:
+            first_class = self.TS[p.ambito_clase['code'] + ':main']['class']
+            vars_code = self.TS[first_class]['vars']
+            if len(vars_code) != len(vars):
+                print(f"Error | Cantidad de atributos de clase {p.ambito_clase['name']} no coincide con la cantidad de atributos de la clase compatible")
+                return
+            err = False
+            for i, j in zip(vars_code.items, vars.items):
+                if not self.check_type(i['type'], j['type']):
+                    print(f"Error | Tipo del atributo {j['name']} de clase {p.ambito_clase['name']} no coincide con su par {i['name']} en la clase compatible {first_class.split(':')[0]}")
+                    err = True
+            if err:
+                return
+
         return p
+
+    @_('CLASS IDEN IDEN')
+    def ambito_clase(self, p):
+        self.decClass = True
+        valido, _ = self.alcance(p.IDEN1)
+        self.ambito = self.ambito + ':' + '(' + p[1] + ')'
+        return {'name': p.IDEN0, 'valido': valido, 'code': p.IDEN1}
 
     @_('TYPEDEF IDEN ASSIGN "[" constantes "]" ";"')
     def tipoUsuario(self, p):
+        #acomodar lo de uso y renombar tambien
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de tipo usuario")
+        new_name = p.IDEN + ':main'
+        # if new_name in self.TS:
+        #     print(f"Error | redeclaracion de {new_name}")
+        #     self.TS.pop(p.ambito_metodo['name'])
+        #     return
+        if not self.check_duplicate(new_name, p.IDEN): return
+
+        self.renameToken(new_name, p.IDEN, 'Tipo usuario','Nombre de tipo')
+        self.TS[new_name]['valores'] = p.constantes
+            # self.TS[new_name] = self.TS.pop(p.IDEN)
+            # self.TS[new_name]['type'] = 'Tipo usuario'
+            # self.TS[new_name]['uso'] = 'Nombre de tipo'
         return p
 
     @_('constantes "," constante', 'constante')
     def constantes(self, p):
-        return p
+        if len(p) == 1:
+            return [p.constante]
+        else:
+            p.constantes.append(p.constante)
+            return p.constantes
 
     @_('CONSTANTE_E', 'CONSTANTE_F', 'MINUS CONSTANTE_E', 'MINUS CONSTANTE_F')
     def constante(self, p):
@@ -115,9 +506,9 @@ class TpParser(Parser):
             key = p[1]
 
             if hasattr(p, 'CONSTANTE_E'):
-                tipo_dato = 'CONSTANTE_E'  # (O el string exacto que uses en tu TS)
+                tipo_dato = 'longint'  # (O el string exacto que uses en tu TS)
             else:
-                tipo_dato = 'CONSTANTE_F'
+                tipo_dato = 'singlef'
 
             if self.TS[key]['count'] == 1:
                 del self.TS[key]
@@ -132,124 +523,293 @@ class TpParser(Parser):
                 # Diccionario corregido
                 self.TS[nueva_key] = {'type': tipo_dato, 'count': 1}
 
-            if (tipo_dato == 'CONSTANTE_E') & (not check_int_range(key)):
-                print("Error constante negativa fuera de rango")
+            #return p[1]
+            return self.NodoHoja(tipo_dato, p[1])
 
-            elif (tipo_dato == 'CONSTANTE_F') & (not check_flt_range(key)):
-                print("Error constante negativa fuera de rango")
-
-        return p
+        return self.NodoHoja(self.TS[str(p[0])]['type'], p[0])
 
     #----------------------------EJECUTABLES---------------------------------------------
     @_('ejecutables ejecutable', 'ejecutable')
     def ejecutables(self, p):
-        return p
+        if len(p) == 1:
+            return p.ejecutable
+        else:
+            return self.NodoBinario('S', p.ejecutables, p.ejecutable)
 
     @_('asignacion', 'asignacion_linea', 'control', 'invocacion_funcion ";"', 'invocacion_metodo ";"', 'retorno', 'pout')
     def ejecutable(self, p):
-        return p
+        return p[0]
 
     @_('RET "(" expr ")" ";"')
     def retorno(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia retorno")
-        return p
+        self.ret = True
 
+        if self.type_func and self.type_func != p.expr.type:
+            print(f"ERROR | Se esperaba retornar {self.type_func} y se recibio {p.expr.type} en linea {p.lineno}")
+        return self.NodoUnario('RET', p.expr)
+    
     @_('POUT "(" expr ")" ";"', 'POUT "(" CADN ")" ";"')
     def pout(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia pout")
-        return p
-
-    #desambiguamos la gramatica ya que sino cuando venia un IDEN y un ".", la gramatica no sabia si reducir el IDEN
-    #a "asignable" o consumirlo para que luego viniera una invocacion a metodo y reducirlo a invocacion_metodo.
-    #a si, siempre que viene un IDEN lo convierte en asignable y opera a partir de ahi.
-    #ademas, ahora gracias a esto podemos invocar metodos de atributos de objetos, por ejemplo a.b.c.d();
-    @_('asignable "." invocacion_funcion')
+        return self.NodoUnario('POUT', p[2])
+    
+    @_('asignable "." IDEN "(" parametros ")" "[" posicionales "]"', 'asignable "." IDEN "(" parametros ")"')
     def invocacion_metodo(self, p): #invocacion_m . invocacion_f -> invocacion_m . invocacion_f . invocacion_f - > a.b.c.m().m1().m2()
         self._InfoLogger.info(f"Linea {p.lineno} | Invocacion a metodo")
-        return p
+        call_name = p.asignable.operando + '.' + p.IDEN
+        valido, path = self.atributo_valido(p)
+        #print(path)
 
+        if not valido:
+            print(f'Error | {p.asignable.operando} no posee un metodo {p.IDEN}')
+            return self.NodoUnario('error', 'error')
+        else:
+            params = ParamF(self.TS[path]['parametros'], self.TS)
+            posic = p.posicionales if hasattr(p, 'posicionales') else p.parametros
+            raiz = None
+            parametros_reales = ParamR(p.parametros)
+            if len(p) == 7:
+                ord = {}
+                for i in range(len(p.posicionales)):
+                    ord[p.posicionales[i]] = parametros_reales.get(i)
+                keys = [key for key in ord]
+                keys.sort()
+                parametros_reales.items = [ord[k] for k in keys]
+
+            valido, raiz = self.assign_generate(params, parametros_reales, posic)
+            if valido:
+                return self.NodoBinario('CALL ' + call_name, raiz , self.arboles[path]['nodo'], self.TS[path]['type'])
+
+            print("ERROR | La cantidad de parametros reales o posicionales no coincide con los parametros formales")
+            return self.NodoUnario('error', 'error', 'error')
+        
     @_('IDEN "(" parametros ")" "[" posicionales "]"', 'IDEN "(" parametros ")"')
     def invocacion_funcion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Invocacion a funcion")
-        return p
+        valido, path = self.alcance(p.IDEN)
+        if not valido:
+            print(f"Error | funcion {p.IDEN} no declarada o no alcanzable")
+            return self.NodoUnario('CALL', 'error')
+        else:
+            params = ParamF(self.TS[path]['parametros'], self.TS)
+            posic = p.posicionales if hasattr(p, 'posicionales') else p.parametros
+            raiz = None
+            parametros_reales = ParamR(p.parametros)
+            if len(p) == 7:
+                ord = {}
+                for i in range(len(p.posicionales)):
+                    ord[p.posicionales[i]] = parametros_reales.get(i)
+                keys = [key for key in ord]
+                keys.sort()
+                parametros_reales.items = [ord[k] for k in keys]
 
-    @_('posicionales "," CONSTANTE_E', 'posicionales "," MINUS CONSTANTE_E', 
-       'CONSTANTE_E', 'MINUS CONSTANTE_E')
+            valido, raiz = self.assign_generate(params, parametros_reales, posic)
+            if valido:
+                return self.NodoBinario('CALL ' + p[0], raiz , self.arboles[path]['nodo'], self.TS[path]['type'])
+
+            print("ERROR | La cantidad de parametros reales o posicionales no coincide con los parametros formales")
+            return self.NodoUnario('error', 'error', 'error')
+
+    @_('posicionales "," CONSTANTE_E', 'CONSTANTE_E')
     def posicionales(self, p):
-        return p
+        #ver como devolver para que lo use la funcion
+        if len(p) == 1:
+            return [p.CONSTANTE_E]
+        else:
+            p.posicionales.append(p.CONSTANTE_E)
+            return p.posicionales
 
     @_('asignable ASSIGN expr ";"')
     def asignacion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia de asignacion")
-        return p
+        valido = self.check_type(p.asignable.type, p.expr.type, p.expr.op)
+        if valido:
+
+            if p.expr.op in self.TS:
+                path_1 = self.TS[p.asignable.operando]['type'] + ':main'
+                path_2 = self.TS[p.expr.op]['type'] + ':main'
+                clase1 = self.TS[path_1]['type']
+                clase2 = self.TS[path_2]['type']
+                if clase1 == 'CLASS' and clase2 == 'CLASS':
+                    if self.TS[path_1]['code'] == self.TS[path_2]['code']:
+                        _, raiz = self.assign_generate(self.TS[p.asignable.operando]['vars'], self.TS[p.expr.op]['vars'], True)
+                        return self.NodoUnario('TRANSFER_OBJECT', raiz, p.asignable.type)
+                    else:
+                        print("ERROR | El codigo entre clases no coincide")
+                        return self.NodoBinario('error', 'error', 'error')
+            return self.NodoBinario(':=', p.asignable.operando, p.expr, p.asignable.type)
+
+        return self.NodoBinario('error', 'error', 'error')
 
     @_('asignable ASSIGN2P expr_linea ";"')
     def asignacion_linea(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia asignacion de linea")
-        return p
+        valido = self.check_type(p.asignable.type, p.expr_linea.type, p.expr_linea.op)
+        if valido:
+            path_1 = self.TS[p.asignable.operando]['type'] + ':main'
+            if p.expr_linea.op in self.TS:
+                path_2 = self.TS[p.expr_linea.op]['type'] + ':main'
+                clase1 = self.TS[path_1]['type']
+                clase2 = self.TS[path_2]['type']
+                if clase1 == 'CLASS' and clase2 == 'CLASS':
+                    if self.TS[path_1]['code'] == self.TS[path_2]['code']:
+                        _, raiz = self.assign_generate(self.TS[path_1]['vars'], self.TS[path_2]['vars'], True)
+                        return self.NodoUnario('TRANSFER_OBJECT', raiz, p.asignable.type)
+                    else:
+                        print("ERROR | El codigo entre clases no coincide")
+                        return self.NodoBinario('error', 'error', 'error')
+            return self.NodoBinario(':=', p.asignable.operando, p.expr_linea, p.asignable.type)
+        
+        return self.NodoBinario('error', 'error', 'error')
 
     @_('asignable "." IDEN', 'IDEN') #asingable.IDEN -> asignable.IDEN.IDEN
+    #la idea seria desde aca controlar que todas las vars esten al alcance y ademas
+    #para atributos de clases chequear que justamente esa clase contenga esos atributos
     def asignable(self, p):
-        return p
+        if len(p) == 3:
+            valido, path = self.atributo_valido(p)
+            if not valido:
+                print(f'Error | {p.asignable.operando} no posee un atributo {p.IDEN}')
+                return self.NodoHoja('error', 'error')
+            else:
+                return self.NodoHoja(self.TS[path]['type'], path)
+
+        else:
+            valido, path = self.alcance(p.IDEN)
+            if not valido:
+                print(f"Error | variable {p.IDEN} no declarada o no alcanzable")
+                return self.NodoHoja('error', 'error')
+            else:
+                return self.NodoHoja(self.TS[path]['type'], path)
 
     @_('expr PLUS term', 'expr MINUS term', 'term')
     def expr(self, p):
-        return p
+        if len(p) == 3:
+            valido = self.check_type(p.expr.type, p.term.type)
+            if valido:
+                return self.NodoBinario(p[1], p.expr, p.term, p.expr.type)
+            
+            return self.NodoBinario('error', 'error', 'error')
+        else:
+            return p.term
 
     @_('term TIMES factor', 'term DIVIDE factor', 'factor')
     def term(self, p):
-        return p
+        if len(p) == 3:
+            valido = self.check_type(p.term.type, p.factor.type)
+            if valido:
+                return self.NodoBinario(p[1], p.term, p.factor, p.term.type)
+            
+            return self.NodoBinario('error', 'error', 'error')
+        else:
+            return p.factor
 
     @_('constante', 'invocacion_funcion', 'invocacion_metodo', 
         'asignable', 'TOL "(" expr ")"')
     def factor(self, p):
-        return p
+        if len(p) == 1:
+            return p[0]
+        else:
+            return self.NodoUnario('TOL', p.expr, 'longint')
 
     @_('expr_linea PLUS term_linea', 'expr_linea MINUS term_linea', 'term_linea')
     def expr_linea(self, p):
-        return p
+        if len(p) == 3:
+            valido = self.check_type(p.expr_linea.type, p.term_linea.type)
+            if valido:
+                return self.NodoBinario(p[1], p.expr_linea, p.term_linea, p.expr_linea.type)
+                    
+            return self.NodoBinario('error', 'error', 'error')
+        else:
+            return p.term_linea
     
     @_('term_linea TIMES factor_linea', 'term_linea DIVIDE factor_linea', 'factor_linea')
     def term_linea(self, p):
-        return p
+        if len(p) == 3:
+            valido = self.check_type(p.term_linea.type, p.factor_linea.type)
+            if valido:
+                return self.NodoBinario(p[1], p.term_linea, p.factor_linea, p.term_linea.type)
+            
+            return self.NodoBinario('error', 'error', 'error')
+        else:
+            return p.factor_linea
     
     @_('constante', 'invocacion_funcion', 'invocacion_metodo', 
         'asignable', 'asignacion_de_linea', 'TOL "(" expr ")"')
     def factor_linea(self, p):
-        return p
+        if len(p) == 1:
+            return p[0]
+        else:
+            return self.NodoUnario('TOL', p.expr, 'longint')
 
     @_('asignable ASSIGN IDEN', 'asignable ASSIGN constante')
     def asignacion_de_linea(self, p):
-        return p
+        valido = self.check_type(p.asignable.type, p[2].type, p[2])
+        if valido:
+            return self.NodoBinario('=', p.asignable, p[2], p.asignable.type)
+        else:
+            return self.NodoBinario('error', 'error', 'error')
 
     @_('parametros "," expr', 'expr')
     def parametros(self, p):
-        return p
+        if len(p) == 1:
+            return [p.expr]
+        else:
+            p.parametros.append(p.expr)
+            return p.parametros
 
     @_('seleccion', 'iteracion')
     def control(self, p):
-        return p
+        return p[0]
 
     @_('expr_linea GT expr_linea', 'expr_linea LT expr_linea',
        'expr_linea GE expr_linea', 'expr_linea LE expr_linea',
        'expr_linea NE expr_linea', 'expr_linea EQ expr_linea')
     def condicion(self, p):
-        return p
+        return self.NodoBinario(p[1], p[0], p[2])
 
     @_('IF "(" condicion ")" cuerpo_control END_IF ";"',
        'IF "(" condicion ")" cuerpo_control ELSE cuerpo_control END_IF ";"')
     def seleccion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia de seleccion")
-        return p
+        condicion = self.NodoUnario('COND', p.condicion)
+        if not hasattr(p, 'ELSE'):
+            cuerpo_then = self.NodoUnario('THEN', p.cuerpo_control)
+            cuerpo = self.NodoUnario('CUERPO', cuerpo_then)
+            return self.NodoBinario('IF', condicion, cuerpo)
+        else:
+            cuerpo_then = self.NodoUnario('THEN', p.cuerpo_control0)
+            cuerpo_else = self.NodoUnario('ELSE', p.cuerpo_control1)
+            cuerpo = self.NodoBinario('CUERPO', cuerpo_then, cuerpo_else)
+            return self.NodoBinario('IF', condicion, cuerpo)
 
     @_('FROM IDEN ASSIGN2P constante TO constante BY constante REPEAT cuerpo_control')
     def iteracion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia de iteracion")
-        return p
+        
+        #IDEN, constante0 -> IDEN = constante0
+        inicializacion = self.NodoBinario(":=", p.IDEN, p.constante0)
+
+        #condicion -> IDEN <= constante1
+        condicion = self.NodoBinario("<=", p.IDEN, p.constante1)
+        condicion = self.NodoUnario("COND", condicion)
+
+        #constante2 -> constante0 += constante2
+        sum = self.NodoBinario("+", p.IDEN, p.constante2)
+        incremento = self.NodoBinario("=", p.IDEN, sum)
+
+        cuerpo_for = self.NodoBinario("CUERPO", p.cuerpo_control, incremento)
+        
+        composicion_while = self.NodoBinario("COMPWHILE", condicion, cuerpo_for)
+
+        arbol_for = self.NodoBinario("FOR", inicializacion, composicion_while)
+
+        return arbol_for
     
     @_('cuerpo_ejecutable', 'ejecutable')
     def cuerpo_control(self, p):
-        return p
+        return p[0]
 
     def error(self, p):
         pass
@@ -288,7 +848,7 @@ class TpParser(Parser):
         self._logger.error(f"Linea {p.lineno} | Falta de nombre de funcion")
         return ("error",)
 
-    @_('declaracion : tipo FUNCTION IDEN "(" error ";"', 'declaracion_func : tipo FUNCTION IDEN "(" error ";"')
+    @_('declaracion : ambito_func "(" error ";"', 'declaracion_func : ambito_func "(" error ";"')
     def declaracion_error_function_paramf(self, p):
         self._logger.error(f"Linea {p.lineno} | Falta de nombre o tipo de parametro formal")
         return ("error",)
@@ -298,7 +858,7 @@ class TpParser(Parser):
         self._logger.error(f"Linea {p.lineno} | Falta de codigo en declaracion de clase")
         return ("error",)
 
-    @_('declaracion : CLASS IDEN IDEN BEGIN declaraciones_clase EXTENDS error ";" END ";"')
+    @_('declaracion : ambito_clase BEGIN declaraciones_clase EXTENDS error ";" END ";"')
     def clase_error_extends(self, p):
         self._logger.error(f"Linea {p.lineno} | Falta de identificadores luego del 'extends'")
         return ("error",)

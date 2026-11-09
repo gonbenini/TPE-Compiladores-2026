@@ -111,11 +111,11 @@ class TpLexer(Lexer):
             self._logger.error(f"Linea {self.lineno} | ERROR constante entera fuera de rango.")
             return # no devolvemos nada
 
-        if not self.TS.get(t.value):
-            self.TS[t.value] = {'type': 'CONSTANTE ENTERA', 'count': 1}
+        if not self.TS.get(str(t.value)):
+            self.TS[str(t.value)] = {'type': 'longint', 'count': 1}
 
         else:
-            self.TS[t.value]['count'] += 1
+            self.TS[str(t.value)]['count'] += 1
 
         #self.tokens_out.append(t)
         return t
@@ -135,11 +135,11 @@ class TpLexer(Lexer):
             self._logger.error(f"Linea {self.lineno} | ERROR constante flotante fuera de rango.")
             return # no devolvemos nada
 
-        if not self.TS.get(t.value):
-            self.TS[t.value] = {'type': 'CONSTANTE FLOTANTE', 'count': 1}
+        if not self.TS.get(str(t.value)):
+            self.TS[str(t.value)] = {'type': 'singlef', 'count': 1}
 
         else:
-            self.TS[t.value]['count'] += 1
+            self.TS[str(t.value)]['count'] += 1
 
         #self.tokens_out.append(t)
         return t
