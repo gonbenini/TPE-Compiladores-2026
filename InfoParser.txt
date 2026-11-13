@@ -1,11 +1,13 @@
-2026-11-13 18:19:39,079 | Linea 3 | Declaracion de variable/s
-2026-11-13 18:19:39,079 | Linea 4 | Declaracion de variable/s
-2026-11-13 18:19:39,079 | Linea 2 | Declaracion de clase
-2026-11-13 18:19:39,079 | Linea 7 | Declaracion de variable/s
-2026-11-13 18:19:39,079 | Linea 6 | Declaracion de clase
-2026-11-13 18:19:39,079 | Linea 10 | Declaracion de variable/s
-2026-11-13 18:19:39,079 | Linea 9 | Declaracion de clase
-2026-11-13 18:19:39,079 | Linea 13 | Declaracion de variable/s
-2026-11-13 18:19:39,079 | Linea 15 | Sentencia de asignacion
-2026-11-13 18:19:39,080 | Linea 16 | Sentencia de asignacion
-2026-11-13 18:19:39,080 | Linea 17 | Sentencia pout
+2026-11-13 20:51:56,485 | Linea 3 | Declaracion de variable/s
+2026-11-13 20:51:56,485 | Linea 5 | Sentencia pout
+2026-11-13 20:51:56,485 | Linea 4 | Declaracion de metodo
+2026-11-13 20:51:56,485 | Linea 2 | Declaracion de clase
+2026-11-13 20:51:56,485 | Linea 9 | Declaracion de variable/s
+2026-11-13 20:51:56,485 | Linea 8 | Declaracion de clase
+2026-11-13 20:51:56,485 | Linea 12 | Declaracion de variable/s
+2026-11-13 20:51:56,486 | Linea 13 | Declaracion de variable/s
+2026-11-13 20:51:56,486 | Linea 15 | Declaracion de variable/s
+2026-11-13 20:51:56,486 | Linea 17 | Sentencia pout
+2026-11-13 20:51:56,486 | Linea 14 | Declaracion de funcion
+2026-11-13 20:51:56,486 | Linea 20 | Sentencia de asignacion
+2026-11-13 20:51:56,486 | Linea 21 | Sentencia pout

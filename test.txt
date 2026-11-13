@@ -1,19 +1,23 @@
 program compi
 class ca c1 begin
     longint a;
-    longint c;
+    longint m(longint x1) begin
+        pout("HOLA");
+    end;
 end;
-class cb c2 begin
+class cb c1 begin
     longint x;
+    extends ca;
 end;
-class cc c3 begin
-    longint b;
-    extends ca, cb;
-end;
-cc c;
+cb b;
+ca a;
+longint function f1(longint x2)
+cb b;
 begin
-    c.ca.c = 10$l;
-    c.cb.x = 10$l;
+    pout("holasssssss");
+end;
+begin
+    b.ca.a = 10$l;
     pout("holasssssss");
 
 end;

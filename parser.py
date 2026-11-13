@@ -7,6 +7,10 @@ from sly import Parser
 from zmq import has
 from lexer import TpLexer
 
+'''
+Estas 3 clases nos sirven para abstraer el comportamiento entre parametros formales, reales y atributos con la unica intencion de usar el mismo metodo para generar la asignacion de parametros formales a reales y de atributos
+con la unica intencion de poder utilizar las mismas funciones.
+'''
 class Lista(ABC):
 
     def __init__(self, lista):
@@ -63,7 +67,7 @@ class TpParser(Parser):
     )
         
     #la idea es con este manejar todas aquellas operaciones que tengan un solo hijo, tales como
-    #retornos, impresiones, conversiones, etc. La idea de que tenga es tipo es simplemente por ir
+    #retornos, impresiones, conversiones, etc. La idea de que tenga un tipo es simplemente por ir
     #representando los tipos a lo largo del arbol
     class NodoUnario:
         def __init__(self, op, son=None, type=None):
@@ -123,6 +127,12 @@ class TpParser(Parser):
             # Si no es un nodo (es un string o número final), entra acá
             print(f"{sangria}[{relacion}] -> {nodo}")
 
+    '''
+        Esta funcion la utilizamos durante todo el trabajo para poder verificar si una variable, funcion
+        o metodo esta declarada y es alcanzable desde el ambito actual. Nos devuelve un booleano
+        y el path de la variable, funcion o metodo en caso de que este declarada y sea alcanzable.
+        Se basa en recorrer los distintos ambitos desde el mas especifico al mas general, hasta llegar a main. En caso de no encontrarla
+    '''
     def alcance(self, name):
         ambito_aux = self.ambito
         encontrado = False
@@ -151,6 +161,11 @@ class TpParser(Parser):
             #print(f"Variable {name} no declarada o no alcanzable")
             return False, 'NIL'
 
+    '''
+        Esta funcion la utilizamos para poder verificar si un atributo o metodo es valido para un objeto
+        de una clase. Nos devuelve un booleano y el path del atributo o metodo en caso de que este declarado
+        y sea alcanzable. Nos permite detectar atributos, metodos e incluso desambiguado de clases.
+    '''
     def atributo_valido(self, p):
         if (p.asignable.type + ':main') in self.TS:
             clase = p.asignable.type
@@ -158,11 +173,12 @@ class TpParser(Parser):
         else: return False, 'NIL'
 
         if self.TS[clase + ':' + 'main']['type'] == 'CLASS':
+            op = p.asignable.operando.split(':')[0]
             metodo = (p.IDEN + ':' + 'main' + ':(' + clase + ')')
             atributo = (p.IDEN + ':' + self.ambito + ':(' + p.asignable.operando.split(':')[0] + ':' + p.asignable.type + ')')
-            clase_heredada = (p.IDEN + ':extend:(' + p.asignable.operando.split(':')[0] + ':' + p.asignable.type + ')')
+            clase_heredada = (p.IDEN + ':extend:(' + p.asignable.operando.split(':')[0] + ':' + p.asignable.type + ':' + self.ambito + ')')
             
-            if len(p.asignable.operando) == 16: 
+            if ':extend:(' in (p.asignable.operando): #cambiar cambiar cambiar
                 atributo_heredado = (p.IDEN + ':' + self.ambito + ':(' + p.asignable.operando.split('(')[1].split(':')[0] + '.extend:' + p.asignable.type + ')')
             else:
                 atributo_heredado = None
@@ -174,22 +190,26 @@ class TpParser(Parser):
             elif atributo_heredado in self.TS: # buscar atributos heredados
                 return True, atributo_heredado
             elif clase_heredada in self.TS:
-                return True, clase_heredada
-
-            elif 'extend' in self.TS[clase + ':main'] and p.IDEN in self.TS[clase + ':main']['extend']:
-                return True, 'NIL'
-            
+                return True, clase_heredada     
             else:
                 return False, 'NIL'
         
         else:
             return False, 'NIL'
 
+    '''
+        Esta funcion nos permite renombrar un token en la tabla de simbolos, cambiando su nombre
+        y actualizando su tipo y uso siendo útil para manejar ambitos y evitar conflictos de nombres.
+    '''
     def renameToken(self, new_name, old_name, type, use):
         self.TS[new_name] = self.TS.pop(old_name, {})
         self.TS[new_name]['type'] = type
         self.TS[new_name]['uso'] = use
 
+    '''
+        Esta funcion nos permite verificar si un nombre ya existe en la tabla de simbolos en el ambito
+        especifico. Si ese es el caso, lo quitamos por completo.
+    '''
     def check_duplicate(self, new_name, old_name=None):
         if new_name in self.TS:
             print(f"Error | redeclaracion de {new_name.rsplit(':')[0]} en ambito {self.ambito}")
@@ -199,6 +219,11 @@ class TpParser(Parser):
         else:
             return True
 
+    '''
+        Esta funcion nos permite verificar si dos tipos son compatibles entre sí, devolviendo un booleano.
+        Abarcamos el chequeo de tipos de usuario con constantes, chequeo de igual codigo de clases y
+        chequeo de tipos simples. En caso de que no sean compatibles, se imprime un mensaje de error.
+    '''
     def check_type(self, type1, type2, value=None):
         if value and isinstance(value, numbers.Number):
 
@@ -229,6 +254,11 @@ class TpParser(Parser):
             print(f"Error | Tipos incompatibles entre {type2} y {type1}")
             return False
 
+    '''
+        Esta funcion nos permite generar un arbol de asignaciones entre parametros formales y reales,
+        o entre atributos y valores. Devuelve un booleano indicando si la asignacion es valida
+        y el nodo raiz del arbol de asignaciones para poder acoplar como ejecutable.
+    '''
     def assign_generate(self, asignables, asignados, valido=False, posic=None):
         raiz = None
         posic = asignados if posic == None else posic
@@ -259,6 +289,10 @@ class TpParser(Parser):
                 return True, raiz
         return False, None
 
+    '''
+        Esta funcion nos permite verificar si una funcion o metodo tiene un retorno.
+        En caso de que no lo tenga, insertamos un retorno por defecto.
+    '''
     def check_ret(self, new_name, type, nodo):
         if self.ret:
             self.ret = False
@@ -292,6 +326,7 @@ class TpParser(Parser):
     def declaraciones(self, p):
         return p
 
+    #obtenemos las declaraciones de atributos para poder almacenar.
     @_('declaraciones_clase declaracion_clase', 'declaracion_clase')
     def declaraciones_clase(self, p):
         if len(p) == 1:
@@ -315,29 +350,35 @@ class TpParser(Parser):
             return []
         return p[0]
 
+    '''
+        tratamos la declaracion de metodos, verificando renombramiento, retornos y guardando tanto
+        los parametros formales como el arbol sintactico de la funcion para poder ser llamado posteriormente.
+    '''
     @_('ambito_metodo parametros_f ")" cuerpo_ejecutable')
     def metodo(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de metodo")
         self.ambito = self.ambito.rsplit(":", 1)[0] #desacoplamos ambito
         new_name = p.ambito_metodo['name'] + ':' + self.ambito
-        # if new_name in self.TS:
-        #     print(f"Error | redeclaracion de {p.ambito_metodo['name']}")
-        #     self.TS.pop(p.ambito_metodo['name'])
-        #     return
+
         if not self.check_duplicate(new_name, p.ambito_metodo['name']): return
 
         self.arboles[new_name] = {'nodo': p.cuerpo_ejecutable} #guardamos arbol sintactico de la funcion
         self.renameToken(new_name, p.ambito_metodo['name'], p.ambito_metodo['tipo'], 'Nombre de metodo')
-            # self.TS[new_name] = self.TS.pop(p.ambito_metodo['name'])
-            # self.TS[new_name]['type'] = p.ambito_metodo['tipo']
-            # self.TS[new_name]['uso'] = 'Nombre de metodo'
 
         self.check_ret(new_name, p.ambito_metodo['tipo'], p.cuerpo_ejecutable)
         self.TS[new_name]['parametros'] = p.parametros_f
         return []
 
+    #tratos el inyectado de ambito antes de entrar a las declaraciones
     @_('tipo IDEN "("')
     def ambito_metodo(self, p):
+        if p.tipo not in ('singlef', 'longint'):
+            valido, _ = self.alcance(p.IDEN)
+        else: 
+            valido = True
+        if not valido:
+            print(f"ERROR | Metodo {p.IDEN} fuera de alcance")
+            return
         self.ambito = self.ambito + ':' + p.IDEN
         self.type_func = p.tipo
         return {'tipo': p.tipo, 'name': p.IDEN}
@@ -349,7 +390,13 @@ class TpParser(Parser):
     @_('dec_var ";"', 'clase', 'funcion', 'tipoUsuario')
     def declaracion(self, p):
         return p
-    
+
+    '''
+        Esta funcion nos permite manejar la declaracion de variables y siendo util
+        para manejar la declaracion de atributos de variables tipo objeto siendo recursivo
+        su declaracion, es decir, si declaramos una variable de tipo objeto, se van a declarar
+        todos los atributos de ese objeto.
+    '''
     @_('tipo id_vars')
     def dec_var(self, p):
         # se debe chequear que el tipo es valido
@@ -359,25 +406,29 @@ class TpParser(Parser):
             if not self.check_duplicate(new_name, i) or self.decClass: break
             self.renameToken(new_name, i, p.tipo, 'Nombre de variable')
         
-            def acomodar(name_var, type, name_single):
-                _, path = self.alcance(type)
+            def acomodar(name_var, tipo, name_single):
+                _, path = self.alcance(tipo)
                 if path != 'NIL' and self.TS[path]['type'] == 'CLASS':
                     self.TS[name_var]['vars'] = Atributo([], self.TS)
                     vars = self.TS[path]['vars']
                     for j in vars.items:
-                        name = j['name'] + ':' + self.ambito + ':' + '(' + name_single + ':' + type + ')'
-                        # print(name)
+
+                        name = (j['name'] + ':' + self.ambito + ':(' + name_single + ':' + tipo + ')')
+
                         if not self.check_duplicate(name): break
+
                         self.TS[name] = {'type': j['type'], 'uso': 'Nombre de variable'}
+
                         self.TS[name_var]['vars'].items.append(name)
-                        if j['type'] + ':main' in self.TS and self.TS[j['type'] + ':main']['type'] == 'CLASS':
-                            acomodar(name, j['type'], j['name'])
+
+                        if (j['type'] + ':main' in self.TS and self.TS[j['type'] + ':main']['type'] == 'CLASS'):
+                            acomodar(name, j['type'], name_single + '.' + j['name'])
 
                     if 'extend' in self.TS[path]:
                         for j in self.TS[path]['extend']:
-                            self.TS[j + ':extend:(' + i + ':' + type + ')'] = {'type': j, 'uso': 'Nombre de variable'}
-                            acomodar(j + ':extend:(' + i + ':' + type + ')', j, name_single + '.extend')
-                            self.TS[name_var]['vars'].items.append(j + ':extend:(' + i + ':' + type + ')')
+                            nombre_extend = (f'{j}:extend:({name_single}:{tipo}:{self.ambito})')
+                            self.TS[nombre_extend] = {'type': j, 'uso': 'Nombre de variable'}
+                            acomodar(nombre_extend, j, name_single + '.extend')
 
             acomodar(new_name, p.tipo, i)
 
@@ -387,11 +438,11 @@ class TpParser(Parser):
 
         return vars
 
+    #Controlamos que el tipo este al alcance.
     @_('SINGLEF', 'LONGINT', 'IDEN')
     def tipo(self, p):
         if p[0] not in ('singlef', 'longint'):
             valido, path = self.alcance(p[0])
-            #print(path)
             if not valido:
                 print("Error | Tipo fuera de alcance")
                 return "error"
@@ -414,21 +465,19 @@ class TpParser(Parser):
             p.parametros_f.append(p.parametro_f)
             return p.parametros_f
 
+    #declaramos los parametros formales en la tabla de simbolos.
     @_('tipo IDEN')
     def parametro_f(self, p):
-        #ver como asociarla cada parametro_f con su funcion
-        # para luego poder hacer las asignaciones de parametros reales
-        # a formales
-
-        #deberiamos chequear que no haya redeclaracion tambien
         new_name = p.IDEN + ':' + self.ambito
         if not self.check_duplicate(new_name, p.IDEN): return
         self.renameToken(new_name, p.IDEN, p.tipo, 'Nombre de variable')
-            # self.TS[new_name] = self.TS.pop(p.IDEN)
-            # self.TS[new_name]['type'] = p.tipo
-            # self.TS[new_name]['uso'] = 'Nombre de variable'
         return new_name
 
+    '''
+        Esta funcion nos permite manejar la declaracion de funciones siendo lo mas importante
+        el guardado del arbol sintactico para su posterior invocacion y el almacenamiento de los
+        parametros formales en la tabla de simbolos.
+    '''
     @_('ambito_func "(" parametros_f ")" declaraciones_func cuerpo_ejecutable',
        'ambito_func "(" parametros_f ")" cuerpo_ejecutable')
     def funcion(self, p):
@@ -440,9 +489,6 @@ class TpParser(Parser):
 
         self.arboles[new_name] = {'nodo': p.cuerpo_ejecutable} #guardamos arbol sintactico de la funcion
         self.renameToken(new_name, p.ambito_func['name'], p.ambito_func['tipo'], 'Nombre de funcion')
-            # self.TS[new_name] = self.TS.pop(p.ambito_func['name'])
-            # self.TS[new_name]['type'] = p.ambito_func['tipo']
-            # self.TS[new_name]['uso'] = 'Nombre de funcion'
 
         self.check_ret(new_name, p.ambito_func['tipo'], p.cuerpo_ejecutable)
         self.TS[new_name]['parametros'] = p.parametros_f
@@ -450,10 +496,22 @@ class TpParser(Parser):
 
     @_('tipo FUNCTION IDEN')
     def ambito_func(self, p):
+        if p.tipo not in ('singlef', 'longint'):
+            valido, _ = self.alcance(p.IDEN)
+        else:
+            valido = True
+        if not valido:
+            print(f"ERROR | Funcion {p.IDEN} fuera de alcance")
+            return
         self.ambito = self.ambito + ':' + p[2]
         self.type_func = p.tipo
         return {'tipo': p.tipo, 'name': p.IDEN}
 
+    '''
+        Esta funcion nos permite manejar la declaracion de clases siendo lo mas importante
+        el almacenamiento de los atributos, extensiones y el tratado de los codigo de clase
+        para la similitud estructural.
+    '''
     @_('ambito_clase BEGIN declaraciones_clase END ";"', 'ambito_clase BEGIN declaraciones_clase EXTENDS id_vars ";" END ";"')
     def clase(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de clase")
@@ -465,10 +523,10 @@ class TpParser(Parser):
 
         self.renameToken(new_name, p.ambito_clase['name'], 'CLASS', 'Nombre de clase')
 
-        vars = Atributo(p.declaraciones_clase, self.TS)
-        self.TS[new_name]['vars'] = vars
+        self.TS[new_name]['vars'] = Atributo(p.declaraciones_clase, self.TS)
         self.TS[new_name]['code'] = p.ambito_clase['code']
 
+        vars = Atributo(p.declaraciones_clase, self.TS)
         if len(p) == 8:
             self.TS[new_name]['extend'] = []
             for i in p.id_vars:
@@ -477,6 +535,7 @@ class TpParser(Parser):
                 if not valido: print(f"ERROR | Clase {i} fuera de alcance")
                 else:
                     self.TS[new_name]['extend'].append(i)
+                    #vars.items.extend(self.TS[i + ':main']['vars'].items)
 
         if not p.ambito_clase['valido']:
             self.TS[p.ambito_clase['code'] + ':main'] = {'class': new_name, 'uso': 'Nombre de codigo'}
@@ -485,6 +544,7 @@ class TpParser(Parser):
             vars_code = self.TS[first_class]['vars']
             if len(vars_code) != len(vars):
                 print(f"Error | Cantidad de atributos de clase {p.ambito_clase['name']} no coincide con la cantidad de atributos de la clase compatible")
+                print(len(vars_code), len(vars))
                 return
             err = False
             for i, j in zip(vars_code.items, vars.items):
@@ -503,22 +563,16 @@ class TpParser(Parser):
         self.ambito = self.ambito + ':' + '(' + p[1] + ')'
         return {'name': p.IDEN0, 'valido': valido, 'code': p.IDEN1}
 
+    #Esta funcion nos permite almacenar los valores posibles de un tipo usuario como lo mas importante.
     @_('TYPEDEF IDEN ASSIGN "[" constantes "]" ";"')
     def tipoUsuario(self, p):
-        #acomodar lo de uso y renombar tambien
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de tipo usuario")
         new_name = p.IDEN + ':main'
-        # if new_name in self.TS:
-        #     print(f"Error | redeclaracion de {new_name}")
-        #     self.TS.pop(p.ambito_metodo['name'])
-        #     return
+
         if not self.check_duplicate(new_name, p.IDEN): return
 
         self.renameToken(new_name, p.IDEN, 'Tipo usuario','Nombre de tipo')
         self.TS[new_name]['valores'] = p.constantes
-            # self.TS[new_name] = self.TS.pop(p.IDEN)
-            # self.TS[new_name]['type'] = 'Tipo usuario'
-            # self.TS[new_name]['uso'] = 'Nombre de tipo'
         return p
 
     @_('constantes "," constante', 'constante')
@@ -569,6 +623,7 @@ class TpParser(Parser):
     def ejecutable(self, p):
         return p[0]
 
+    #Esta funcion nos permite verificar que el tipo de retorno sea el correcto.
     @_('RET "(" expr ")" ";"')
     def retorno(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia retorno")
@@ -576,19 +631,24 @@ class TpParser(Parser):
 
         if self.type_func and self.type_func != p.expr.type:
             print(f"ERROR | Se esperaba retornar {self.type_func} y se recibio {p.expr.type} en linea {p.lineno}")
+            self.ret = False
+            return self.NodoUnario('error', 'error')
         return self.NodoUnario('RET', p.expr)
     
     @_('POUT "(" expr ")" ";"', 'POUT "(" CADN ")" ";"')
     def pout(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia pout")
         return self.NodoUnario('POUT', p[2])
-    
+
+    '''
+        Esta funcion nos permite verificar que la invocacion de un metodo sea valida, es decir,
+        que el objeto tenga ese metodo y que los parametros formales y reales coincidan.
+    '''
     @_('asignable "." IDEN "(" parametros ")" "[" posicionales "]"', 'asignable "." IDEN "(" parametros ")"')
     def invocacion_metodo(self, p): #invocacion_m . invocacion_f -> invocacion_m . invocacion_f . invocacion_f - > a.b.c.m().m1().m2()
         self._InfoLogger.info(f"Linea {p.lineno} | Invocacion a metodo")
         call_name = p.asignable.operando + '.' + p.IDEN
         valido, path = self.atributo_valido(p)
-        #print(path)
 
         if not valido:
             print(f'Error | {p.asignable.operando} no posee un metodo {p.IDEN}')
@@ -612,7 +672,11 @@ class TpParser(Parser):
 
             print("ERROR | La cantidad de parametros reales o posicionales no coincide con los parametros formales")
             return self.NodoUnario('error', 'error', 'error')
-        
+
+    '''
+        Esta funcion nos permite verificar que la invocacion de una funcion sea valida, es decir,
+        que la funcion este declarada y que los parametros formales y reales coincidan.
+    '''
     @_('IDEN "(" parametros ")" "[" posicionales "]"', 'IDEN "(" parametros ")"')
     def invocacion_funcion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Invocacion a funcion")
@@ -649,12 +713,14 @@ class TpParser(Parser):
             p.posicionales.append(p.CONSTANTE_E)
             return p.posicionales
 
+    '''
+
+    '''
     @_('asignable ASSIGN expr ";"')
     def asignacion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia de asignacion")
         valido = self.check_type(p.asignable.type, p.expr.type, p.expr.op)
         if valido:
-
             if p.expr.op in self.TS:
                 path_1 = self.TS[p.asignable.operando]['type'] + ':main'
                 path_2 = self.TS[p.expr.op]['type'] + ':main'
@@ -698,7 +764,6 @@ class TpParser(Parser):
     def asignable(self, p):
         if len(p) == 3:
             valido, path = self.atributo_valido(p)
-            #if self.TS[p.asignable.type + ':main']['type'] == 'CLASS':
 
             if not valido:
                 print(f'Error | {p.asignable.operando} no posee un atributo {p.IDEN}')
