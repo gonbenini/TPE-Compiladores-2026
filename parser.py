@@ -2,7 +2,7 @@ from hmac import new
 from turtle import pos
 import numbers
 from abc import ABC, abstractmethod
-
+from copy import deepcopy
 from sly import Parser
 from zmq import has
 from lexer import TpLexer
@@ -159,12 +159,26 @@ class TpParser(Parser):
 
         if self.TS[clase + ':' + 'main']['type'] == 'CLASS':
             metodo = (p.IDEN + ':' + 'main' + ':(' + clase + ')')
-            atributo = (p.IDEN + ':' + self.ambito + ':(' + p.asignable.operando.split(':')[0] + ')')
+            atributo = (p.IDEN + ':' + self.ambito + ':(' + p.asignable.operando.split(':')[0] + ':' + p.asignable.type + ')')
+            clase_heredada = (p.IDEN + ':extend:(' + p.asignable.operando.split(':')[0] + ':' + p.asignable.type + ')')
+            
+            if len(p.asignable.operando) == 16: 
+                atributo_heredado = (p.IDEN + ':' + self.ambito + ':(' + p.asignable.operando.split('(')[1].split(':')[0] + '.extend:' + p.asignable.type + ')')
+            else:
+                atributo_heredado = None
+
             if metodo in self.TS: # buscar metodo
                 return True, metodo
-                #manejar bien los errores de retorno
             elif atributo in self.TS: # buscar atributos
                 return True, atributo
+            elif atributo_heredado in self.TS: # buscar atributos heredados
+                return True, atributo_heredado
+            elif clase_heredada in self.TS:
+                return True, clase_heredada
+
+            elif 'extend' in self.TS[clase + ':main'] and p.IDEN in self.TS[clase + ':main']['extend']:
+                return True, 'NIL'
+            
             else:
                 return False, 'NIL'
         
@@ -188,11 +202,9 @@ class TpParser(Parser):
     def check_type(self, type1, type2, value=None):
         if value and isinstance(value, numbers.Number):
 
-            if f"{type1}:main" in self.TS:
-
+            if f"{type1}:main" in self.TS and 'valores' in self.TS[f"{type1}:main"]:
                 values = self.TS[f"{type1}:main"]['valores']
-            elif f"{type2}:main" in self.TS:
-                values = self.TS[f"{type2}:main"]['valores']
+
             else:
                 values = None
             if values:
@@ -286,6 +298,7 @@ class TpParser(Parser):
             return p.declaracion_clase
         else:
             p.declaraciones_clase.extend(p.declaracion_clase)
+            #se rompe si falta ; en la declaracion de una variable.
             return p.declaraciones_clase
 
     @_('declaraciones_func declaracion_func', 'declaracion_func')
@@ -346,15 +359,27 @@ class TpParser(Parser):
             if not self.check_duplicate(new_name, i) or self.decClass: break
             self.renameToken(new_name, i, p.tipo, 'Nombre de variable')
         
-            _, path = self.alcance(p.tipo)
-            if path != 'NIL' and self.TS[path]['type'] == 'CLASS':
-                self.TS[new_name]['vars'] = Atributo([], self.TS)
-                vars = self.TS[path]['vars']
-                for j in vars.items:
-                    if not self.check_duplicate(j['name'] + ':' + self.ambito + ':' + '(' + i + ')'): break
-                    self.TS[j['name'] + ':' + self.ambito + ':' + '(' + i + ')' ] = {'type': j['type'], 'uso': 'Nombre de variable'}
-                    self.TS[new_name]['vars'].items.append(j['name'] + ':' + self.ambito + ':' + '(' + i + ')')
+            def acomodar(name_var, type, name_single):
+                _, path = self.alcance(type)
+                if path != 'NIL' and self.TS[path]['type'] == 'CLASS':
+                    self.TS[name_var]['vars'] = Atributo([], self.TS)
+                    vars = self.TS[path]['vars']
+                    for j in vars.items:
+                        name = j['name'] + ':' + self.ambito + ':' + '(' + name_single + ':' + type + ')'
+                        # print(name)
+                        if not self.check_duplicate(name): break
+                        self.TS[name] = {'type': j['type'], 'uso': 'Nombre de variable'}
+                        self.TS[name_var]['vars'].items.append(name)
+                        if j['type'] + ':main' in self.TS and self.TS[j['type'] + ':main']['type'] == 'CLASS':
+                            acomodar(name, j['type'], j['name'])
 
+                    if 'extend' in self.TS[path]:
+                        for j in self.TS[path]['extend']:
+                            self.TS[j + ':extend:(' + i + ':' + type + ')'] = {'type': j, 'uso': 'Nombre de variable'}
+                            acomodar(j + ':extend:(' + i + ':' + type + ')', j, name_single + '.extend')
+                            self.TS[name_var]['vars'].items.append(j + ':extend:(' + i + ':' + type + ')')
+
+            acomodar(new_name, p.tipo, i)
 
         vars = []
         for i in p.id_vars:
@@ -438,16 +463,21 @@ class TpParser(Parser):
 
         if not self.check_duplicate(new_name, p.ambito_clase['name']): return
 
-        if len(p) == 8:
-            for i in p.id_vars:
-                valido, _ = self.alcance(i)
-                if not valido: print(f"ERROR | Clase {i} fuera de alcance")
-
         self.renameToken(new_name, p.ambito_clase['name'], 'CLASS', 'Nombre de clase')
 
         vars = Atributo(p.declaraciones_clase, self.TS)
         self.TS[new_name]['vars'] = vars
         self.TS[new_name]['code'] = p.ambito_clase['code']
+
+        if len(p) == 8:
+            self.TS[new_name]['extend'] = []
+            for i in p.id_vars:
+                valido, _ = self.alcance(i)
+                #ver si devolvemos return
+                if not valido: print(f"ERROR | Clase {i} fuera de alcance")
+                else:
+                    self.TS[new_name]['extend'].append(i)
+
         if not p.ambito_clase['valido']:
             self.TS[p.ambito_clase['code'] + ':main'] = {'class': new_name, 'uso': 'Nombre de codigo'}
         else:
@@ -637,7 +667,7 @@ class TpParser(Parser):
                     else:
                         print("ERROR | El codigo entre clases no coincide")
                         return self.NodoBinario('error', 'error', 'error')
-            return self.NodoBinario(':=', p.asignable.operando, p.expr, p.asignable.type)
+            return self.NodoBinario('=', p.asignable.operando, p.expr, p.asignable.type)
 
         return self.NodoBinario('error', 'error', 'error')
 
@@ -668,9 +698,12 @@ class TpParser(Parser):
     def asignable(self, p):
         if len(p) == 3:
             valido, path = self.atributo_valido(p)
+            #if self.TS[p.asignable.type + ':main']['type'] == 'CLASS':
+
             if not valido:
                 print(f'Error | {p.asignable.operando} no posee un atributo {p.IDEN}')
                 return self.NodoHoja('error', 'error')
+            
             else:
                 aux = self.TS[path]
                 return self.NodoHoja(aux['type'], path)
