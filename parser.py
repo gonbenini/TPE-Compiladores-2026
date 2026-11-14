@@ -1,10 +1,7 @@
-from hmac import new
-from turtle import pos
 import numbers
 from abc import ABC, abstractmethod
 
 from sly import Parser
-from zmq import has
 from lexer import TpLexer
 
 class Lista(ABC):
@@ -65,6 +62,7 @@ class TpParser(Parser):
             self.op = op
             self.son = son if son else 'NIL'
             self.type = type
+            self.operando = self.op
 
     #la idea con este es manejar todas aquellas operaciones binarias. La idea del tipo es ir
     #representando los tipos de diferentes operaciones.
@@ -74,6 +72,7 @@ class TpParser(Parser):
             self.left = left
             self.right = right if right else 'NIL'
             self.type = type 
+            self.operando = self.op
 
         def __str__(self) -> str:
             a = self.left.__str__() if self.left else ''
@@ -189,9 +188,9 @@ class TpParser(Parser):
             if values:
                 for i in values:
                     if i.type == value.type and i.operando == value.operando:
-                        return True
+                        return True, 'type'
                 print(f"Error | Valor {value} no pertenece al tipo {type1}")
-                return False
+                return False, 'nil'
 
         key1 = f"{type1}:main"
         key2 = f"{type2}:main"
@@ -200,13 +199,13 @@ class TpParser(Parser):
             class2 = self.TS[key2]['type'] == 'CLASS'
             if class1 and class2:
                 if self.TS[key1]['code'] == self.TS[key2]['code']:
-                    return True
+                    return True, 'class'
         
         if type1 == type2:
-            return True
+            return True, 'equal'
         else:
             print(f"Error | Tipos incompatibles entre {type2} y {type1}")
-            return False
+            return False, 'nil'
 
     def assign_generate(self, asignables, asignados, valido=False, posic=None):
         raiz = None
@@ -602,39 +601,29 @@ class TpParser(Parser):
     @_('asignable ASSIGN expr ";"')
     def asignacion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia de asignacion")
-        valido = self.check_type(p.asignable.type, p.expr.type, p.expr)
+        valido, op = self.check_type(p.asignable.type, p.expr.type, p.expr)
         if valido:
-            path_1 = self.TS[p.asignable.operando]['type'] + ':main'
-            path_2 = self.TS[p.expr.operando]['type'] + ':main'
-            clase1 = self.TS[path_1]['type']
-            clase2 = self.TS[path_2]['type']
-            if clase1 == 'CLASS' and clase2 == 'CLASS':
-                if self.TS[path_1]['code'] == self.TS[path_2]['code']:
-                    _, raiz = self.assign_generate(self.TS[path_1]['vars'], self.TS[path_2]['vars'], True)
-                    return self.NodoUnario('TRANSFER_OBJECT', raiz, p.asignable.type)
-                else:
-                    print("ERROR | El codigo entre clases no coincide")
-                    return self.NodoBinario('error', 'error', 'error')
+            if op == 'class':
+                path_1 = self.TS[p.asignable.operando]['type'] + ':main'
+                path_2 = self.TS[p.expr.operando]['type'] + ':main'
+                _, raiz = self.assign_generate(self.TS[path_1]['vars'], self.TS[path_2]['vars'], True)
+                return self.NodoUnario('TRANSFER_OBJECT', raiz, p.asignable.type)
+            
             return self.NodoBinario(':=', p.asignable.operando, p.expr, p.asignable.type)
-
+        
         return self.NodoBinario('error', 'error', 'error')
-
+        
     @_('asignable ASSIGN2P expr_linea ";"')
     def asignacion_linea(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia asignacion de linea")
-        valido = self.check_type(p.asignable.type, p.expr_linea.type, p.expr_linea)
+        valido, op = self.check_type(p.asignable.type, p.expr_linea.type, p.expr_linea)
         if valido:
-            path_1 = self.TS[p.asignable.operando]['type'] + ':main'
-            path_2 = self.TS[p.expr_linea.operando]['type'] + ':main'
-            clase1 = self.TS[path_1]['type']
-            clase2 = self.TS[path_2]['type']
-            if clase1 == 'CLASS' and clase2 == 'CLASS':
-                if self.TS[path_1]['code'] == self.TS[path_2]['code']:
-                    _, raiz = self.assign_generate(self.TS[path_1]['vars'], self.TS[path_2]['vars'], True)
-                    return self.NodoUnario('TRANSFER_OBJECT', raiz, p.asignable.type)
-                else:
-                    print("ERROR | El codigo entre clases no coincide")
-                    return self.NodoBinario('error', 'error', 'error')
+            if op == 'class':
+                path_1 = self.TS[p.asignable.operando]['type'] + ':main'
+                path_2 = self.TS[p.expr_linea.operando]['type'] + ':main'
+                _, raiz = self.assign_generate(self.TS[path_1]['vars'], self.TS[path_2]['vars'], True)
+                return self.NodoUnario('TRANSFER_OBJECT', raiz, p.asignable.type)
+            
             return self.NodoBinario(':=', p.asignable.operando, p.expr_linea, p.asignable.type)
         
         return self.NodoBinario('error', 'error', 'error')
