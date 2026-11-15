@@ -52,7 +52,7 @@ class TpParser(Parser):
         self.ambito = 'main'
         self.arboles=arboles
         self.ret = False
-        self.type_func = None
+        self.type_func = []
         self.decClass = False
 
     debugfile = 'parser.out'
@@ -167,11 +167,14 @@ class TpParser(Parser):
             clase = p.asignable.type
 
         else: return False, 'NIL'
-
+        print(p.asignable.op)
         if self.TS[clase + ':' + 'main']['type'] == 'CLASS':
-            op = p.asignable.op.split(':')[0]
             metodo = (p.IDEN + ':' + 'main' + ':(' + clase + ')')
-            atributo = (p.IDEN + ':' + self.ambito + ':(' + p.asignable.op.split(':')[0] + ':' + p.asignable.type + ')')
+            atributo = next(
+                (var for var in self.TS[p.asignable.op]['vars'].items
+                if var.startswith(p.IDEN + ':')),
+                None
+            )
             clase_heredada = (p.IDEN + ':extend:(' + p.asignable.op.split(':')[0] + ':' + p.asignable.type + ':' + self.ambito + ')')
             
             if ':extend:(' in (p.asignable.op): #cambiar cambiar cambiar
@@ -181,7 +184,7 @@ class TpParser(Parser):
 
             if metodo in self.TS: # buscar metodo
                 return True, metodo
-            elif atributo in self.TS: # buscar atributos
+            elif atributo is not None:
                 return True, atributo
             elif atributo_heredado in self.TS: # buscar atributos heredados
                 return True, atributo_heredado
@@ -255,12 +258,12 @@ class TpParser(Parser):
         o entre atributos y valores. Devuelve un booleano indicando si la asignacion es valida
         y el nodo raiz del arbol de asignaciones para poder acoplar como ejecutable.
     '''
-    def assign_generate(self, asignables, asignados, valido=False, posic=None):
+    def assign_generate(self, asignables, asignados, check=False, posic=None):
         raiz = None
         posic = asignados if posic == None else posic
         if len(asignables) == len(asignados) == len(posic):
             if len(asignables) == 1:
-                valido = self.check_type(asignables.get_type(0), asignados.get_type(0))
+                valido = self.check_type(asignables.get_type(0), asignados.get_type(0)) if not check else check
                 if valido:
                     asignable = self.NodoHoja(asignables.get_type(0), asignables.get(0))
                     asignado = self.NodoHoja(asignados.get_type(0), asignados.get(0))
@@ -269,24 +272,31 @@ class TpParser(Parser):
                     s = self.NodoBinario('error', 'error', 'error')
                 return True, s
             else:
-                cadena_asignacion = None  
-                for i in range(len(asignables)):
-                    valido = self.check_type(asignables.get_type(i), asignados.get_type(i)) if not valido else valido
-                    if valido:
-                        asignable = self.NodoHoja(asignables.get_type(0), asignables.get(0))
-                        asignado = self.NodoHoja(asignados.get_type(0), asignados.get(0))
-                        nodo_asignacion = self.NodoBinario('=', asignable, asignado, asignados.get_type(i))
-                        nodo_cadena = self.NodoBinario('S', 'None', nodo_asignacion)
-                        if not cadena_asignacion:
-                            cadena_asignacion = nodo_cadena
-                            raiz = nodo_cadena
-                        else:
-                            cadena_asignacion.left = nodo_asignacion
-                            cadena_asignacion = nodo_asignacion
+                def generate(i, len):
+                    valid1 = self.check_type(asignables.get_type(i), asignados.get_type(i)) if not check else check
+                    asignable1 = self.NodoHoja(asignables.get_type(i), asignables.get(i))
+                    asignado1 = self.NodoHoja(asignados.get_type(i), asignados.get(i))
+                    if not valid1:
+                        assign1 = self.NodoBinario('error', 'error', 'error')
                     else:
-                        nodo_asignacion = self.NodoBinario('error', 'error', 'error')
+                        assign1 = self.NodoBinario('=', asignable1, asignado1, asignados.get_type(i))
+                    if i == len - 2:
+                        valid2 = self.check_type(asignables.get_type(i + 1), asignados.get_type(i + 1)) if not check else check
+                        asignable2 = self.NodoHoja(asignables.get_type(i + 1), asignables.get(i + 1))
+                        asignado2 = self.NodoHoja(asignados.get_type(i + 1), asignados.get(i + 1))
 
+                        if not valid2:
+                            assign2 = self.NodoBinario('error', 'error', 'error')
+                        else:
+                            assign2 = self.NodoBinario('=', asignable2, asignado2, asignados.get_type(i + 1))
+
+                        return self.NodoBinario('S', assign1, assign2)
+
+                    else:
+                        return self.NodoBinario('S', generate(i + 1, len), assign1)
+                raiz = generate(0, len(asignables))
                 return True, raiz
+            
         return False, None
 
     '''
@@ -367,6 +377,7 @@ class TpParser(Parser):
 
         self.check_ret(new_name, p.ambito_metodo['tipo'], p.cuerpo_ejecutable)
         self.TS[new_name]['parametros'] = p.parametros_f
+        self.type_func.pop()
         return []
 
     #tratos el inyectado de ambito antes de entrar a las declaraciones
@@ -380,7 +391,7 @@ class TpParser(Parser):
             print(f"ERROR | Metodo {p.IDEN} fuera de alcance")
             return
         self.ambito = self.ambito + ':' + p.IDEN
-        self.type_func = p.tipo
+        self.type_func.append(p.tipo)
         return {'tipo': p.tipo, 'name': p.IDEN}
 
     @_('BEGIN ejecutables END ";"')
@@ -431,8 +442,6 @@ class TpParser(Parser):
                             acomodar(nombre_extend, j, name_single + '.extend')
 
             acomodar(new_name, p.tipo, i)
-            # for i in self.TS[new_name]['vars'].items:
-            #     print(i)
 
         vars = []
         for i in p.id_vars:
@@ -497,6 +506,7 @@ class TpParser(Parser):
 
         self.check_ret(new_name, p.ambito_func['tipo'], p.cuerpo_ejecutable)
         self.TS[new_name]['parametros'] = p.parametros_f
+        self.type_func.pop()
         return p
 
     @_('tipo FUNCTION IDEN')
@@ -509,7 +519,7 @@ class TpParser(Parser):
             print(f"ERROR | Funcion {p.IDEN} fuera de alcance")
             return
         self.ambito = self.ambito + ':' + p[2]
-        self.type_func = p.tipo
+        self.type_func.append(p.tipo)
         return {'tipo': p.tipo, 'name': p.IDEN}
 
     '''
@@ -535,9 +545,13 @@ class TpParser(Parser):
         if len(p) == 8:
             self.TS[new_name]['extend'] = []
             for i in p.id_vars:
+                if p.ambito_clase['name'] == i:
+                    print(f"ERROR | Clase '{i}' no puede extenderse a si misma")
+                    continue
                 valido, _ = self.alcance(i)
-                #ver si devolvemos return
-                if not valido: print(f"ERROR | Clase {i} fuera de alcance")
+                if not valido:
+                    print(f"ERROR | Clase '{i}' fuera de alcance")
+                    continue
                 else:
                     self.TS[new_name]['extend'].append(i)
                     #vars.items.extend(self.TS[i + ':main']['vars'].items)
@@ -638,8 +652,8 @@ class TpParser(Parser):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia retorno")
         self.ret = True
 
-        if self.type_func and self.type_func != p.expr.type:
-            print(f"ERROR | Se esperaba retornar {self.type_func} y se recibio {p.expr.type} en linea {p.lineno}")
+        if self.type_func and self.type_func[-1] != p.expr.type:
+            print(f"ERROR | Se esperaba retornar {self.type_func[-1]} y se recibio {p.expr.type} en linea {p.lineno}")
             self.ret = False
             return self.NodoUnario('error', 'error')
         return self.NodoUnario('RET', p.expr)
@@ -916,7 +930,7 @@ class TpParser(Parser):
 
         arbol_for = self.NodoBinario("FOR", inicializacion, composicion_while)
 
-        if (sentido == "<=" and incremento == '-') or (sentido == ">=" and incremento == '+'):
+        if (sentido == "<=" and sign == '-') or (sentido == ">=" and sign == '+') or (p.constante2.op == 0):
             print(f"ERROR | Iteracion infinita en linea {p.lineno}")
             return self.NodoBinario('error', 'error', 'error')
 
