@@ -667,7 +667,7 @@ class TpParser(Parser):
             posic = p.posicionales if hasattr(p, 'posicionales') else p.parametros
             raiz = None
             parametros_reales = ParamR(p.parametros)
-            if len(p) == 7:
+            if len(p) == 7 and len(p.posicionales) == len(p.parametros):
                 ord = {}
                 for i in range(len(p.posicionales)):
                     ord[p.posicionales[i]] = parametros_reales.get(i)
@@ -675,7 +675,7 @@ class TpParser(Parser):
                 keys.sort()
                 parametros_reales.items = [ord[k] for k in keys]
 
-            valido, raiz = self.assign_generate(params, parametros_reales, posic)
+            valido, raiz = self.assign_generate(params, parametros_reales, posic=posic)
             if valido:
                 return self.NodoBinario('CALL ' + call_name, raiz , self.arboles[path]['nodo'], self.TS[path]['type'])
 
@@ -700,7 +700,7 @@ class TpParser(Parser):
             posic = p.posicionales if hasattr(p, 'posicionales') else p.parametros
             raiz = None
             parametros_reales = ParamR(p.parametros)
-            if len(p) == 7:
+            if len(p) == 7 and len(p.posicionales) == len(p.parametros):
                 ord = {}
                 for i in range(len(p.posicionales)):
                     ord[p.posicionales[i]] = parametros_reales.get(i)
@@ -708,7 +708,7 @@ class TpParser(Parser):
                 keys.sort()
                 parametros_reales.items = [ord[k] for k in keys]
 
-            valido, raiz = self.assign_generate(params, parametros_reales, posic)
+            valido, raiz = self.assign_generate(params, parametros_reales, posic=posic)
             if valido:
                 return self.NodoBinario('CALL ' + p[0], raiz , self.arboles[path]['nodo'], self.TS[path]['type'])
 
@@ -751,9 +751,7 @@ class TpParser(Parser):
         valido, op = self.check_type(p.asignable.type, p.expr_linea.type, self.NodoHoja(p.expr_linea.type, p.expr_linea.op))
         if valido:
             if op == 'class':
-                path_1 = self.TS[p.asignable.op]['type'] + ':main'
-                path_2 = self.TS[p.expr_linea.op]['type'] + ':main'
-                _, raiz = self.assign_generate(self.TS[path_1]['vars'], self.TS[path_2]['vars'], True)
+                _, raiz = self.assign_generate(self.TS[p.asignable.op]['vars'], self.TS[p.expr_linea.op]['vars'], True)
                 return self.NodoUnario('TRANSFER_OBJECT', raiz, p.asignable.type)
             
             return self.NodoBinario(':=', p.asignable.op, p.expr_linea, p.asignable.type)
