@@ -213,7 +213,7 @@ class TpParser(Parser):
     def check_duplicate(self, new_name, old_name=None):
         if new_name in self.TS:
             print(f"Error | redeclaracion de {new_name.rsplit(':')[0]} en ambito {self.ambito}")
-            if old_name:
+            if old_name and old_name in self.TS:
                 self.TS.pop(old_name)
             return False
         else:
@@ -225,7 +225,7 @@ class TpParser(Parser):
         chequeo de tipos simples. En caso de que no sean compatibles, se imprime un mensaje de error.
     '''
     def check_type(self, type1, type2, value=None):
-        if value and isinstance(value, numbers.Number):
+        if value and isinstance(value.operando, numbers.Number):
 
             if f"{type1}:main" in self.TS and 'valores' in self.TS[f"{type1}:main"]:
                 values = self.TS[f"{type1}:main"]['valores']
@@ -408,7 +408,7 @@ class TpParser(Parser):
         
             def acomodar(name_var, tipo, name_single):
                 _, path = self.alcance(tipo)
-                if path != 'NIL' and self.TS[path]['type'] == 'CLASS':
+                if path != 'NIL' and 'type' in self.TS[path] and self.TS[path]['type'] == 'CLASS':
                     self.TS[name_var]['vars'] = Atributo([], self.TS)
                     vars = self.TS[path]['vars']
                     for j in vars.items:
@@ -445,6 +445,9 @@ class TpParser(Parser):
             valido, path = self.alcance(p[0])
             if not valido:
                 print("Error | Tipo fuera de alcance")
+                return "error"
+            elif ('type' in self.TS[path] and self.TS[path]['type'] not in ('CLASS', 'Tipo usuario')) or ('type' not in self.TS[path]):
+                print("Error | Tipo no valido")
                 return "error"
         return p[0]
 
@@ -497,7 +500,7 @@ class TpParser(Parser):
     @_('tipo FUNCTION IDEN')
     def ambito_func(self, p):
         if p.tipo not in ('singlef', 'longint'):
-            valido, _ = self.alcance(p.IDEN)
+            valido, _ = self.alcance(p.tipo)
         else:
             valido = True
         if not valido:
@@ -556,6 +559,10 @@ class TpParser(Parser):
 
         return p
 
+    '''
+        Con esta funcion controlamos si dicho codigo de clase ya fue declarado
+        y registramos el ambito.
+    '''
     @_('CLASS IDEN IDEN')
     def ambito_clase(self, p):
         self.decClass = True
@@ -653,7 +660,7 @@ class TpParser(Parser):
         if not valido:
             print(f'Error | {p.asignable.operando} no posee un metodo {p.IDEN}')
             return self.NodoUnario('error', 'error')
-        else:
+        elif self.TS[path]['uso'] == 'Nombre de metodo':
             params = ParamF(self.TS[path]['parametros'], self.TS)
             posic = p.posicionales if hasattr(p, 'posicionales') else p.parametros
             raiz = None
@@ -672,6 +679,8 @@ class TpParser(Parser):
 
             print("ERROR | La cantidad de parametros reales o posicionales no coincide con los parametros formales")
             return self.NodoUnario('error', 'error', 'error')
+        print("ERROR | La invocacion no corresponde a un metodo")
+        return self.NodoUnario('error', 'error', 'error')
 
     '''
         Esta funcion nos permite verificar que la invocacion de una funcion sea valida, es decir,
@@ -684,7 +693,7 @@ class TpParser(Parser):
         if not valido:
             print(f"Error | funcion {p.IDEN} no declarada o no alcanzable")
             return self.NodoUnario('CALL', 'error')
-        else:
+        elif self.TS[path]['uso'] == 'Nombre de funcion':
             params = ParamF(self.TS[path]['parametros'], self.TS)
             posic = p.posicionales if hasattr(p, 'posicionales') else p.parametros
             raiz = None
@@ -704,6 +713,9 @@ class TpParser(Parser):
             print("ERROR | La cantidad de parametros reales o posicionales no coincide con los parametros formales")
             return self.NodoUnario('error', 'error', 'error')
 
+        print("ERROR | La invocacion no corresponde a una funcion")
+        return self.NodoUnario('error', 'error', 'error')
+
     @_('posicionales "," CONSTANTE_E', 'CONSTANTE_E')
     def posicionales(self, p):
         #ver como devolver para que lo use la funcion
@@ -714,16 +726,18 @@ class TpParser(Parser):
             return p.posicionales
 
     '''
-
+        Con estas dos funciones de asignacion controlamos la compatibilidad de tipos entre
+        la variable y el valor a asignar, ademas de controlar la asignacion de objetos entre
+        clases compatibles y la generacion del arbol de asignacion.
     '''
     @_('asignable ASSIGN expr ";"')
     def asignacion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia de asignacion")
-        valido = self.check_type(p.asignable.type, p.expr.type, p.expr.op)
+        valido = self.check_type(p.asignable.type, p.expr.type, self.NodoHoja(p.expr.type, p.expr.operando))
         if valido:
-            if p.expr.op in self.TS:
-                path_1 = self.TS[p.asignable.operando]['type'] + ':main'
-                path_2 = self.TS[p.expr.op]['type'] + ':main'
+            path_1 = p.expr.type + ':main'
+            path_2 = p.asignable.type + ':main'
+            if (path_1 in self.TS) and (path_2 in self.TS):
                 clase1 = self.TS[path_1]['type']
                 clase2 = self.TS[path_2]['type']
                 if clase1 == 'CLASS' and clase2 == 'CLASS':
@@ -740,11 +754,11 @@ class TpParser(Parser):
     @_('asignable ASSIGN2P expr_linea ";"')
     def asignacion_linea(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia asignacion de linea")
-        valido = self.check_type(p.asignable.type, p.expr_linea.type, p.expr_linea.op)
+        valido = self.check_type(p.asignable.type, p.expr_linea.type, self.NodoHoja(p.expr_linea.type, p.expr_linea.op))
         if valido:
-            path_1 = self.TS[p.asignable.operando]['type'] + ':main'
-            if p.expr_linea.op in self.TS:
-                path_2 = self.TS[p.expr_linea.op]['type'] + ':main'
+            path_1 = p.asignable.type + ':main'
+            path_2 = p.expr_linea.type + ':main'
+            if (path_1 in self.TS) and (path_2 in self.TS):
                 clase1 = self.TS[path_1]['type']
                 clase2 = self.TS[path_2]['type']
                 if clase1 == 'CLASS' and clase2 == 'CLASS':
@@ -841,11 +855,11 @@ class TpParser(Parser):
         else:
             return self.NodoUnario('TOL', p.expr, 'longint')
 
-    @_('asignable ASSIGN IDEN', 'asignable ASSIGN constante')
+    @_('asignable ASSIGN asignable', 'asignable ASSIGN constante')
     def asignacion_de_linea(self, p):
-        valido = self.check_type(p.asignable.type, p[2].type, p[2])
+        valido = self.check_type(p.asignable0.type, p[2].type, p[2])
         if valido:
-            return self.NodoBinario('=', p.asignable, p[2], p.asignable.type)
+            return self.NodoBinario('=', p.asignable0, p[2], p.asignable0.type)
         else:
             return self.NodoBinario('error', 'error', 'error')
 
@@ -865,8 +879,17 @@ class TpParser(Parser):
        'expr_linea GE expr_linea', 'expr_linea LE expr_linea',
        'expr_linea NE expr_linea', 'expr_linea EQ expr_linea')
     def condicion(self, p):
-        return self.NodoBinario(p[1], p[0], p[2])
+        if self.check_type(p.expr_linea0.type, p.expr_linea1.type):
+            return self.NodoBinario(p[1], p[0], p[2])
+        else:
+            return self.NodoBinario('error', 'error', 'error')
 
+    '''
+        Esta funcion nos permite crear subarboles para las sentencias de seleccion, teniendo
+        un nodo binario que con tiene la dicha condicion como hijo izquierdo y el cuerpo de
+        la sentencia como hijo derecho. En caso de que haya un else, el cuerpo sera un nodo binario
+        conteniendo la sentencia THEN y ELSE.
+    '''
     @_('IF "(" condicion ")" cuerpo_control END_IF ";"',
        'IF "(" condicion ")" cuerpo_control ELSE cuerpo_control END_IF ";"')
     def seleccion(self, p):
@@ -882,19 +905,21 @@ class TpParser(Parser):
             cuerpo = self.NodoBinario('CUERPO', cuerpo_then, cuerpo_else)
             return self.NodoBinario('IF', condicion, cuerpo)
 
+    '''
+        Esta funcion nos permite crear subarboles para las sentencias de iteracion, teniendo
+        un nodo binario que contiene la inicializacion, la condicion y el cuerpo de la
+        sentencia.
+    '''
     @_('FROM IDEN ASSIGN2P constante TO constante BY constante REPEAT cuerpo_control')
     def iteracion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia de iteracion")
         
-        #IDEN, constante0 -> IDEN = constante0
         inicializacion = self.NodoBinario(":=", p.IDEN, p.constante0)
 
-        #condicion -> IDEN <= constante1
         sentido = "<=" if p.constante0.operando <= p.constante1.operando else ">="
         condicion = self.NodoBinario(sentido, p.IDEN, p.constante1)
         condicion = self.NodoUnario("COND", condicion)
 
-        #constante2 -> constante0 += constante2
         sign = "+" if int(p.constante2.operando) >= 0 else "-"
         step = self.NodoBinario(sign, p.IDEN, p.constante2)
         incremento = self.NodoBinario("=", p.IDEN, step)
@@ -904,6 +929,10 @@ class TpParser(Parser):
         composicion_while = self.NodoBinario("COMPWHILE", condicion, cuerpo_for)
 
         arbol_for = self.NodoBinario("FOR", inicializacion, composicion_while)
+
+        if (sentido == "<=" and incremento == '-') or (sentido == ">=" and incremento == '+'):
+            print(f"ERROR | Iteracion infinita en linea {p.lineno}")
+            return self.NodoBinario('error', 'error', 'error')
 
         return arbol_for
     
