@@ -2,6 +2,7 @@ from utils import get_logger_Lex, get_logger_Parsec, get_program_code, save_lexe
 from lexer import TpLexer
 from parser import TpParser
 import sys
+from assembly import GetAssembly
 
 ### Dependencias del lexer
 
@@ -20,15 +21,22 @@ TS = {
 }
 
 AS = []
+arboles = {}
 
 ### Instanciaciones
 
 tokens_out = []
 lexer = TpLexer(_loggerLex, TS, PR, tokens_out)
-parser = TpParser(TS, AS, _InfoParsec, _loggerParsec)
+parser = TpParser(TS, AS, _InfoParsec, _loggerParsec, arboles)
 
 ### Invocacion
 
 tokens = lexer.tokenize(program_code)
 result = parser.parse(tokens)
+for i in list(TS.keys()):
+    if 'main' not in i:
+        TS.pop(i)
 save_lexer_output(tokens_out, TS)
+wat = ''
+wat = GetAssembly(result, TS, arboles)
+print(wat)

@@ -1,10 +1,6 @@
-from hmac import new
-from turtle import pos
 import numbers
 from abc import ABC, abstractmethod
-from copy import deepcopy
 from sly import Parser
-from zmq import has
 from lexer import TpLexer
 
 '''
@@ -46,14 +42,14 @@ class ParamF(Lista): #parametros formales
         return self.TS[self.items[i]]['type']
 class TpParser(Parser):
 
-    def __init__(self, TS, AS, _info, _logger):
+    def __init__(self, TS, AS, _info, _logger, arboles):
         # Inyectamos dependencias
         self.TS = TS
         self.AS = AS
         self._InfoLogger = _info
         self._logger = _logger
         self.ambito = 'main'
-        self.arboles={}
+        self.arboles=arboles
         self.ret = False
         self.type_func = None
         self.decClass = False
@@ -266,7 +262,9 @@ class TpParser(Parser):
             if len(asignables) == 1:
                 valido = self.check_type(asignables.get_type(0), asignados.get_type(0))
                 if valido:
-                    s = self.NodoBinario('=', asignables.get(0), asignados.get(0), asignados.get_type(0))
+                    asignable = self.NodoHoja(asignables.get_type(0), asignables.get(0))
+                    asignado = self.NodoHoja(asignados.get_type(0), asignados.get(0))
+                    s = self.NodoBinario('=', asignable, asignado, asignados.get_type(0))
                 else:
                     s = self.NodoBinario('error', 'error', 'error')
                 return True, s
@@ -275,7 +273,9 @@ class TpParser(Parser):
                 for i in range(len(asignables)):
                     valido = self.check_type(asignables.get_type(i), asignados.get_type(i)) if not valido else valido
                     if valido:
-                        nodo_asignacion = self.NodoBinario('=', asignables.get(i), asignados.get(i), asignados.get_type(i))
+                        asignable = self.NodoHoja(asignables.get_type(0), asignables.get(0))
+                        asignado = self.NodoHoja(asignados.get_type(0), asignados.get(0))
+                        nodo_asignacion = self.NodoBinario('=', asignable, asignado, asignados.get_type(i))
                         nodo_cadena = self.NodoBinario('S', 'None', nodo_asignacion)
                         if not cadena_asignacion:
                             cadena_asignacion = nodo_cadena
@@ -308,12 +308,12 @@ class TpParser(Parser):
 
     @_('programa')
     def programa_I(self, p):
-        return p
+        return p.programa
 
     @_('program_in declaraciones cuerpo_ejecutable')
     def programa(self, p):
         self.imprimir_arbol(p.cuerpo_ejecutable)
-        return p
+        return p.cuerpo_ejecutable
 
     @_('PROGRAM IDEN')
     def program_in(self, p):
