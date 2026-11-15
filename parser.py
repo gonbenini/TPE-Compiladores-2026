@@ -28,6 +28,7 @@ class Atributo(Lista):
 
     def get_type(self, i):
         return self.TS[self.items[i]]['type']
+    
 class ParamR(Lista):
 
     def get_type(self, i):
@@ -230,9 +231,9 @@ class TpParser(Parser):
             if values:
                 for i in values:
                     if i.type == value.type and i.op == value.op:
-                        return True
+                        return True, 'type'
                 print(f"Error | Valor {value} no pertenece al tipo {type1}")
-                return False
+                return False, 'nil'
 
         key1 = f"{type1}:main"
         key2 = f"{type2}:main"
@@ -241,13 +242,13 @@ class TpParser(Parser):
             class2 = self.TS[key2]['type'] == 'CLASS'
             if class1 and class2:
                 if self.TS[key1]['code'] == self.TS[key2]['code']:
-                    return True
+                    return True, 'class'
         
         if type1 == type2:
-            return True
+            return True, 'equal'
         else:
             print(f"Error | Tipos incompatibles entre {type2} y {type1}")
-            return False
+            return False, 'nil'
 
     '''
         Esta funcion nos permite generar un arbol de asignaciones entre parametros formales y reales,
@@ -372,7 +373,7 @@ class TpParser(Parser):
     @_('tipo IDEN "("')
     def ambito_metodo(self, p):
         if p.tipo not in ('singlef', 'longint'):
-            valido, _ = self.alcance(p.IDEN)
+            valido, _ = self.alcance(p.tipo)
         else: 
             valido = True
         if not valido:
@@ -430,6 +431,8 @@ class TpParser(Parser):
                             acomodar(nombre_extend, j, name_single + '.extend')
 
             acomodar(new_name, p.tipo, i)
+            # for i in self.TS[new_name]['vars'].items:
+            #     print(i)
 
         vars = []
         for i in p.id_vars:
@@ -732,20 +735,12 @@ class TpParser(Parser):
     @_('asignable ASSIGN expr ";"')
     def asignacion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia de asignacion")
-        valido = self.check_type(p.asignable.type, p.expr.type, self.NodoHoja(p.expr.type, p.expr.op))
+        valido, op = self.check_type(p.asignable.type, p.expr.type, self.NodoHoja(p.expr.type, p.expr.op))
         if valido:
-            path_1 = p.expr.type + ':main'
-            path_2 = p.asignable.type + ':main'
-            if (path_1 in self.TS) and (path_2 in self.TS):
-                clase1 = self.TS[path_1]['type']
-                clase2 = self.TS[path_2]['type']
-                if clase1 == 'CLASS' and clase2 == 'CLASS':
-                    if self.TS[path_1]['code'] == self.TS[path_2]['code']:
-                        _, raiz = self.assign_generate(self.TS[p.asignable.op]['vars'], self.TS[p.expr.op]['vars'], True)
-                        return self.NodoUnario('TRANSFER_OBJECT', raiz, p.asignable.type)
-                    else:
-                        print("ERROR | El codigo entre clases no coincide")
-                        return self.NodoBinario('error', 'error', 'error')
+            if op == 'class':
+                _, raiz = self.assign_generate(self.TS[p.asignable.op]['vars'], self.TS[p.expr.op]['vars'], True)
+                return self.NodoUnario('TRANSFER_OBJECT', raiz, p.asignable.type)
+
             return self.NodoBinario('=', p.asignable.op, p.expr, p.asignable.type)
 
         return self.NodoBinario('error', 'error', 'error')
@@ -753,20 +748,14 @@ class TpParser(Parser):
     @_('asignable ASSIGN2P expr_linea ";"')
     def asignacion_linea(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia asignacion de linea")
-        valido = self.check_type(p.asignable.type, p.expr_linea.type, self.NodoHoja(p.expr_linea.type, p.expr_linea.op))
+        valido, op = self.check_type(p.asignable.type, p.expr_linea.type, self.NodoHoja(p.expr_linea.type, p.expr_linea.op))
         if valido:
-            path_1 = p.asignable.type + ':main'
-            path_2 = p.expr_linea.type + ':main'
-            if (path_1 in self.TS) and (path_2 in self.TS):
-                clase1 = self.TS[path_1]['type']
-                clase2 = self.TS[path_2]['type']
-                if clase1 == 'CLASS' and clase2 == 'CLASS':
-                    if self.TS[path_1]['code'] == self.TS[path_2]['code']:
-                        _, raiz = self.assign_generate(self.TS[path_1]['vars'], self.TS[path_2]['vars'], True)
-                        return self.NodoUnario('TRANSFER_OBJECT', raiz, p.asignable.type)
-                    else:
-                        print("ERROR | El codigo entre clases no coincide")
-                        return self.NodoBinario('error', 'error', 'error')
+            if op == 'class':
+                path_1 = self.TS[p.asignable.op]['type'] + ':main'
+                path_2 = self.TS[p.expr_linea.op]['type'] + ':main'
+                _, raiz = self.assign_generate(self.TS[path_1]['vars'], self.TS[path_2]['vars'], True)
+                return self.NodoUnario('TRANSFER_OBJECT', raiz, p.asignable.type)
+            
             return self.NodoBinario(':=', p.asignable.op, p.expr_linea, p.asignable.type)
         
         return self.NodoBinario('error', 'error', 'error')
