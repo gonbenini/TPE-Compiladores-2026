@@ -89,11 +89,10 @@ class TpParser(Parser):
     class NodoHoja:
         def __init__(self, tipo, operando) -> None:
             self.type=tipo
-            self.operando=operando
-            self.op = self.operando
+            self.op = operando
 
         def __str__(self) -> str:
-            return str(self.operando)
+            return str(self.op)
 
 
     def imprimir_arbol(self, nodo, nivel=0, relacion="Raíz"):
@@ -169,13 +168,13 @@ class TpParser(Parser):
         else: return False, 'NIL'
 
         if self.TS[clase + ':' + 'main']['type'] == 'CLASS':
-            op = p.asignable.operando.split(':')[0]
+            op = p.asignable.op.split(':')[0]
             metodo = (p.IDEN + ':' + 'main' + ':(' + clase + ')')
-            atributo = (p.IDEN + ':' + self.ambito + ':(' + p.asignable.operando.split(':')[0] + ':' + p.asignable.type + ')')
-            clase_heredada = (p.IDEN + ':extend:(' + p.asignable.operando.split(':')[0] + ':' + p.asignable.type + ':' + self.ambito + ')')
+            atributo = (p.IDEN + ':' + self.ambito + ':(' + p.asignable.op.split(':')[0] + ':' + p.asignable.type + ')')
+            clase_heredada = (p.IDEN + ':extend:(' + p.asignable.op.split(':')[0] + ':' + p.asignable.type + ':' + self.ambito + ')')
             
-            if ':extend:(' in (p.asignable.operando): #cambiar cambiar cambiar
-                atributo_heredado = (p.IDEN + ':' + self.ambito + ':(' + p.asignable.operando.split('(')[1].split(':')[0] + '.extend:' + p.asignable.type + ')')
+            if ':extend:(' in (p.asignable.op): #cambiar cambiar cambiar
+                atributo_heredado = (p.IDEN + ':' + self.ambito + ':(' + p.asignable.op.split('(')[1].split(':')[0] + '.extend:' + p.asignable.type + ')')
             else:
                 atributo_heredado = None
 
@@ -221,7 +220,7 @@ class TpParser(Parser):
         chequeo de tipos simples. En caso de que no sean compatibles, se imprime un mensaje de error.
     '''
     def check_type(self, type1, type2, value=None):
-        if value and isinstance(value.operando, numbers.Number):
+        if value and isinstance(value.op, numbers.Number):
 
             if f"{type1}:main" in self.TS and 'valores' in self.TS[f"{type1}:main"]:
                 values = self.TS[f"{type1}:main"]['valores']
@@ -230,7 +229,7 @@ class TpParser(Parser):
                 values = None
             if values:
                 for i in values:
-                    if i.type == value.type and i.operando == value.operando:
+                    if i.type == value.type and i.op == value.op:
                         return True
                 print(f"Error | Valor {value} no pertenece al tipo {type1}")
                 return False
@@ -654,11 +653,11 @@ class TpParser(Parser):
     @_('asignable "." IDEN "(" parametros ")" "[" posicionales "]"', 'asignable "." IDEN "(" parametros ")"')
     def invocacion_metodo(self, p): #invocacion_m . invocacion_f -> invocacion_m . invocacion_f . invocacion_f - > a.b.c.m().m1().m2()
         self._InfoLogger.info(f"Linea {p.lineno} | Invocacion a metodo")
-        call_name = p.asignable.operando + '.' + p.IDEN
+        call_name = p.asignable.op + '.' + p.IDEN
         valido, path = self.atributo_valido(p)
 
         if not valido:
-            print(f'Error | {p.asignable.operando} no posee un metodo {p.IDEN}')
+            print(f'Error | {p.asignable.op} no posee un metodo {p.IDEN}')
             return self.NodoUnario('error', 'error')
         elif self.TS[path]['uso'] == 'Nombre de metodo':
             params = ParamF(self.TS[path]['parametros'], self.TS)
@@ -733,7 +732,7 @@ class TpParser(Parser):
     @_('asignable ASSIGN expr ";"')
     def asignacion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia de asignacion")
-        valido = self.check_type(p.asignable.type, p.expr.type, self.NodoHoja(p.expr.type, p.expr.operando))
+        valido = self.check_type(p.asignable.type, p.expr.type, self.NodoHoja(p.expr.type, p.expr.op))
         if valido:
             path_1 = p.expr.type + ':main'
             path_2 = p.asignable.type + ':main'
@@ -742,12 +741,12 @@ class TpParser(Parser):
                 clase2 = self.TS[path_2]['type']
                 if clase1 == 'CLASS' and clase2 == 'CLASS':
                     if self.TS[path_1]['code'] == self.TS[path_2]['code']:
-                        _, raiz = self.assign_generate(self.TS[p.asignable.operando]['vars'], self.TS[p.expr.op]['vars'], True)
+                        _, raiz = self.assign_generate(self.TS[p.asignable.op]['vars'], self.TS[p.expr.op]['vars'], True)
                         return self.NodoUnario('TRANSFER_OBJECT', raiz, p.asignable.type)
                     else:
                         print("ERROR | El codigo entre clases no coincide")
                         return self.NodoBinario('error', 'error', 'error')
-            return self.NodoBinario('=', p.asignable.operando, p.expr, p.asignable.type)
+            return self.NodoBinario('=', p.asignable.op, p.expr, p.asignable.type)
 
         return self.NodoBinario('error', 'error', 'error')
 
@@ -768,7 +767,7 @@ class TpParser(Parser):
                     else:
                         print("ERROR | El codigo entre clases no coincide")
                         return self.NodoBinario('error', 'error', 'error')
-            return self.NodoBinario(':=', p.asignable.operando, p.expr_linea, p.asignable.type)
+            return self.NodoBinario(':=', p.asignable.op, p.expr_linea, p.asignable.type)
         
         return self.NodoBinario('error', 'error', 'error')
 
@@ -780,7 +779,7 @@ class TpParser(Parser):
             valido, path = self.atributo_valido(p)
 
             if not valido:
-                print(f'Error | {p.asignable.operando} no posee un atributo {p.IDEN}')
+                print(f'Error | {p.asignable.op} no posee un atributo {p.IDEN}')
                 return self.NodoHoja('error', 'error')
             
             else:
@@ -916,11 +915,11 @@ class TpParser(Parser):
         
         inicializacion = self.NodoBinario(":=", p.IDEN, p.constante0)
 
-        sentido = "<=" if p.constante0.operando <= p.constante1.operando else ">="
+        sentido = "<=" if p.constante0.op <= p.constante1.op else ">="
         condicion = self.NodoBinario(sentido, p.IDEN, p.constante1)
         condicion = self.NodoUnario("COND", condicion)
 
-        sign = "+" if int(p.constante2.operando) >= 0 else "-"
+        sign = "+" if int(p.constante2.op) >= 0 else "-"
         step = self.NodoBinario(sign, p.IDEN, p.constante2)
         incremento = self.NodoBinario("=", p.IDEN, step)
 
