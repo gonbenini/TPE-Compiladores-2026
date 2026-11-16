@@ -265,29 +265,29 @@ class TpParser(Parser):
         posic = asignados if posic == None else posic
         if len(asignables) == len(asignados) == len(posic):
             if len(asignables) == 1:
-                valido, _ = self.check_type(asignables.get_type(0), asignados.get_type(0)) if not check else check
+                valido, _ = self.check_type(asignables.get_type(0), asignados.get_type(0)) if not check else check, 'nil'
                 if valido:
                     asignable = self.NodoHoja(asignables.get_type(0), asignables.get(0))
                     asignado = self.NodoHoja(asignados.get_type(0), asignados.get(0))
                     s = self.NodoBinario('=', asignable, asignado, asignados.get_type(0))
                 else:
-                    s = self.NodoBinario('error', 'error', 'error')
+                    s = self.NodoBinario('error', 'error', 'error', 'error')
                 return True, s
             else:
                 def generate(i, len):
-                    valid1, _ = self.check_type(asignables.get_type(i), asignados.get_type(i)) if not check else check
+                    valid1, _ = self.check_type(asignables.get_type(i), asignados.get_type(i)) if not check else check, 'nil'
                     asignable1 = self.NodoHoja(asignables.get_type(i), asignables.get(i))
                     asignado1 = self.NodoHoja(asignados.get_type(i), asignados.get(i))
                     if not valid1:
-                        assign1 = self.NodoBinario('error', 'error', 'error')
+                        assign1 = self.NodoBinario('error', 'error', 'error', 'error')
                     else:
                         assign1 = self.NodoBinario('=', asignable1, asignado1, asignados.get_type(i))
                     if i == len - 2:
-                        valid2, _ = self.check_type(asignables.get_type(i + 1), asignados.get_type(i + 1)) if not check else check
+                        valid2, _ = self.check_type(asignables.get_type(i + 1), asignados.get_type(i + 1)) if not check else check, 'nil'
                         asignable2 = self.NodoHoja(asignables.get_type(i + 1), asignables.get(i + 1))
                         asignado2 = self.NodoHoja(asignados.get_type(i + 1), asignados.get(i + 1))
                         if not valid2:
-                            assign2 = self.NodoBinario('error', 'error', 'error')
+                            assign2 = self.NodoBinario('error', 'error', 'error', 'error')
                         else:
                             assign2 = self.NodoBinario('=', asignable2, asignado2, asignados.get_type(i + 1))
 
@@ -311,9 +311,9 @@ class TpParser(Parser):
             op = 0 if type == 'longint' else 0.0
             hoja = self.NodoHoja(type, op)
             if hasattr(nodo, 'right'):
-                self.arboles[new_name]['nodo'].right = self.NodoBinario('S', self.arboles[new_name]['nodo'].right, self.NodoUnario('RET', hoja))
+                self.arboles[new_name]['nodo'].right = self.NodoBinario('S', self.arboles[new_name]['nodo'].right, self.NodoUnario('RET', hoja, hoja.type))
             else:
-                self.arboles[new_name]['nodo'] = self.NodoBinario('S', self.arboles[new_name]['nodo'], self.NodoUnario('RET', hoja))
+                self.arboles[new_name]['nodo'] = self.NodoBinario('S', self.arboles[new_name]['nodo'], self.NodoUnario('RET', hoja, hoja.type))
     
     #----------------------------ESTRUCTURA PRINCIPAL---------------------------------------------
 
@@ -651,8 +651,8 @@ class TpParser(Parser):
         if self.type_func and self.type_func[-1] != p.expr.type:
             print(f"ERROR | Se esperaba retornar {self.type_func[-1]} y se recibio {p.expr.type} en linea {p.lineno}")
             self.ret = False
-            return self.NodoUnario('error', 'error')
-        return self.NodoUnario('RET', p.expr)
+            return self.NodoUnario('error', 'error', 'error')
+        return self.NodoUnario('RET', p.expr, p.expr.type)
     
     @_('POUT "(" CADN ")" ";"')
     def pout(self, p):
@@ -671,7 +671,7 @@ class TpParser(Parser):
 
         if not valido:
             print(f'Error | {p.asignable.op} no posee un metodo {p.IDEN}')
-            return self.NodoUnario('error', 'error')
+            return self.NodoUnario('error', 'error', 'error')
         elif self.TS[path]['uso'] == 'Nombre de metodo':
             params = ParamF(self.TS[path]['parametros'], self.TS)
             posic = p.posicionales if hasattr(p, 'posicionales') else p.parametros
@@ -707,7 +707,7 @@ class TpParser(Parser):
         valido, path = self.alcance(p.IDEN)
         if not valido:
             print(f"Error | funcion {p.IDEN} no declarada o no alcanzable")
-            return self.NodoUnario('CALL', 'error')
+            return self.NodoUnario('CALL', 'error', 'error')
         elif self.TS[path]['uso'] == 'Nombre de funcion':
             params = ParamF(self.TS[path]['parametros'], self.TS)
             posic = p.posicionales if hasattr(p, 'posicionales') else p.parametros
@@ -760,7 +760,7 @@ class TpParser(Parser):
 
             return self.NodoBinario('=', p.asignable.op, p.expr, p.asignable.type)
 
-        return self.NodoBinario('error', 'error', 'error')
+        return self.NodoBinario('error', 'error', 'error', 'error')
 
     @_('asignable ASSIGN2P expr_linea ";"')
     def asignacion_linea(self, p):
@@ -773,7 +773,7 @@ class TpParser(Parser):
             
             return self.NodoBinario(':=', p.asignable.op, p.expr_linea, p.asignable.type)
         
-        return self.NodoBinario('error', 'error', 'error')
+        return self.NodoBinario('error', 'error', 'error', 'error')
 
     @_('asignable "." IDEN', 'IDEN') #asingable.IDEN -> asignable.IDEN.IDEN
     #la idea seria desde aca controlar que todas las vars esten al alcance y ademas
@@ -806,19 +806,19 @@ class TpParser(Parser):
                 type1 = self.TS[path1]['type']
                 if type1 == 'CLASS':
                     print(f"ERROR | No se pueden operar entre objetos")
-                    return self.NodoBinario('error', 'error', 'error')
+                    return self.NodoBinario('error', 'error', 'error', 'error')
             path2 = p.term.type + ':main'
             if path2 in self.TS:
                 type2 = self.TS[path2]['type']
                 if type2 == 'CLASS':
                     print(f"ERROR | No se pueden operar entre objetos")
-                    return self.NodoBinario('error', 'error', 'error')
+                    return self.NodoBinario('error', 'error', 'error', 'error')
             
             valido, _ = self.check_type(p.expr.type, p.term.type)
             if valido:
                 return self.NodoBinario(p[1], p.expr, p.term, p.expr.type)
             
-            return self.NodoBinario('error', 'error', 'error')
+            return self.NodoBinario('error', 'error', 'error', 'error')
         else:
             return p.term
 
@@ -830,19 +830,19 @@ class TpParser(Parser):
                 type1 = self.TS[path1]['type']
                 if type1 == 'CLASS':
                     print(f"ERROR | No se pueden operar entre objetos")
-                    return self.NodoBinario('error', 'error', 'error')
+                    return self.NodoBinario('error', 'error', 'error', 'error')
             path2 = p.term.type + ':main'
             if path2 in self.TS:
                 type2 = self.TS[path2]['type']
                 if type2 == 'CLASS':
                     print(f"ERROR | No se pueden operar entre objetos")
-                    return self.NodoBinario('error', 'error', 'error')
+                    return self.NodoBinario('error', 'error', 'error', 'error')
             
             valido, _ = self.check_type(p.term.type, p.factor.type)
             if valido:
                 return self.NodoBinario(p[1], p.term, p.factor, p.term.type)
             
-            return self.NodoBinario('error', 'error', 'error')
+            return self.NodoBinario('error', 'error', 'error', 'error')
         else:
             return p.factor
 
@@ -867,19 +867,19 @@ class TpParser(Parser):
                 type1 = self.TS[path1]['type']
                 if type1 == 'CLASS':
                     print(f"ERROR | No se puede operar entre tipos de clase")
-                    return self.NodoBinario('error', 'error', 'error')
+                    return self.NodoBinario('error', 'error', 'error', 'error')
             path2 = p.term_linea.type + ':main'
             if path2 in self.TS:
                 type2 = self.TS[path2]['type']
                 if type2 == 'CLASS':
                     print(f"ERROR | No se puede operar entre tipos de clase")
-                    return self.NodoBinario('error', 'error', 'error')
+                    return self.NodoBinario('error', 'error', 'error', 'error')
                 
             valido, _ = self.check_type(p.expr_linea.type, p.term_linea.type)
             if valido:
                 return self.NodoBinario(p[1], p.expr_linea, p.term_linea, p.expr_linea.type)
                     
-            return self.NodoBinario('error', 'error', 'error')
+            return self.NodoBinario('error', 'error', 'error', 'error')
         else:
             return p.term_linea
     
@@ -891,19 +891,19 @@ class TpParser(Parser):
                 type1 = self.TS[path1]['type']
                 if type1 == 'CLASS':
                     print(f"ERROR | No se puede operar entre tipos de clase")
-                    return self.NodoBinario('error', 'error', 'error')
+                    return self.NodoBinario('error', 'error', 'error', 'error')
             path2 = p.factor_linea.type + ':main'
             if path2 in self.TS:
                 type2 = self.TS[path2]['type']
                 if type2 == 'CLASS':
                     print(f"ERROR | No se puede operar entre tipos de clase")
-                    return self.NodoBinario('error', 'error', 'error')
+                    return self.NodoBinario('error', 'error', 'error', 'error')
                 
             valido, _ = self.check_type(p.term_linea.type, p.factor_linea.type)
             if valido:
                 return self.NodoBinario(p[1], p.term_linea, p.factor_linea, p.term_linea.type)
             
-            return self.NodoBinario('error', 'error', 'error')
+            return self.NodoBinario('error', 'error', 'error', 'error')
         else:
             return p.factor_linea
     
@@ -921,7 +921,7 @@ class TpParser(Parser):
         if valido:
             return self.NodoBinario('=', p.asignable0, p[2], p.asignable0.type)
         else:
-            return self.NodoBinario('error', 'error', 'error')
+            return self.NodoBinario('error', 'error', 'error', 'error')
 
     @_('parametros "," expr', 'expr')
     def parametros(self, p):
@@ -943,7 +943,7 @@ class TpParser(Parser):
         if valido:
             return self.NodoBinario(p[1], p[0], p[2])
         else:
-            return self.NodoBinario('error', 'error', 'error')
+            return self.NodoBinario('error', 'error', 'error', 'error')
 
     '''
         Esta funcion nos permite crear subarboles para las sentencias de seleccion, teniendo
@@ -984,17 +984,17 @@ class TpParser(Parser):
             )
             if not equal_type or not equal_type2:
                 print(f"ERROR | Tipos de datos no validos para iteracion en linea {p.lineno}")
-                return self.NodoBinario('error', 'error', 'error')
+                return self.NodoBinario('error', 'error', 'error', 'error')
 
-            inicializacion = self.NodoBinario(":=", p.IDEN, p.constante0)
+            inicializacion = self.NodoBinario(":=", p.IDEN, p.constante0, self.TS[path]['type'])
 
             sentido = "<=" if p.constante0.op <= p.constante1.op else ">="
             condicion = self.NodoBinario(sentido, p.IDEN, p.constante1)
             condicion = self.NodoUnario("COND", condicion)
 
             sign = "+" if int(p.constante2.op) >= 0 else "-"
-            step = self.NodoBinario(sign, p.IDEN, p.constante2)
-            incremento = self.NodoBinario("=", p.IDEN, step)
+            step = self.NodoBinario(sign, p.IDEN, p.constante2, self.TS[path]['type'])
+            incremento = self.NodoBinario("=", p.IDEN, step, self.TS[path]['type'])
 
             cuerpo_for = self.NodoBinario("CUERPO", p.cuerpo_control, incremento)
             
@@ -1004,11 +1004,11 @@ class TpParser(Parser):
 
             if (sentido == "<=" and sign == '-') or (sentido == ">=" and sign == '+') or (p.constante2.op == 0):
                 print(f"ERROR | Iteracion infinita en linea {p.lineno}")
-                return self.NodoBinario('error', 'error', 'error')
+                return self.NodoBinario('error', 'error', 'error', 'error')
 
             return arbol_for
         else:
-            return self.NodoBinario('error', 'error', 'error')    
+            return self.NodoBinario('error', 'error', 'error', 'error')    
         
     @_('cuerpo_ejecutable', 'ejecutable')
     def cuerpo_control(self, p):
