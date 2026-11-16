@@ -94,7 +94,7 @@ class TpLexer(Lexer):
             iden = t.value
 
             # chequeamos que sea minuscula
-            if iden.islower():
+            if iden[0].islower():
                 self.TS[t.value] = {'type': 'IDENTIFICADOR'}
             else:
                 self._logger.error(f"Linea {self.lineno} | ERROR Identificador con letras mayus.")
