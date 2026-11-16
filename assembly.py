@@ -2,6 +2,7 @@ from parser import TpParser
 import numbers
 
 def assignment(Nodo, wat, type):
+    print(Nodo)
     wat = generateWAT(Nodo.right, wat, type)
     wat += f'{type}.set ${Nodo.left}\n'
     return wat
@@ -28,7 +29,7 @@ def generateWAT(Nodo, wat, type):
         return assignment(Nodo, wat, type)
 
     if isinstance(Nodo, TpParser.NodoUnario) and Nodo.op == 'TRANSFER_OBJECT':
-        return assignment(Nodo.son, wat, type)
+        wat =  generateWAT(Nodo.son, wat, type)
 
     if isinstance(Nodo, TpParser.NodoBinario) and Nodo.op == 'S':
         wat = generateWAT(Nodo.left, wat, type)
