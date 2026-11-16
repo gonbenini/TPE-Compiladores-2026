@@ -273,7 +273,7 @@ class TpParser(Parser):
                 return True, s
             else:
                 def generate(i, len):
-                    valid1 = self.check_type(asignables.get_type(i), asignados.get_type(i)) if not check else check
+                    valid1, _ = self.check_type(asignables.get_type(i), asignados.get_type(i)) if not check else check
                     asignable1 = self.NodoHoja(asignables.get_type(i), asignables.get(i))
                     asignado1 = self.NodoHoja(asignados.get_type(i), asignados.get(i))
                     if not valid1:
@@ -281,10 +281,9 @@ class TpParser(Parser):
                     else:
                         assign1 = self.NodoBinario('=', asignable1, asignado1, asignados.get_type(i))
                     if i == len - 2:
-                        valid2 = self.check_type(asignables.get_type(i + 1), asignados.get_type(i + 1)) if not check else check
+                        valid2, _ = self.check_type(asignables.get_type(i + 1), asignados.get_type(i + 1)) if not check else check
                         asignable2 = self.NodoHoja(asignables.get_type(i + 1), asignables.get(i + 1))
                         asignado2 = self.NodoHoja(asignados.get_type(i + 1), asignados.get(i + 1))
-
                         if not valid2:
                             assign2 = self.NodoBinario('error', 'error', 'error')
                         else:
@@ -293,6 +292,7 @@ class TpParser(Parser):
                         return self.NodoBinario('S', assign1, assign2)
 
                     else:
+                        print(i, assign1.left.op)
                         return self.NodoBinario('S', generate(i + 1, len), assign1)
                 raiz = generate(0, len(asignables))
                 return True, raiz
@@ -681,7 +681,10 @@ class TpParser(Parser):
             posic = p.posicionales if hasattr(p, 'posicionales') else p.parametros
             raiz = None
             parametros_reales = ParamR(p.parametros)
-            if len(p) == 7 and len(p.posicionales) == len(p.parametros):
+            if len(p) == 7:
+                if len(p.posicionales) == len(p.parametros):
+                    print("ERROR | La invocacion no corresponde a una funcion")
+                    return self.NodoUnario('error', 'error', 'error')
                 ord = {}
                 for i in range(len(p.posicionales)):
                     ord[p.posicionales[i]] = parametros_reales.get(i)
@@ -714,7 +717,10 @@ class TpParser(Parser):
             posic = p.posicionales if hasattr(p, 'posicionales') else p.parametros
             raiz = None
             parametros_reales = ParamR(p.parametros)
-            if len(p) == 7 and len(p.posicionales) == len(p.parametros):
+            if len(p) == 7:
+                if len(p.posicionales) == len(p.parametros):
+                    print("ERROR | La invocacion no corresponde a una funcion")
+                    return self.NodoUnario('error', 'error', 'error')
                 ord = {}
                 for i in range(len(p.posicionales)):
                     ord[p.posicionales[i]] = parametros_reales.get(i)
@@ -724,7 +730,8 @@ class TpParser(Parser):
 
             valido, raiz = self.assign_generate(params, parametros_reales, posic=posic)
             if valido:
-                return self.NodoBinario('CALL ' + p[0], raiz , self.arboles[path]['nodo'], self.TS[path]['type'])
+                return self.NodoUnario('CALL ' + path, raiz, self.TS[path]['type'])
+                #return self.NodoBinario('CALL ' + p[0], raiz , self.arboles[path]['nodo'], self.TS[path]['type'])
 
             print("ERROR | La cantidad de parametros reales o posicionales no coincide con los parametros formales")
             return self.NodoUnario('error', 'error', 'error')
