@@ -6,8 +6,8 @@ from zmq import TYPE
 from lexer import TpLexer
 
 '''
-Estas 3 clases nos sirven para abstraer el comportamiento entre parametros formales, reales y atributos con la unica intencion de usar el mismo metodo para generar la asignacion de parametros formales a reales y de atributos
-con la unica intencion de poder utilizar las mismas funciones.
+Estas 3 clases nos sirven para abstraer el comportamiento entre parametros formales, reales y atributos con la unica intencion de usar el mismo metodo para generar la asignacion de parametros formales a reales y de atributos.
+
 '''
 class Lista(ABC):
 
@@ -23,7 +23,7 @@ class Lista(ABC):
     @abstractmethod
     def get_type(self, i):
         pass
-class Atributo(Lista):
+class Atributo(Lista): #atributos de objetos
     def __init__(self, lista, TS):
         super().__init__(lista)
         self.TS = TS
@@ -37,7 +37,7 @@ class Atributo(Lista):
     def get_op(self, i):
         return self.items[i]
 
-class ParamR(Lista):
+class ParamR(Lista): #parametros reales
     def get_type(self, i):
         return self.items[i].type
 
@@ -80,7 +80,7 @@ class TpParser(Parser):
         
     #la idea es con este manejar todas aquellas operaciones que tengan un solo hijo, tales como
     #retornos, impresiones, conversiones, etc. La idea de que tenga un tipo es simplemente por ir
-    #representando los tipos a lo largo del arbol
+    #representando los tipos a lo largo del arbol necesarias por ejemplo para la conversion.
     class NodoUnario:
         def __init__(self, op, son=None, type=None):
             self.op = op
@@ -157,19 +157,15 @@ class TpParser(Parser):
 
         if ambito_aux == 'main' and not encontrado:
             if (name + ':' + 'main') in self.TS:
-                #print(f"Variable {name + ':main'} encontrada")
                 return True, name + ':main'
 
             else:
-                #print(f"Variable {name} no declarada o no alcanzable")
                 return False, 'NIL'
             
         elif encontrado:
-            #print(f"Variable {search_name} encontrada")
             return True, search_name
 
         else: 
-            #print(f"Variable {name} no declarada o no alcanzable")
             return False, 'NIL'
 
     '''
@@ -367,7 +363,6 @@ class TpParser(Parser):
             return p.declaracion_clase
         else:
             p.declaraciones_clase.extend(p.declaracion_clase)
-            #se rompe si falta ; en la declaracion de una variable.
             return p.declaraciones_clase
 
     @_('declaraciones_func declaracion_func', 'declaracion_func')
@@ -392,6 +387,7 @@ class TpParser(Parser):
     def metodo(self, p):
         self.ambito = self.ambito.rsplit(":", 1)[0] #desacoplamos ambito
         self.type_func.pop()
+        #quitamos antes ambito y tipos por si ocurre un error.
         if p.ambito_metodo['tipo'] not in ('singlef', 'longint'):
             print(f"ERROR | Tipo de dato no valido para metodos")
             return []
@@ -399,7 +395,7 @@ class TpParser(Parser):
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de metodo")
         new_name = p.ambito_metodo['name'] + ':' + self.ambito
 
-        if not self.check_duplicate(new_name, p.ambito_metodo['name']): return
+        if not self.check_duplicate(new_name, p.ambito_metodo['name']): return []
 
         self.arboles[new_name] = {'nodo': p.cuerpo_ejecutable} #guardamos arbol sintactico de la funcion
         self.renameToken(new_name, p.ambito_metodo['name'], p.ambito_metodo['tipo'], 'Nombre de metodo')
@@ -408,7 +404,7 @@ class TpParser(Parser):
         self.TS[new_name]['parametros'] = p.parametros_f
         return []
 
-    #tratos el inyectado de ambito antes de entrar a las declaraciones
+    #tratamos el inyectado de ambito antes de entrar a las declaraciones
     @_('tipo IDEN "("')
     def ambito_metodo(self, p):
         self.ambito = self.ambito + ':' + p.IDEN
@@ -423,6 +419,10 @@ class TpParser(Parser):
     def declaracion(self, p):
         return p
 
+    '''
+        Esta funcion nos permite manejar la declaracion de atributos y extensiones de clases
+        justamente para aquellas variables que son de tipo objeto.
+    '''
     def acomodar(self, name_var, tipo, name_single):
         _, path = self.alcance(tipo)
         if path != 'NIL' and 'type' in self.TS[path] and self.TS[path]['type'] == 'CLASS':
@@ -496,7 +496,7 @@ class TpParser(Parser):
         if len(p) == 1:
             return [p.parametro_f]
         else:
-            if p.parametro_f != "error":
+            if p.parametro_f != "error": #si un parametro no es valido, no lo tomamos
                 p.parametros_f.append(p.parametro_f)
             return p.parametros_f
 
@@ -610,7 +610,6 @@ class TpParser(Parser):
             code = "error"
             valido = False
 
-
         if not valido and code != "error":
             self.TS[code + ':' + self.ambito] = {'class': p.IDEN0 + ':' + self.ambito, 'uso': 'Nombre de codigo'}
 
@@ -629,7 +628,7 @@ class TpParser(Parser):
 
         new_name = p.IDEN + ':main'
 
-        if not self.check_duplicate(new_name, p.IDEN): return
+        if not self.check_duplicate(new_name, p.IDEN): return p
 
         self.renameToken(new_name, p.IDEN, 'longint' if typei else 'singlef','Nombre de tipo')
         self.TS[new_name]['valores'] = p.constantes
@@ -700,8 +699,21 @@ class TpParser(Parser):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia pout")
         return self.NodoUnario('POUT', p[2])
 
-    def validar_posicionales(self, lista):
-        return len(lista) == len(lista) and set(lista) == set(range(1, len(lista) + 1))
+    def validar_posicionales(self, lista, parametros_reales, posicionales):
+        if len(posicionales) != len(parametros_reales.items):
+            print("ERROR | La cantidad de parametros posicionales no coincide con la cantidad de parametros reales")
+            return None, False
+        if not len(lista) == len(lista) and set(lista) == set(range(1, len(lista) + 1)):
+            print("ERROR | Los parametros posicionales no son validos")
+            return None, False
+        ord = {}
+        for i in range(len(posicionales)):
+            ord[posicionales[i]] = parametros_reales.get(i)
+        keys = [key for key in ord]
+        keys.sort()
+        parametros_reales.items = [ord[k] for k in keys]
+        return parametros_reales, True
+
 
     '''
         Esta funcion nos permite verificar que la invocacion de un metodo sea valida, es decir,
@@ -716,26 +728,19 @@ class TpParser(Parser):
         if not valido:
             print(f'Error | {p.asignable.op} no posee un metodo {p.IDEN}')
             return self.NodoUnario('error', 'error', 'error')
+        
         elif self.TS[path]['uso'] == 'Nombre de metodo':
             params = ParamF(self.TS[path]['parametros'], self.TS)
             raiz = None
             parametros_reales = ParamR(p.parametros)
             if len(p) == 9:
-                if len(p.posicionales) != len(p.parametros):
-                    print("ERROR | La cantidad de parametros posicionales no coincide con la cantidad de parametros reales")
+                aux, result = self.validar_posicionales(p.posicionales, parametros_reales, p.posicionales)
+                if not result:
                     return self.NodoUnario('error', 'error', 'error')
-                if not self.validar_posicionales(p.posicionales):
-                    print("ERROR | Los parametros posicionales no son validos")
-                    return self.NodoUnario('error', 'error', 'error')
-                ord = {}
-                for i in range(len(p.posicionales)):
-                    ord[p.posicionales[i]] = parametros_reales.get(i)
-                keys = [key for key in ord]
-                keys.sort()
-                parametros_reales.items = [ord[k] for k in keys]
+                parametros_reales = aux
+                
             valido, raiz = self.assign_generate(params, parametros_reales, check=False)
             if valido:
-                #return self.NodoBinario('CALL ' + call_name, raiz , self.arboles[path]['nodo'], self.TS[path]['type'])
                 return self.NodoUnario('CALL ' + call_name, raiz, self.TS[path]['type'])
 
             print("ERROR | La cantidad de parametros reales o posicionales no coincide con los parametros formales")
@@ -759,22 +764,14 @@ class TpParser(Parser):
             raiz = None
             parametros_reales = ParamR(p.parametros)
             if len(p) == 7:
-                if len(p.posicionales) != len(p.parametros):
-                    print("ERROR | La cantidad de parametros posicionales no coincide con la cantidad de parametros reales")
+                aux, result = self.validar_posicionales(p.posicionales, parametros_reales, p.posicionales)
+                if not result:
                     return self.NodoUnario('error', 'error', 'error')
-                if not self.validar_posicionales(p.posicionales):
-                    print("ERROR | Los parametros posicionales no son validos")
-                    return self.NodoUnario('error', 'error', 'error')
-                ord = {}
-                for i in range(len(p.posicionales)):
-                    ord[p.posicionales[i]] = parametros_reales.get(i)
-                keys = [key for key in ord]
-                keys.sort()
-                parametros_reales.items = [ord[k] for k in keys]
+                parametros_reales = aux
+
             valido, raiz = self.assign_generate(params, parametros_reales, check=False)
             if valido:
                 return self.NodoUnario('CALL ' + path, raiz, self.TS[path]['type'])
-                #return self.NodoBinario('CALL ' + p[0], raiz , self.arboles[path]['nodo'], self.TS[path]['type'])
 
             print("ERROR | La cantidad de parametros reales o posicionales no coincide con los parametros formales")
             return self.NodoUnario('error', 'error', 'error')
@@ -854,15 +851,15 @@ class TpParser(Parser):
             path1 = p.expr.type + ':main'
             if path1 in self.TS:
                 type1 = self.TS[path1]['type']
-                use = self.TS[path1]['uso']
-                if type1 not in ('longint', 'singlef') or (use != 'Nombre de variable'):
+                use1 = self.TS[path1]['uso']
+                if type1 not in ('longint', 'singlef') or (use1 != 'Nombre de variable'):
                     print(f"ERROR | No se pueden operar entre no numericos")
                     return self.NodoBinario('error', 'error', 'error', 'error')
             path2 = p.term.type + ':main'
             if path2 in self.TS:
                 type2 = self.TS[path2]['type']
-                use = self.TS[path2]['uso']
-                if type2 not in ('longint', 'singlef') or (use != 'Nombre de variable'):
+                use2 = self.TS[path2]['uso']
+                if type2 not in ('longint', 'singlef') or (use2 != 'Nombre de variable'):
                     print(f"ERROR | No se pueden operar entre no numericos")
                     return self.NodoBinario('error', 'error', 'error', 'error')
             
@@ -880,13 +877,15 @@ class TpParser(Parser):
             path1 = p.factor.type + ':main'
             if path1 in self.TS:
                 type1 = self.TS[path1]['type']
-                if type1 not in ('longint', 'singlef'):
+                use1 = self.TS[path1]['uso']
+                if type1 not in ('longint', 'singlef') or (use1 != 'Nombre de variable'):
                     print(f"ERROR | No se pueden operar entre no numericos")
                     return self.NodoBinario('error', 'error', 'error', 'error')
             path2 = p.term.type + ':main'
             if path2 in self.TS:
                 type2 = self.TS[path2]['type']
-                if type2 not in ('longint', 'singlef'):
+                use2 = self.TS[path2]['uso']
+                if type2 not in ('longint', 'singlef') or (use2 != 'Nombre de variable'):
                     print(f"ERROR | No se pueden operar entre no numericos")
                     return self.NodoBinario('error', 'error', 'error', 'error')
             
@@ -917,13 +916,15 @@ class TpParser(Parser):
             path1 = p.expr_linea.type + ':main'
             if path1 in self.TS:
                 type1 = self.TS[path1]['type']
-                if type1 not in ('longint', 'singlef'):
+                use1 = self.TS[path1]['uso']
+                if type1 not in ('longint', 'singlef') or (use1 != 'Nombre de variable'):
                     print(f"ERROR | No se puede operar entre no numericos")
                     return self.NodoBinario('error', 'error', 'error', 'error')
             path2 = p.term_linea.type + ':main'
             if path2 in self.TS:
                 type2 = self.TS[path2]['type']
-                if type2 not in ('longint', 'singlef'):
+                use2 = self.TS[path2]['uso']
+                if type2 not in ('longint', 'singlef') or (use2 != 'Nombre de variable'):
                     print(f"ERROR | No se puede operar entre no numericos")
                     return self.NodoBinario('error', 'error', 'error', 'error')
                 
@@ -941,13 +942,15 @@ class TpParser(Parser):
             path1 = p.term_linea.type + ':main'
             if path1 in self.TS:
                 type1 = self.TS[path1]['type']
-                if type1 not in ('longint', 'singlef'):
+                use1 = self.TS[path1]['uso']
+                if type1 not in ('longint', 'singlef') or (use1 != 'Nombre de variable'):
                     print(f"ERROR | No se puede operar entre no numericos")
                     return self.NodoBinario('error', 'error', 'error', 'error')
             path2 = p.factor_linea.type + ':main'
             if path2 in self.TS:
                 type2 = self.TS[path2]['type']
-                if type2 not in ('longint', 'singlef'):
+                use2 = self.TS[path2]['uso']
+                if type2 not in ('longint', 'singlef') or (use2 != 'Nombre de variable'):
                     print(f"ERROR | No se puede operar entre no numericos")
                     return self.NodoBinario('error', 'error', 'error', 'error')
                 
@@ -969,8 +972,11 @@ class TpParser(Parser):
 
     @_('asignable ASSIGN asignable', 'asignable ASSIGN constante')
     def asignacion_de_linea(self, p):
-        valido, _ = self.check_type(p.asignable0.type, p[2].type, p[2])
+        valido, op = self.check_type(p.asignable0.type, p[2].type, p[2])
         if valido:
+            if op == 'class':
+                _, raiz = self.assign_generate(self.TS[p.asignable0.op]['vars'], self.TS[p[2].op]['vars'], True)
+                return self.NodoUnario('TRANSFER_OBJECT', raiz, p.asignable0.type)
             return self.NodoBinario('=', p.asignable0, p[2], p.asignable0.type)
         else:
             return self.NodoBinario('error', 'error', 'error', 'error')
