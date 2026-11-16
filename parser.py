@@ -1061,95 +1061,95 @@ class TpParser(Parser):
     def programa_error_declaracion(self, p):
         print(f"Error fatal en declaraciones")
         self._logger.error(f"Linea {p.lineno} | Error fatal en declaraciones")
-        return ("error",)
+        return p
 
     @_('programa : declaraciones cuerpo_ejecutable', 'programa : cuerpo_ejecutable')
     def programa_error_nombre(self, p):
         self._logger.error(f"Linea {p.lineno} | Falta nombre de programa")
         if not hasattr(p, 'declaraciones'): print("Falta declaracion")
-        return ("error",)
+        return p
 
     @_('declaracion : error ";"', 'declaracion_func : error ";"', 'declaracion_clase : error ";"')
     def declaracion_error(self, p):
         self._logger.error(f"Linea {p.lineno} | Error de declaracion")
-        return ("error",)
+        return []
 
     @_('declaracion : dec_var error ";"', 'declaracion_func : dec_var error ";"', 'declaracion_clase : dec_var error ";"')
     def declaracion_error_lista_var(self, p):
         self._logger.error(f"Linea {p.lineno} | Falta de ',' o ';' en declaracion")
-        return ("error",)
+        return []
 
     @_('declaracion_clase : tipo IDEN "(" error ";"')
     def declaracion_error_parametros(self, p):
         self._logger.error(f"Linea {p.lineno} | Falta de parametros formales")
-        return ("error",)
+        return []
 
     @_('declaracion : tipo FUNCTION error ";"', 'declaracion_func : tipo FUNCTION error ";"')
     def declaracion_error_function_name(self, p):
         self._logger.error(f"Linea {p.lineno} | Falta de nombre de funcion")
-        return ("error",)
+        return p
 
     @_('declaracion : ambito_func "(" error ";"', 'declaracion_func : ambito_func "(" error ";"')
     def declaracion_error_function_paramf(self, p):
         self._logger.error(f"Linea {p.lineno} | Falta de nombre o tipo de parametro formal")
-        return ("error",)
+        return p
 
     @_('declaracion : CLASS IDEN error BEGIN declaraciones_clase END ";"')
     def clase_error_codigo(self, p):
         self._logger.error(f"Linea {p.lineno} | Falta de codigo en declaracion de clase")
-        return ("error",)
+        return p
 
     @_('declaracion : ambito_clase BEGIN declaraciones_clase EXTENDS error ";" END ";"')
     def clase_error_extends(self, p):
         self._logger.error(f"Linea {p.lineno} | Falta de identificadores luego del 'extends'")
-        return ("error",)
+        return p
 
     @_('declaracion : TYPEDEF IDEN ASSIGN "[" error "]" ";"')
     def tipoUsuario_error(self, p):
         self._logger.error(f"Linea {p.lineno} | Asencia de valores para la enumeración")
-        return ("error",)
+        return p
 
     @_('ejecutable : error ";"', 'ejecutable : error END')
     def ejecutable_error(self, p):
         self._logger.error(f"Linea {p.lineno} | Error ejecutable")
-        return ("error",)
+        return self.NodoUnario('error', 'error', 'error')
 
     @_('ejecutable : POUT "(" ")" ";"')
     def ejecutable_error_pout(self, p):
         self._logger.error(f"Linea {p.lineno} | Falta de argumento en sentencia 'pout'")
-        return ("error",)
+        return self.NodoUnario('error', 'error', 'error')
 
     @_('ejecutable : IF error ";"', 'ejecutable : IF "(" condicion error ";"')
     def ejecutable_error_if(self, p):
         self._logger.error(f"Linea {p.lineno} | Falta de parentesis de cierre o apertura en linea")
-        return ("error",)
+        return self.NodoBinario('error', 'error', 'error', 'error')
 
     @_('ejecutable : IF "(" condicion ")" cuerpo_control error ";"')
     def ejecutable_error_if_endIF(self, p):
         self._logger.error(f"Linea {p.lineno} | Falta de 'end_if'")
-        return ("error",)
+        return self.NodoBinario('error', 'error', 'error', 'error')
 
     @_('expr : expr PLUS error', 'expr : expr MINUS error',
        'expr_linea : expr_linea PLUS error', 'expr_linea : expr_linea MINUS error')
     def expr_error(self, p):
         self._logger.error(f"Linea {p.lineno} | Falta de operando derecho en linea")
-        return ("error",)
+        return self.NodoBinario('error', 'error', 'error', 'error')
 
     @_('term : term TIMES error', 'term : term DIVIDE error', 'term : TIMES factor', 'term : DIVIDE factor', 'term : TIMES error', 'term : DIVIDE error',
        'term_linea : term_linea TIMES error', 'term_linea : term_linea DIVIDE error', 'term_linea : TIMES factor_linea', 'term_linea : DIVIDE factor_linea', 'term_linea : TIMES error', 'term_linea : DIVIDE error')
     def term_error(self, p):
         self._logger.error(f"Linea {p.lineno} | Falta de operando")
-        return ("error",)
+        return self.NodoBinario('error', 'error', 'error', 'error')
 
     @_('asignacion_de_linea : asignable ASSIGN2P IDEN',
        'asignacion_de_linea : asignable ASSIGN2P constante')
     def asignacion_de_linea_error(self, p):
         self._logger.error(f"Linea {p.lineno} | Uso del símbolo de asignación normal ':=' donde debe usarse '='")
-        return ("error",)
+        return self.NodoBinario('error', 'error', 'error', 'error')
 
     @_('ejecutable : FROM IDEN ASSIGN2P constante TO constante BY constante REPEAT error',
        'ejecutable : FROM IDEN ASSIGN2P constante TO constante BY constante REPEAT BEGIN END ";"')
     def iteracion_error_cuerpo(self, p):
         print(f"Error o falta de cuerpo de control en iteracion en linea {p.lineno}")
         self._logger.error(f"Linea {p.lineno} | Falta de cuerpo de control en iteracion en linea")
-        return ("error",)
+        return self.NodoBinario('error', 'error', 'error', 'error')
