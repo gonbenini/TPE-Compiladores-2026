@@ -29,6 +29,11 @@ def generateWAT(Nodo, wat, type):
 
     if isinstance(Nodo, TpParser.NodoUnario) and Nodo.op == 'TRANSFER_OBJECT':
         return assignment(Nodo.son, wat, type)
+
+    if isinstance(Nodo, TpParser.NodoBinario) and Nodo.op == 'S':
+        wat = generateWAT(Nodo.left, wat, type)
+        wat = generateWAT(Nodo.right, wat, type)
+    
     return wat
 
 def declarate_var(wat, var, type, TS):
@@ -63,6 +68,7 @@ def declarate_func(wat, func, TS, arbol):
 def GetAssembly(Nodo, TS, arboles):
     wat = '(module\n'
     for i in TS:
+        #print(i)
         if i.split(':', 1)[1] == 'main' or '(' in i: #tratamos a los atributos como globales.
             if  TS[i]['uso'] == 'Nombre de variable' and TS[i]['type'] in ['longint', 'singlef']:
                 wat = declarate_var(wat, i, 'global', TS)
