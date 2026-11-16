@@ -1,6 +1,8 @@
+from math import e
 import numbers
 from abc import ABC, abstractmethod
 from sly import Parser
+from zmq import TYPE
 from lexer import TpLexer
 
 '''
@@ -167,7 +169,7 @@ class TpParser(Parser):
             clase = p.asignable.type
 
         else: return False, 'NIL'
-        print(p.asignable.op)
+
         if self.TS[clase + ':' + 'main']['type'] == 'CLASS':
             metodo = (p.IDEN + ':' + 'main' + ':(' + clase + ')')
             atributo = next(
@@ -263,7 +265,7 @@ class TpParser(Parser):
         posic = asignados if posic == None else posic
         if len(asignables) == len(asignados) == len(posic):
             if len(asignables) == 1:
-                valido = self.check_type(asignables.get_type(0), asignados.get_type(0)) if not check else check
+                valido, _ = self.check_type(asignables.get_type(0), asignados.get_type(0)) if not check else check
                 if valido:
                     asignable = self.NodoHoja(asignables.get_type(0), asignables.get(0))
                     asignado = self.NodoHoja(asignados.get_type(0), asignados.get(0))
@@ -292,7 +294,6 @@ class TpParser(Parser):
                         return self.NodoBinario('S', assign1, assign2)
 
                     else:
-                        print(i, assign1.left.op)
                         return self.NodoBinario('S', generate(i + 1, len), assign1)
                 raiz = generate(0, len(asignables))
                 return True, raiz
@@ -366,6 +367,11 @@ class TpParser(Parser):
     '''
     @_('ambito_metodo parametros_f ")" cuerpo_ejecutable')
     def metodo(self, p):
+
+        if p.ambito_metodo['tipo'] not in ('singlef', 'longint'):
+            print(f"ERROR | Tipo de dato no valido para funciones")
+            return p
+
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de metodo")
         self.ambito = self.ambito.rsplit(":", 1)[0] #desacoplamos ambito
         new_name = p.ambito_metodo['name'] + ':' + self.ambito
@@ -383,13 +389,6 @@ class TpParser(Parser):
     #tratos el inyectado de ambito antes de entrar a las declaraciones
     @_('tipo IDEN "("')
     def ambito_metodo(self, p):
-        if p.tipo not in ('singlef', 'longint'):
-            valido, _ = self.alcance(p.tipo)
-        else: 
-            valido = True
-        if not valido:
-            print(f"ERROR | Metodo {p.IDEN} fuera de alcance")
-            return
         self.ambito = self.ambito + ':' + p.IDEN
         self.type_func.append(p.tipo)
         return {'tipo': p.tipo, 'name': p.IDEN}
@@ -423,7 +422,6 @@ class TpParser(Parser):
                     self.TS[name_var]['vars'] = Atributo([], self.TS)
                     vars = self.TS[path]['vars']
                     for j in vars.items:
-
                         name = (j['name'] + ':' + self.ambito + ':(' + name_single + ':' + tipo + ')')
 
                         if not self.check_duplicate(name): break
@@ -450,7 +448,7 @@ class TpParser(Parser):
         return vars
 
     #Controlamos que el tipo este al alcance.
-    @_('SINGLEF', 'LONGINT', 'IDEN')
+    @_('LONGINT', 'SINGLEF', 'IDEN')
     def tipo(self, p):
         if p[0] not in ('singlef', 'longint'):
             valido, path = self.alcance(p[0])
@@ -495,6 +493,11 @@ class TpParser(Parser):
     @_('ambito_func "(" parametros_f ")" declaraciones_func cuerpo_ejecutable',
        'ambito_func "(" parametros_f ")" cuerpo_ejecutable')
     def funcion(self, p):
+
+        if p.ambito_func['tipo'] not in ('singlef', 'longint'):
+            print(f"ERROR | Tipo de dato no valido para funciones")
+            return p
+
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de funcion")
         self.ambito = self.ambito.rsplit(":", 1)[0] #desacoplamos ambito
         new_name = p.ambito_func['name'] + ':' + self.ambito
@@ -511,13 +514,6 @@ class TpParser(Parser):
 
     @_('tipo FUNCTION IDEN')
     def ambito_func(self, p):
-        if p.tipo not in ('singlef', 'longint'):
-            valido, _ = self.alcance(p.tipo)
-        else:
-            valido = True
-        if not valido:
-            print(f"ERROR | Funcion {p.IDEN} fuera de alcance")
-            return
         self.ambito = self.ambito + ':' + p[2]
         self.type_func.append(p.tipo)
         return {'tipo': p.tipo, 'name': p.IDEN}
@@ -563,11 +559,11 @@ class TpParser(Parser):
             vars_code = self.TS[first_class]['vars']
             if len(vars_code) != len(vars):
                 print(f"Error | Cantidad de atributos de clase {p.ambito_clase['name']} no coincide con la cantidad de atributos de la clase compatible")
-                print(len(vars_code), len(vars))
                 return
             err = False
             for i, j in zip(vars_code.items, vars.items):
-                if not self.check_type(i['type'], j['type']):
+                valido, _ = self.check_type(i['type'], j['type'])
+                if not valido:
                     print(f"Error | Tipo del atributo {j['name']} de clase {p.ambito_clase['name']} no coincide con su par {i['name']} en la clase compatible {first_class.split(':')[0]}")
                     err = True
             if err:
@@ -658,7 +654,7 @@ class TpParser(Parser):
             return self.NodoUnario('error', 'error')
         return self.NodoUnario('RET', p.expr)
     
-    @_('POUT "(" expr ")" ";"', 'POUT "(" CADN ")" ";"')
+    @_('POUT "(" CADN ")" ";"')
     def pout(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia pout")
         return self.NodoUnario('POUT', p[2])
@@ -805,7 +801,20 @@ class TpParser(Parser):
     @_('expr PLUS term', 'expr MINUS term', 'term')
     def expr(self, p):
         if len(p) == 3:
-            valido = self.check_type(p.expr.type, p.term.type)
+            path1 = p.expr.type + ':main'
+            if path1 in self.TS:
+                type1 = self.TS[path1]['type']
+                if type1 == 'CLASS':
+                    print(f"ERROR | No se pueden operar entre objetos")
+                    return self.NodoBinario('error', 'error', 'error')
+            path2 = p.term.type + ':main'
+            if path2 in self.TS:
+                type2 = self.TS[path2]['type']
+                if type2 == 'CLASS':
+                    print(f"ERROR | No se pueden operar entre objetos")
+                    return self.NodoBinario('error', 'error', 'error')
+            
+            valido, _ = self.check_type(p.expr.type, p.term.type)
             if valido:
                 return self.NodoBinario(p[1], p.expr, p.term, p.expr.type)
             
@@ -816,7 +825,20 @@ class TpParser(Parser):
     @_('term TIMES factor', 'term DIVIDE factor', 'factor')
     def term(self, p):
         if len(p) == 3:
-            valido = self.check_type(p.term.type, p.factor.type)
+            path1 = p.factor.type + ':main'
+            if path1 in self.TS:
+                type1 = self.TS[path1]['type']
+                if type1 == 'CLASS':
+                    print(f"ERROR | No se pueden operar entre objetos")
+                    return self.NodoBinario('error', 'error', 'error')
+            path2 = p.term.type + ':main'
+            if path2 in self.TS:
+                type2 = self.TS[path2]['type']
+                if type2 == 'CLASS':
+                    print(f"ERROR | No se pueden operar entre objetos")
+                    return self.NodoBinario('error', 'error', 'error')
+            
+            valido, _ = self.check_type(p.term.type, p.factor.type)
             if valido:
                 return self.NodoBinario(p[1], p.term, p.factor, p.term.type)
             
@@ -835,7 +857,20 @@ class TpParser(Parser):
     @_('expr_linea PLUS term_linea', 'expr_linea MINUS term_linea', 'term_linea')
     def expr_linea(self, p):
         if len(p) == 3:
-            valido = self.check_type(p.expr_linea.type, p.term_linea.type)
+            path1 = p.expr_linea.type + ':main'
+            if path1 in self.TS:
+                type1 = self.TS[path1]['type']
+                if type1 == 'CLASS':
+                    print(f"ERROR | No se puede operar entre tipos de clase")
+                    return self.NodoBinario('error', 'error', 'error')
+            path2 = p.term_linea.type + ':main'
+            if path2 in self.TS:
+                type2 = self.TS[path2]['type']
+                if type2 == 'CLASS':
+                    print(f"ERROR | No se puede operar entre tipos de clase")
+                    return self.NodoBinario('error', 'error', 'error')
+                
+            valido, _ = self.check_type(p.expr_linea.type, p.term_linea.type)
             if valido:
                 return self.NodoBinario(p[1], p.expr_linea, p.term_linea, p.expr_linea.type)
                     
@@ -846,7 +881,20 @@ class TpParser(Parser):
     @_('term_linea TIMES factor_linea', 'term_linea DIVIDE factor_linea', 'factor_linea')
     def term_linea(self, p):
         if len(p) == 3:
-            valido = self.check_type(p.term_linea.type, p.factor_linea.type)
+            path1 = p.term_linea.type + ':main'
+            if path1 in self.TS:
+                type1 = self.TS[path1]['type']
+                if type1 == 'CLASS':
+                    print(f"ERROR | No se puede operar entre tipos de clase")
+                    return self.NodoBinario('error', 'error', 'error')
+            path2 = p.factor_linea.type + ':main'
+            if path2 in self.TS:
+                type2 = self.TS[path2]['type']
+                if type2 == 'CLASS':
+                    print(f"ERROR | No se puede operar entre tipos de clase")
+                    return self.NodoBinario('error', 'error', 'error')
+                
+            valido, _ = self.check_type(p.term_linea.type, p.factor_linea.type)
             if valido:
                 return self.NodoBinario(p[1], p.term_linea, p.factor_linea, p.term_linea.type)
             
@@ -864,7 +912,7 @@ class TpParser(Parser):
 
     @_('asignable ASSIGN asignable', 'asignable ASSIGN constante')
     def asignacion_de_linea(self, p):
-        valido = self.check_type(p.asignable0.type, p[2].type, p[2])
+        valido, _ = self.check_type(p.asignable0.type, p[2].type, p[2])
         if valido:
             return self.NodoBinario('=', p.asignable0, p[2], p.asignable0.type)
         else:
@@ -886,7 +934,8 @@ class TpParser(Parser):
        'expr_linea GE expr_linea', 'expr_linea LE expr_linea',
        'expr_linea NE expr_linea', 'expr_linea EQ expr_linea')
     def condicion(self, p):
-        if self.check_type(p.expr_linea0.type, p.expr_linea1.type):
+        valido, _ = self.check_type(p.expr_linea0.type, p.expr_linea1.type)
+        if valido:
             return self.NodoBinario(p[1], p[0], p[2])
         else:
             return self.NodoBinario('error', 'error', 'error')
