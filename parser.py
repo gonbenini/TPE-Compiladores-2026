@@ -852,6 +852,11 @@ class TpParser(Parser):
         if len(p) == 1:
             return p[0]
         else:
+            path = p.expr.type + ':main'
+            if path in self.TS and self.TS[path]['type'] == 'CLASS':
+                print(f"ERROR | No se puede convertir un objeto a longint")
+                return self.NodoUnario('error', 'error', 'error')
+            
             return self.NodoUnario('TOL', p.expr, 'longint')
 
     @_('expr_linea PLUS term_linea', 'expr_linea MINUS term_linea', 'term_linea')
@@ -969,29 +974,42 @@ class TpParser(Parser):
     @_('FROM IDEN ASSIGN2P constante TO constante BY constante REPEAT cuerpo_control')
     def iteracion(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia de iteracion")
+
+        valido, path = self.alcance(p.IDEN)
+        if valido:
+            equal_type, _ = self.check_type(self.TS[path]['type'], 'longint')
+            equal_type2 = all(
+                self.check_type(i.type, 'longint')[0]
+                for i in [p.constante0, p.constante1, p.constante2]
+            )
+            if not equal_type or not equal_type2:
+                print(f"ERROR | Tipos de datos no validos para iteracion en linea {p.lineno}")
+                return self.NodoBinario('error', 'error', 'error')
+
+            inicializacion = self.NodoBinario(":=", p.IDEN, p.constante0)
+
+            sentido = "<=" if p.constante0.op <= p.constante1.op else ">="
+            condicion = self.NodoBinario(sentido, p.IDEN, p.constante1)
+            condicion = self.NodoUnario("COND", condicion)
+
+            sign = "+" if int(p.constante2.op) >= 0 else "-"
+            step = self.NodoBinario(sign, p.IDEN, p.constante2)
+            incremento = self.NodoBinario("=", p.IDEN, step)
+
+            cuerpo_for = self.NodoBinario("CUERPO", p.cuerpo_control, incremento)
+            
+            composicion_while = self.NodoBinario("COMPWHILE", condicion, cuerpo_for)
+
+            arbol_for = self.NodoBinario("FOR", inicializacion, composicion_while)
+
+            if (sentido == "<=" and sign == '-') or (sentido == ">=" and sign == '+') or (p.constante2.op == 0):
+                print(f"ERROR | Iteracion infinita en linea {p.lineno}")
+                return self.NodoBinario('error', 'error', 'error')
+
+            return arbol_for
+        else:
+            return self.NodoBinario('error', 'error', 'error')    
         
-        inicializacion = self.NodoBinario(":=", p.IDEN, p.constante0)
-
-        sentido = "<=" if p.constante0.op <= p.constante1.op else ">="
-        condicion = self.NodoBinario(sentido, p.IDEN, p.constante1)
-        condicion = self.NodoUnario("COND", condicion)
-
-        sign = "+" if int(p.constante2.op) >= 0 else "-"
-        step = self.NodoBinario(sign, p.IDEN, p.constante2)
-        incremento = self.NodoBinario("=", p.IDEN, step)
-
-        cuerpo_for = self.NodoBinario("CUERPO", p.cuerpo_control, incremento)
-        
-        composicion_while = self.NodoBinario("COMPWHILE", condicion, cuerpo_for)
-
-        arbol_for = self.NodoBinario("FOR", inicializacion, composicion_while)
-
-        if (sentido == "<=" and sign == '-') or (sentido == ">=" and sign == '+') or (p.constante2.op == 0):
-            print(f"ERROR | Iteracion infinita en linea {p.lineno}")
-            return self.NodoBinario('error', 'error', 'error')
-
-        return arbol_for
-    
     @_('cuerpo_ejecutable', 'ejecutable')
     def cuerpo_control(self, p):
         return p[0]

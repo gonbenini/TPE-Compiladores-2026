@@ -34,7 +34,7 @@ parser = TpParser(TS, AS, _InfoParsec, _loggerParsec, arboles)
 tokens = lexer.tokenize(program_code)
 result = parser.parse(tokens)
 for i in list(TS.keys()):
-    if 'main' not in i:
+    if ':main' not in i:
         TS.pop(i)
 save_lexer_output(tokens_out, TS)
 wat = ''
