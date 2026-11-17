@@ -802,7 +802,7 @@ class TpParser(Parser):
                 _, raiz = self.assign_generate(self.TS[p.asignable.op]['vars'], self.TS[p.expr.op]['vars'], True)
                 return self.NodoUnario('TRANSFER_OBJECT', raiz, p.asignable.type)
 
-            return self.NodoBinario('=', p.asignable.op, p.expr, p.asignable.type)
+            return self.NodoBinario('=', p.asignable, p.expr, p.asignable.type)
 
         return self.NodoBinario('error', 'error', 'error', 'error')
 
@@ -815,7 +815,7 @@ class TpParser(Parser):
                 _, raiz = self.assign_generate(self.TS[p.asignable.op]['vars'], self.TS[p.expr_linea.op]['vars'], True)
                 return self.NodoUnario('TRANSFER_OBJECT', raiz, p.asignable.type)
             
-            return self.NodoBinario(':=', p.asignable.op, p.expr_linea, p.asignable.type)
+            return self.NodoBinario(':=', p.asignable, p.expr_linea, p.asignable.type)
         
         return self.NodoBinario('error', 'error', 'error', 'error')
 
@@ -972,14 +972,14 @@ class TpParser(Parser):
 
     @_('asignable ASSIGN asignable', 'asignable ASSIGN constante')
     def asignacion_de_linea(self, p):
-        valido, op = self.check_type(p.asignable0.type, p[2].type, p[2])
+        valido, op = self.check_type(p[0].type, p[2].type, p[2])
         if valido:
             if op == 'class':
-                _, raiz = self.assign_generate(self.TS[p.asignable0.op]['vars'], self.TS[p[2].op]['vars'], True)
-                return self.NodoUnario('TRANSFER_OBJECT', raiz, p.asignable0.type)
-            return self.NodoBinario('=', p.asignable0, p[2], p.asignable0.type)
-        else:
-            return self.NodoBinario('error', 'error', 'error', 'error')
+                _, raiz = self.assign_generate(self.TS[p[0].op]['vars'], self.TS[p[2].op]['vars'], True)
+                return self.NodoUnario('TRANSFER_OBJECT', raiz, p[0].type)
+            return self.NodoBinario('=', p[0], p[2], p[0].type)
+        
+        return self.NodoBinario('error', 'error', 'error', 'error')
 
     @_('parametros "," expr', 'expr')
     def parametros(self, p):
@@ -999,8 +999,11 @@ class TpParser(Parser):
     def condicion(self, p):
         valido1, _ = self.check_type(p.expr_linea0.type, p.expr_linea1.type, p.expr_linea1, False)
         valido2, _ = self.check_type(p.expr_linea1.type, p.expr_linea0.type, p.expr_linea0, False)
-        if valido1 or valido2:
-            return self.NodoBinario(p[1], p[0], p[2])
+        if valido1:
+            return self.NodoBinario(p[1], p[0], p[2], p.expr_linea1.type)
+
+        elif valido2:
+            return self.NodoBinario(p[1], p[2], p[0], p.expr_linea0.type)
         else:
             print(f"ERROR | Tipos de datos no validos para condicion en linea {p.lineno}")
             return self.NodoBinario('error', 'error', 'error', 'error')
@@ -1051,15 +1054,16 @@ class TpParser(Parser):
                 print(f"ERROR | Tipos de datos no validos para iteracion en linea {p.lineno}")
                 return self.NodoBinario('error', 'error', 'error', 'error')
 
-            inicializacion = self.NodoBinario(":=", p.IDEN, p.constante0, self.TS[path]['type'])
+            it = self.NodoHoja('longint', p.IDEN)
+            inicializacion = self.NodoBinario(":=", it, p.constante0, self.TS[path]['type'])
 
             sentido = "<=" if p.constante0.op <= p.constante1.op else ">="
-            condicion = self.NodoBinario(sentido, p.IDEN, p.constante1)
+            condicion = self.NodoBinario(sentido, it, p.constante1)
             condicion = self.NodoUnario("COND", condicion)
 
             sign = "+" if int(p.constante2.op) >= 0 else "-"
-            step = self.NodoBinario(sign, p.IDEN, p.constante2, self.TS[path]['type'])
-            incremento = self.NodoBinario("=", p.IDEN, step, self.TS[path]['type'])
+            step = self.NodoBinario(sign, it, p.constante2, self.TS[path]['type'])
+            incremento = self.NodoBinario("=", it, step, self.TS[path]['type'])
 
             cuerpo_for = self.NodoBinario("CUERPO", p.cuerpo_control, incremento)
             
@@ -1073,7 +1077,7 @@ class TpParser(Parser):
 
             return arbol_for
         else:
-            print(f"ERROR | Variable {p.IDEN} no declarada o no alcanzable en linea {p.lineno}")
+            print(f"ERROR | Variable {it} no declarada o no alcanzable en linea {p.lineno}")
             return self.NodoBinario('error', 'error', 'error', 'error')    
         
     @_('cuerpo_ejecutable', 'ejecutable')
