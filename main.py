@@ -11,6 +11,7 @@ _loggerLex = get_logger_Lex()
 _InfoParsec = get_logger_Parsec()
 _loggerParsec = get_logger_Err_Parsec()
 
+
 # Definiciones del lenguaje (ppalabras reservadas y tabbla de simbolos)
 
 PR = ( 'if', 'else', 'end_if', 'begin', 'end', 'pout', 'ret', 'class', 'function', 'longint', 'singlef', 'class', 'from', 'to', 'by', 'repeat', 'typedef', 'tol', 'extends', 'program' )
@@ -34,9 +35,7 @@ parser = TpParser(TS, AS, _InfoParsec, _loggerParsec, arboles)
 tokens = lexer.tokenize(program_code)
 result = parser.parse(tokens)
 for i in list(TS.keys()):
-    if ':main' not in i:
+    if (':main' not in i) and (TS[i]['type'] != 'CADN'):
         TS.pop(i)
 save_lexer_output(tokens_out, TS)
-wat = ''
-wat = GetAssembly(result, TS, arboles)
-print(wat)
+GetAssembly(result, TS, arboles)
