@@ -97,7 +97,19 @@ def check_flt_range(num):
     return False
 
 def check_int_range(num, max_num = (2**31) - 1, min_num = -2**31):
+
     if num > max_num or num < min_num:
         return False
     else:
         return True
+
+def clean_TS(TS):
+    for i in list(TS.keys()):
+        if (':main' not in i) and (TS[i]['type'] != 'CADN'):
+            TS.pop(i)
+            continue
+
+        aux1 = i.replace('(', '_')
+        aux1 = aux1.replace(')', '_')
+        TS[aux1] = TS.pop(i)
+    return TS
