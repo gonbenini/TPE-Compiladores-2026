@@ -40,6 +40,20 @@ def get_logger_Err_Parsec(fn="./logParser.txt"):
 
     return logger
 
+def get_assembly(fn="./assembly.wat"): # o "./assembly.txt"
+    logger = logging.getLogger("Assembly_WAT") # Nombre único para que no pise al parser
+    logger.setLevel(logging.DEBUG)
+    logger.handlers.clear()
+
+    handler = logging.FileHandler(fn, mode="w", encoding="utf-8")
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(logging.Formatter("%(message)s")) # Sin fecha ni funcName
+
+    logger.addHandler(handler)
+    logger.propagate = False
+
+    return logger
+
 
 def get_logger_Parsec(fn="./InfoParser.txt"):
     logger = logging.getLogger("Parsec")
