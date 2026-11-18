@@ -430,7 +430,7 @@ class TpParser(Parser):
             self.TS[name_var]['vars'] = Atributo([], self.TS)
             vars = self.TS[path]['vars']
             for j in vars.items:
-                name = (j['name'] + ':' + self.ambito + ':(' + name_single + ':' + tipo + ')')
+                name = (j['name'] + ':' + self.ambito + ':_' + name_single + ':' + tipo + '_')
 
                 if not self.check_duplicate(name): break
 
@@ -443,7 +443,7 @@ class TpParser(Parser):
 
             if 'extend' in self.TS[path]:
                 for j in self.TS[path]['extend']:
-                    nombre_extend = (f'{j}:extend:({name_single}:{tipo}:{self.ambito})')
+                    nombre_extend = (f'{j}:extend:_{name_single}:{tipo}:{self.ambito}_')
                     self.TS[nombre_extend] = {'type': j, 'uso': 'Nombre de variable'}
                     self.acomodar(nombre_extend, j, name_single + '.extend')     
 

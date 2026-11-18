@@ -106,7 +106,7 @@ def clean_TS(TS):
             TS.pop(i)
             continue
 
-        aux1 = i.replace('(', '_')
-        aux1 = aux1.replace(')', '_')
-        TS[aux1] = TS.pop(i)
+        # aux1 = i.replace('(', '_')
+        # aux1 = aux1.replace(')', '_')
+        # TS[aux1] = TS.pop(i)
     return TS
