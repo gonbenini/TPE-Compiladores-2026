@@ -250,12 +250,6 @@ class TpParser(Parser):
                 print(f"Error | Valor {value} no pertenece al tipo {type1}")
                 return False, 'nil'
 
-        if f"{type1}:main" in self.TS and self.TS[f"{type1}:main"]['type'] == type2:
-            return True, 'type'
-        
-        elif f"{type2}:main" in self.TS and self.TS[f"{type2}:main"]['type'] == type1:
-            return True, 'type'
-
         key1 = f"{type1}:main"
         key2 = f"{type2}:main"
         if key1 in self.TS and key2 in self.TS:
@@ -264,6 +258,15 @@ class TpParser(Parser):
             if class1 and class2:
                 if self.TS[key1]['code'] == self.TS[key2]['code']:
                     return True, 'class'
+
+            elif self.TS[key1]['type'] == self.TS[key2]['type']:
+                return True, 'type'
+
+        if key1 in self.TS and self.TS[key1]['type'] == type2:
+            return True, 'type'
+                
+        elif key2 in self.TS and self.TS[key2]['type'] == type1:
+            return True, 'type'
         
         if type1 == type2:
             return True, 'equal'
