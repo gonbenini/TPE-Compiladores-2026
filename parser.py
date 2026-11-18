@@ -250,6 +250,13 @@ class TpParser(Parser):
                 print(f"Error | Valor {value} no pertenece al tipo {type1}")
                 return False, 'nil'
 
+        if f"{type1}:main" in self.TS and self.TS[f"{type1}:main"]['type'] == type2:
+            return True, 'type'
+
+        elif f"{type2}:main" in self.TS and self.TS[f"{type2}:main"]['type'] == type1:
+            return True, 'type'
+
+
         key1 = f"{type1}:main"
         key2 = f"{type2}:main"
         if key1 in self.TS and key2 in self.TS:
@@ -891,7 +898,6 @@ class TpParser(Parser):
                 if type2 not in ('longint', 'singlef') or (use2 != 'Nombre de variable'):
                     print(f"ERROR | No se pueden operar entre no numericos")
                     return self.NodoBinario('error', 'error', 'error', 'error')
-            
             valido, _ = self.check_type(p.term.type, p.factor.type)
             if valido:
                 return self.NodoBinario(p[1], p.term, p.factor, p.term.type)
