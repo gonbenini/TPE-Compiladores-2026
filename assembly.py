@@ -1,4 +1,3 @@
-from tkinter import NO
 from parser import TpParser
 import numbers
 from utils import get_assembly
@@ -6,6 +5,7 @@ wat = get_assembly()
 blocks = []
 number_block = 0
 var_aux = 0
+TS = {}
 
 OPS_I32 = {'+': 'i32.add', '-': 'i32.sub', '*': 'i32.mul', '/': 'i32.div_s'}
 OPS_F32 = {'+': 'f32.add', '-': 'f32.sub', '*': 'f32.mul', '/': 'f32.div'}
@@ -47,36 +47,42 @@ def converted(Nodo, type):
 def comparate(Nodo, type):
     hojas(Nodo.left)
     hojas(Nodo.right)
-    print('xd', Nodo.op)
     if Nodo.type == 'longint':
         wat.info(COMP_I32[Nodo.op])
     else:
         wat.info(COMP_F32[Nodo.op])
 
-    return None
+    return None #chequear
 
 def condition(Nodo, type):
     Nodo.son = comparate(Nodo.son, type)
     wat.info(f'br_if $b{blocks[-1]}') #salta si la condicion da verdadera
     return None
 
-def selection(Nodo, type, TS):
+def selection(Nodo, type):
     global number_block
     number_block += 1
     wat.info(f'(block $b{number_block}')
     blocks.append(number_block)
+    if isinstance(Nodo.right, TpParser.NodoBinario):
+        number_block += 1
+        wat.info(f'(block $b{number_block}')
+        blocks.append(number_block)
     Nodo.left = condition(Nodo.left, type)
     if isinstance(Nodo.right, TpParser.NodoBinario): #cuerpo
-        Nodo.right.left = generateWAT(Nodo.right.left, type, TS)
+        Nodo.right.left = generateWAT(Nodo.right.left, type) #then
+        wat.info(f'br $b{blocks[-2]}')
         wat.info(f')')
-        Nodo.right.right = generateWAT(Nodo.right.right, type, TS)
+        Nodo.right.right = generateWAT(Nodo.right.right, type) #else
+        wat.info(f')')
     else:
-        Nodo.left = generateWAT(Nodo.right, type, TS)
+        Nodo.left = generateWAT(Nodo.right, type) #then
         wat.info(f')')
 
     blocks.pop()
+    return None
 
-def loop(Nodo, type, TS):
+def loop(Nodo, type):
     global number_block
     number_block += 1
     wat.info(f'(block $b{number_block}')
@@ -88,7 +94,7 @@ def loop(Nodo, type, TS):
 
     blocks.append(number_block)
 
-    Nodo.right = generateWAT(Nodo.right, type, TS)
+    Nodo.right = generateWAT(Nodo.right, type)
     wat.info(f'br $b{blocks[-1]}')
 
     wat.info(f'))')
@@ -97,12 +103,14 @@ def loop(Nodo, type, TS):
 
     return None
 
-def printer(Nodo, type, TS):
+def printer(Nodo):
+    global TS
     dir = TS[Nodo.son.op]['dir']
     value = TS[Nodo.son.op]['value']
     wat.info(f'i32.const {dir}')
     wat.info(f'i32.const {len(value)}')
     wat.info(f'call $console_log_string')
+    return None
 
 def callFunction(Nodo, type):
     wat.info(f'call ${Nodo.op.split(" ")[1]}')
@@ -124,18 +132,16 @@ def hojas(Nodo):
     else:
         wat.info(f'global.get ${Nodo.op}')
 
-def generateWAT(Nodo, type, TS):
+def generateWAT(Nodo, type):
 
     if isinstance(Nodo, TpParser.NodoBinario):
 
-        if Nodo.op == 'IF':
-            selection(Nodo, type, TS)
-            return None
+        if Nodo.op == 'IF': return selection(Nodo, type)
 
-        if Nodo.op == 'COMPWHILE': return loop(Nodo, type, TS)
+        if Nodo.op == 'COMPWHILE': return loop(Nodo, type)
 
-        if not isinstance(Nodo.left, TpParser.NodoHoja): Nodo.left = generateWAT(Nodo.left, type, TS)
-        if not isinstance(Nodo.right, TpParser.NodoHoja): Nodo.right = generateWAT(Nodo.right, type, TS)
+        if not isinstance(Nodo.left, TpParser.NodoHoja): Nodo.left = generateWAT(Nodo.left, type)
+        if not isinstance(Nodo.right, TpParser.NodoHoja): Nodo.right = generateWAT(Nodo.right, type)
 
         if Nodo.op in ('=', ':='): return assignment(Nodo, type)
         if (Nodo.op in OPS_I32) or (Nodo.op in OPS_F32): return arithmetic(Nodo, type)
@@ -143,58 +149,65 @@ def generateWAT(Nodo, type, TS):
 
 
     if isinstance(Nodo, TpParser.NodoUnario):
-        if not isinstance(Nodo.son, TpParser.NodoHoja): Nodo.son = generateWAT(Nodo.son, type, TS)
+        if not isinstance(Nodo.son, TpParser.NodoHoja): Nodo.son = generateWAT(Nodo.son, type)
 
         if Nodo.op == 'TOL': return converted(Nodo, type)
-        if Nodo.op == 'POUT': return printer(Nodo, type, TS)
-        if Nodo.op == 'TRANSFER_OBJECT': return generateWAT(Nodo.son, type, TS)
+        if Nodo.op == 'POUT': return printer(Nodo)
+        if Nodo.op == 'TRANSFER_OBJECT': return generateWAT(Nodo.son, type)
         if Nodo.op.split(' ')[0] == 'CALL': return callFunction(Nodo, type)
         if Nodo.op == 'RET': return ret(Nodo, type)
 
-def declarate_var(var, type, TS):
+def declarate_var(var, type):
+    global TS
     if TS[var]['type'] == 'longint':
         wat.info(f'({type} ${var} (mut i32) (i32.const 0))')
-    else:
+    elif TS[var]['type'] == 'singlef':
         wat.info(f'({type} ${var} (mut f32) (f32.const 0))')
 
-def declarate_func(func, TS, arbol):
+    else:
+        original_type = TS[var]['type']
+        real_type = TS[original_type + ':main']['type']
+        if real_type == 'longint':
+            wat.info(f'({type} ${var} (mut i32) (i32.const 0))')
+        elif real_type == 'singlef':
+            wat.info(f'({type} ${var} (mut f32) (f32.const 0))')
 
+def declarate_func(func, arbol):
+    global TS
     wat.info(f'(func ${func}')
     if TS[func]["type"] == 'longint':
         wat.info(f'(result i32)')
     else:
         wat.info(f'(result f32)')
 
-    generateWAT(arbol, 'local', TS)
+    generateWAT(arbol, 'local')
     wat.info(')')
 
-def generateDeclaration(TS, arboles):
+def generateDeclaration(arboles):
+    global TS
     for i in TS:
         #variables
-
-        if TS[i]['type'] == 'CADN':
-            #wat.info(f'(data (i32.const {TS[i]["dir"]}) "{TS[i]["value"]}")')
-            pass
-
         if  'uso' in TS[i] and TS[i]['uso'] == 'Nombre de variable':
             type = TS[i]['type']
             if type in ['longint', 'singlef'] or TS[type + ':main']['type'] in ['longint', 'singlef']:
-                declarate_var(i, 'global', TS)
+                declarate_var(i, 'global')
 
         #todas las funciones
         if 'uso' in TS[i] and TS[i]['uso'] == 'Nombre de funcion':
-            declarate_func(i, TS, arboles[i]['nodo'])
+            declarate_func(i, arboles[i]['nodo'])
 
         if TS[i]['type'] == 'CADN':
             wat.info(f'(data (i32.const {TS[i]["dir"]}) {TS[i]['value']})')
 
-def GetAssembly(Nodo, TS, arboles):
+def GetAssembly(Nodo, T, arboles):
+    global TS
+    TS = T
     wat.info('(module')
     wat.info('(import "console" "log_string" (func $console_log_string (param i32 i32)))')
     wat.info(f'(import "js" "mem" (memory 1))\n')
-    generateDeclaration(TS, arboles)
+    generateDeclaration(arboles)
     wat.info(f'\n')
 
     wat.info('(func $main (export "main")')
-    generateWAT(Nodo, 'global', TS)
+    generateWAT(Nodo, 'global')
     wat.info('))')
