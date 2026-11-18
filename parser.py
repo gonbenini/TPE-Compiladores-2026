@@ -69,6 +69,7 @@ class TpParser(Parser):
         self.ret = False
         self.type_func = []
         self.decClass = False
+        self.byteCadn = 100
 
     debugfile = 'parser.out'
     tokens = TpLexer.tokens
@@ -697,7 +698,11 @@ class TpParser(Parser):
     @_('POUT "(" CADN ")" ";"')
     def pout(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia pout")
-        return self.NodoUnario('POUT', p[2])
+        self.TS[p.CADN]['dir'] = self.byteCadn
+        self.TS[p.CADN]['value'] = p.CADN
+        self.byteCadn += len(p.CADN)
+        cadn = self.NodoHoja('CADN', str(p.CADN))
+        return self.NodoUnario('POUT', cadn)
 
     def validar_posicionales(self, lista, parametros_reales, posicionales):
         if len(posicionales) != len(parametros_reales.items):
@@ -1058,7 +1063,7 @@ class TpParser(Parser):
             inicializacion = self.NodoBinario(":=", it, p.constante0, self.TS[path]['type'])
 
             sentido = "<=" if p.constante0.op <= p.constante1.op else ">="
-            condicion = self.NodoBinario(sentido, it, p.constante1)
+            condicion = self.NodoBinario(sentido, it, p.constante1, 'longint')
             condicion = self.NodoUnario("COND", condicion)
 
             sign = "+" if int(p.constante2.op) >= 0 else "-"
