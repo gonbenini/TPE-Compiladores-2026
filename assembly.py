@@ -108,7 +108,7 @@ def printer(Nodo):
     dir = TS[Nodo.son.op]['dir']
     value = TS[Nodo.son.op]['value']
     wat.info(f'i32.const {dir}')
-    wat.info(f'i32.const {len(value)}')
+    wat.info(f'i32.const {len(value) - 2}')
     wat.info(f'call $console_log_string')
     return None
 
@@ -119,7 +119,7 @@ def callFunction(Nodo, type):
     wat.info(f'{type}.set $aux{var_aux}')
     return TpParser.NodoHoja(Nodo.type, f'aux{var_aux}')
 
-def ret(Nodo, type):
+def ret(Nodo):
     hojas(Nodo.son)
     return None
 
@@ -155,7 +155,7 @@ def generateWAT(Nodo, type):
         if Nodo.op == 'POUT': return printer(Nodo)
         if Nodo.op == 'TRANSFER_OBJECT': return generateWAT(Nodo.son, type)
         if Nodo.op.split(' ')[0] == 'CALL': return callFunction(Nodo, type)
-        if Nodo.op == 'RET': return ret(Nodo, type)
+        if Nodo.op == 'RET': return ret(Nodo)
 
 def declarate_var(var, type):
     global TS
@@ -196,7 +196,7 @@ def generateDeclaration(arboles):
         if 'uso' in TS[i] and TS[i]['uso'] == 'Nombre de funcion':
             declarate_func(i, arboles[i]['nodo'])
 
-        if TS[i]['type'] == 'CADN':
+        if 'type' in TS[i] and TS[i]['type'] == 'CADN':
             wat.info(f'(data (i32.const {TS[i]["dir"]}) {TS[i]['value']})')
 
 def GetAssembly(Nodo, T, arboles):

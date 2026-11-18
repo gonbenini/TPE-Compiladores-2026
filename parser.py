@@ -66,8 +66,8 @@ class TpParser(Parser):
         self._logger = _logger
         self.ambito = 'main'
         self.arboles=arboles
-        self.ret = False
-        self.type_func = []
+        self.ret = False #la usamos para verificar si una funcion o metodo tiene un retorno
+        self.type_func = [] #almacena los tipos de las funciones
         self.decClass = False
         self.byteCadn = 100
 
@@ -455,7 +455,6 @@ class TpParser(Parser):
     '''
     @_('tipo id_vars')
     def dec_var(self, p):
-        # se debe chequear que el tipo es valido
         self._InfoLogger.info(f"Linea {p.lineno} | Declaracion de variable/s")
         for i in p.id_vars:
             new_name = i + ':' + self.ambito
