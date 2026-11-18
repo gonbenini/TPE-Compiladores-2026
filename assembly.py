@@ -111,11 +111,21 @@ def loop(Nodo, type):
 
 def printer(Nodo):
     global TS
-    dir = TS[Nodo.son.op]['dir']
-    value = TS[Nodo.son.op]['value']
-    wat.info(f'i32.const {dir}')
-    wat.info(f'i32.const {len(value) - 2}')
-    wat.info(f'call $console_log_string')
+    if Nodo.type == 'CADN':
+        dir = TS[Nodo.son.op]['dir']
+        value = TS[Nodo.son.op]['value']
+        wat.info(f'i32.const {dir}')
+        wat.info(f'i32.const {len(value) - 2}')
+        wat.info(f'call $console_log_string')
+    
+    elif Nodo.type == 'longint':
+        hojas(Nodo.son)
+        wat.info(f'call $console_log_i32')
+
+    else:
+        hojas(Nodo.son)
+        wat.info(f'call $console_log_f32')
+    
     return None
 
 def callFunction(Nodo, type):
@@ -219,11 +229,11 @@ def GetAssembly(Nodo, T, arboles):
 
     clean_wat()
 
-    print(arboles)
-
 def clean_wat():
     wat_with_aux.info('(module')
     wat_with_aux.info('(import "console" "log_string" (func $console_log_string (param i32 i32)))')
+    wat_with_aux.info(f'(import "console" "log_i32" (func $console_log_i32 (param i32)))')
+    wat_with_aux.info(f'(import "console" "log_f32" (func $console_log_f32 (param f32)))')
     wat_with_aux.info(f'(import "js" "mem" (memory 1))\n')
     for i in range(1, var_aux + 1):
         if type_aux[f'aux{i}'] == 'longint':
