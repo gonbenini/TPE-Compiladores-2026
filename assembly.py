@@ -2,9 +2,11 @@ from parser import TpParser
 import numbers
 from utils import get_assembly
 wat = get_assembly()
+wat_with_aux = get_assembly("./final_assembly.wat")
 blocks = []
 number_block = 0
 var_aux = 0
+type_aux = {}
 TS = {}
 
 OPS_I32 = {'+': 'i32.add', '-': 'i32.sub', '*': 'i32.mul', '/': 'i32.div_s'}
@@ -32,6 +34,8 @@ def arithmetic(Nodo, type):
     global var_aux
     var_aux += 1
     wat.info(f'{type}.set $aux{var_aux}')
+
+    type_aux[f'aux{var_aux}'] = Nodo.type
     return TpParser.NodoHoja(Nodo.type, f'aux{var_aux}')
 
 def converted(Nodo, type):
@@ -42,6 +46,8 @@ def converted(Nodo, type):
     global var_aux
     var_aux += 1
     wat.info(f'{type}.set $aux{var_aux}')
+
+    type_aux[f'aux{var_aux}'] = Nodo.type
     return TpParser.NodoHoja(Nodo.type, f'aux{var_aux}')
 
 def comparate(Nodo, type):
@@ -117,6 +123,8 @@ def callFunction(Nodo, type):
     global var_aux
     var_aux += 1
     wat.info(f'{type}.set $aux{var_aux}')
+
+    type_aux[f'aux{var_aux}'] = Nodo.type
     return TpParser.NodoHoja(Nodo.type, f'aux{var_aux}')
 
 def ret(Nodo):
@@ -202,12 +210,28 @@ def generateDeclaration(arboles):
 def GetAssembly(Nodo, T, arboles):
     global TS
     TS = T
-    wat.info('(module')
-    wat.info('(import "console" "log_string" (func $console_log_string (param i32 i32)))')
-    wat.info(f'(import "js" "mem" (memory 1))\n')
     generateDeclaration(arboles)
     wat.info(f'\n')
 
     wat.info('(func $main (export "main")')
     generateWAT(Nodo, 'global')
     wat.info('))')
+
+    clean_wat()
+
+def clean_wat():
+    wat_with_aux.info('(module')
+    wat_with_aux.info('(import "console" "log_string" (func $console_log_string (param i32 i32)))')
+    wat_with_aux.info(f'(import "js" "mem" (memory 1))\n')
+    for i in range(1, var_aux + 1):
+        if type_aux[f'aux{i}'] == 'longint':
+            wat_with_aux.info(f'(global $aux{i} (mut i32) (i32.const 0))')
+
+        elif type_aux[f'aux{i}'] == 'singlef':
+            wat_with_aux.info(f'(global $aux{i} (mut f32) (f32.const 0))')
+
+    with open("./assembly.wat", "r") as f:
+        content = f.read()
+
+    wat_with_aux.info(content)
+    

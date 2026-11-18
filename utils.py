@@ -1,13 +1,11 @@
 import logging
 
-
 def get_program_code(file_path='./archivo.txt'):
     archivo = file_path
 
     with open(archivo, "r", encoding="utf-8") as f:
         texto = f.read()
     return texto
-
 
 def get_logger_Lex(fn="./logLex.txt"):
     # instanciar logger
@@ -40,20 +38,19 @@ def get_logger_Err_Parsec(fn="./logParser.txt"):
 
     return logger
 
-def get_assembly(fn="./assembly.wat"): # o "./assembly.txt"
-    logger = logging.getLogger("Assembly_WAT") # Nombre único para que no pise al parser
+def get_assembly(fn="./assembly.wat"):
+    logger = logging.getLogger(f"Assembly_WAT_{fn}")
     logger.setLevel(logging.DEBUG)
     logger.handlers.clear()
 
     handler = logging.FileHandler(fn, mode="w", encoding="utf-8")
     handler.setLevel(logging.DEBUG)
-    handler.setFormatter(logging.Formatter("%(message)s")) # Sin fecha ni funcName
+    handler.setFormatter(logging.Formatter("%(message)s"))
 
     logger.addHandler(handler)
     logger.propagate = False
 
     return logger
-
 
 def get_logger_Parsec(fn="./InfoParser.txt"):
     logger = logging.getLogger("Parsec")
