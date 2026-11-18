@@ -252,10 +252,9 @@ class TpParser(Parser):
 
         if f"{type1}:main" in self.TS and self.TS[f"{type1}:main"]['type'] == type2:
             return True, 'type'
-
+        
         elif f"{type2}:main" in self.TS and self.TS[f"{type2}:main"]['type'] == type1:
             return True, 'type'
-
 
         key1 = f"{type1}:main"
         key2 = f"{type2}:main"
@@ -855,23 +854,28 @@ class TpParser(Parser):
                     return self.NodoHoja('error', 'error')
                 return self.NodoHoja(self.TS[path]['type'], path)
 
+    def check_operandos(self, type1, type2):
+        path1 = type1 + ':main'
+        if path1 in self.TS:
+            type1 = self.TS[path1]['type']
+            use1 = self.TS[path1]['uso']
+            if type1 not in ('longint', 'singlef') or (use1 == 'Nombre de clase'):
+                print(f"ERROR | No se pueden operar entre no numericos")
+                return False
+        path2 = type2 + ':main'
+        if path2 in self.TS:
+            type2 = self.TS[path2]['type']
+            use2 = self.TS[path2]['uso']
+            if type2 not in ('longint', 'singlef') or (use2 == 'Nombre de clase'):
+                print(f"ERROR | No se pueden operar entre no numericos")
+                return False
+        return True
+
     @_('expr PLUS term', 'expr MINUS term', 'term')
     def expr(self, p):
         if len(p) == 3:
-            path1 = p.expr.type + ':main'
-            if path1 in self.TS:
-                type1 = self.TS[path1]['type']
-                use1 = self.TS[path1]['uso']
-                if type1 not in ('longint', 'singlef') or (use1 != 'Nombre de variable'):
-                    print(f"ERROR | No se pueden operar entre no numericos")
-                    return self.NodoBinario('error', 'error', 'error', 'error')
-            path2 = p.term.type + ':main'
-            if path2 in self.TS:
-                type2 = self.TS[path2]['type']
-                use2 = self.TS[path2]['uso']
-                if type2 not in ('longint', 'singlef') or (use2 != 'Nombre de variable'):
-                    print(f"ERROR | No se pueden operar entre no numericos")
-                    return self.NodoBinario('error', 'error', 'error', 'error')
+            if not self.check_operandos(p.expr.type, p.term.type):
+                return self.NodoBinario('error', 'error', 'error', 'error')
             
             valido, _ = self.check_type(p.expr.type, p.term.type)
             if valido:
@@ -884,20 +888,9 @@ class TpParser(Parser):
     @_('term TIMES factor', 'term DIVIDE factor', 'factor')
     def term(self, p):
         if len(p) == 3:
-            path1 = p.factor.type + ':main'
-            if path1 in self.TS:
-                type1 = self.TS[path1]['type']
-                use1 = self.TS[path1]['uso']
-                if type1 not in ('longint', 'singlef') or (use1 != 'Nombre de variable'):
-                    print(f"ERROR | No se pueden operar entre no numericos")
-                    return self.NodoBinario('error', 'error', 'error', 'error')
-            path2 = p.term.type + ':main'
-            if path2 in self.TS:
-                type2 = self.TS[path2]['type']
-                use2 = self.TS[path2]['uso']
-                if type2 not in ('longint', 'singlef') or (use2 != 'Nombre de variable'):
-                    print(f"ERROR | No se pueden operar entre no numericos")
-                    return self.NodoBinario('error', 'error', 'error', 'error')
+            if not self.check_operandos(p.term.type, p.factor.type):
+                return self.NodoBinario('error', 'error', 'error', 'error')
+            
             valido, _ = self.check_type(p.term.type, p.factor.type)
             if valido:
                 return self.NodoBinario(p[1], p.term, p.factor, p.term.type)
@@ -922,20 +915,8 @@ class TpParser(Parser):
     @_('expr_linea PLUS term_linea', 'expr_linea MINUS term_linea', 'term_linea')
     def expr_linea(self, p):
         if len(p) == 3:
-            path1 = p.expr_linea.type + ':main'
-            if path1 in self.TS:
-                type1 = self.TS[path1]['type']
-                use1 = self.TS[path1]['uso']
-                if type1 not in ('longint', 'singlef') or (use1 != 'Nombre de variable'):
-                    print(f"ERROR | No se puede operar entre no numericos")
-                    return self.NodoBinario('error', 'error', 'error', 'error')
-            path2 = p.term_linea.type + ':main'
-            if path2 in self.TS:
-                type2 = self.TS[path2]['type']
-                use2 = self.TS[path2]['uso']
-                if type2 not in ('longint', 'singlef') or (use2 != 'Nombre de variable'):
-                    print(f"ERROR | No se puede operar entre no numericos")
-                    return self.NodoBinario('error', 'error', 'error', 'error')
+            if not self.check_operandos(p.expr_linea.type, p.term_linea.type):
+                return self.NodoBinario('error', 'error', 'error', 'error')
                 
             valido, _ = self.check_type(p.expr_linea.type, p.term_linea.type)
             if valido:
@@ -948,20 +929,8 @@ class TpParser(Parser):
     @_('term_linea TIMES factor_linea', 'term_linea DIVIDE factor_linea', 'factor_linea')
     def term_linea(self, p):
         if len(p) == 3:
-            path1 = p.term_linea.type + ':main'
-            if path1 in self.TS:
-                type1 = self.TS[path1]['type']
-                use1 = self.TS[path1]['uso']
-                if type1 not in ('longint', 'singlef') or (use1 != 'Nombre de variable'):
-                    print(f"ERROR | No se puede operar entre no numericos")
-                    return self.NodoBinario('error', 'error', 'error', 'error')
-            path2 = p.factor_linea.type + ':main'
-            if path2 in self.TS:
-                type2 = self.TS[path2]['type']
-                use2 = self.TS[path2]['uso']
-                if type2 not in ('longint', 'singlef') or (use2 != 'Nombre de variable'):
-                    print(f"ERROR | No se puede operar entre no numericos")
-                    return self.NodoBinario('error', 'error', 'error', 'error')
+            if not self.check_operandos(p.term_linea.type, p.factor_linea.type):
+                return self.NodoBinario('error', 'error', 'error', 'error')
                 
             valido, _ = self.check_type(p.term_linea.type, p.factor_linea.type)
             if valido:
