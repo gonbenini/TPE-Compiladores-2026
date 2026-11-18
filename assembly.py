@@ -104,6 +104,17 @@ def printer(Nodo, type, TS):
     wat.info(f'i32.const {len(value)}')
     wat.info(f'call $console_log_string')
 
+def callFunction(Nodo, type):
+    wat.info(f'call ${Nodo.op.split(" ")[1]}')
+    global var_aux
+    var_aux += 1
+    wat.info(f'{type}.set $aux{var_aux}')
+    return TpParser.NodoHoja(Nodo.type, f'aux{var_aux}')
+
+def ret(Nodo, type):
+    hojas(Nodo.son)
+    return None
+
 def hojas(Nodo):
     if isinstance(Nodo.op, numbers.Number):
         if Nodo.type == 'longint':
@@ -137,6 +148,8 @@ def generateWAT(Nodo, type, TS):
         if Nodo.op == 'TOL': return converted(Nodo, type)
         if Nodo.op == 'POUT': return printer(Nodo, type, TS)
         if Nodo.op == 'TRANSFER_OBJECT': return generateWAT(Nodo.son, type, TS)
+        if Nodo.op.split(' ')[0] == 'CALL': return callFunction(Nodo, type)
+        if Nodo.op == 'RET': return ret(Nodo, type)
 
 def declarate_var(var, type, TS):
     if TS[var]['type'] == 'longint':
