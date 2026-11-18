@@ -283,8 +283,7 @@ class TpParser(Parser):
                         s =  self.NodoUnario('TRANSFER_OBJECT', raiz, asignables.get_type(0))
                     else:
                         asignable = self.NodoHoja(asignables.get_type(0), asignables.get(0))
-                        asignado = self.NodoHoja(asignados.get_type(0), asignados.get(0))
-                        s = self.NodoBinario('=', asignable, asignado, asignados.get_type(0))
+                        s = self.NodoBinario('=', asignable, asignados.get(0), asignados.get_type(0))
                 else:
                     s = self.NodoBinario('error', 'error', 'error', 'error')
                 return True, s
@@ -292,7 +291,6 @@ class TpParser(Parser):
                 def generate(i, len):
                     valid1, op = self.check_type(asignables.get_type(i), asignados.get_type(i), asignados.get(0) if isinstance(asignados, ParamR) else None)
                     asignable1 = self.NodoHoja(asignables.get_type(i), asignables.get(i))
-                    asignado1 = self.NodoHoja(asignados.get_type(i), asignados.get(i))
                     if not valid1:
                         assign1 = self.NodoBinario('error', 'error', 'error', 'error')
                     else:
@@ -300,11 +298,10 @@ class TpParser(Parser):
                             _, raiz = self.assign_generate(self.TS[asignables.get(i)]['vars'], self.TS[asignados.get_op(i)]['vars'], True)
                             assign1 = self.NodoUnario('TRANSFER_OBJECT', raiz, asignables.get_type(i))
                         else:
-                            assign1 = self.NodoBinario('=', asignable1, asignado1, asignados.get_type(i))
+                            assign1 = self.NodoBinario('=', asignable1, asignados.get(i), asignados.get_type(i))
                     if i == len - 2:
                         valid2, op = self.check_type(asignables.get_type(i + 1), asignados.get_type(i + 1), asignados.get(i + 1) if isinstance(asignados, ParamR) else None)
                         asignable2 = self.NodoHoja(asignables.get_type(i + 1), asignables.get(i + 1))
-                        asignado2 = self.NodoHoja(asignados.get_type(i + 1), asignados.get(i + 1))
                         if not valid2:
                             assign2 = self.NodoBinario('error', 'error', 'error', 'error')
                         else:
@@ -312,7 +309,7 @@ class TpParser(Parser):
                                 _, raiz = self.assign_generate(self.TS[asignables.get(i + 1)]['vars'], self.TS[asignados.get_op(i + 1)]['vars'], True)
                                 assign2 = self.NodoUnario('TRANSFER_OBJECT', raiz, asignables.get_type(i + 1))
                             else:
-                                assign2 = self.NodoBinario('=', asignable2, asignado2, asignados.get_type(i + 1))
+                                assign2 = self.NodoBinario('=', asignable2, asignados.get(i + 1), asignados.get_type(i + 1))
 
                         return self.NodoBinario('S', assign1, assign2)
 
@@ -694,14 +691,17 @@ class TpParser(Parser):
             return self.NodoUnario('error', 'error', 'error')
         return self.NodoUnario('RET', p.expr, p.expr.type)
     
-    @_('POUT "(" CADN ")" ";"')
+    @_('POUT "(" CADN ")" ";"', 'POUT "(" expr ")" ";"')
     def pout(self, p):
         self._InfoLogger.info(f"Linea {p.lineno} | Sentencia pout")
-        self.TS[p.CADN]['dir'] = self.byteCadn
-        self.TS[p.CADN]['value'] = p.CADN
-        self.byteCadn += len(p.CADN)
-        cadn = self.NodoHoja('CADN', str(p.CADN))
-        return self.NodoUnario('POUT', cadn)
+        if hasattr(p, 'CADN'):
+            self.TS[p.CADN]['dir'] = self.byteCadn
+            self.TS[p.CADN]['value'] = p.CADN
+            self.byteCadn += len(p.CADN)
+            cadn = self.NodoHoja('CADN', str(p.CADN))
+            return self.NodoUnario('POUT', cadn, 'CADN')
+        else:
+            return self.NodoUnario('POUT', p.expr, p.expr.type)
 
     def validar_posicionales(self, lista, parametros_reales, posicionales):
         if len(posicionales) != len(parametros_reales.items):
