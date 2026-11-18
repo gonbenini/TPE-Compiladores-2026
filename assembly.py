@@ -18,6 +18,20 @@ COMP_F32 = {'>': 'f32.le', '<': 'f32.ge', '>=': 'f32.lt', '<=': 'f32.gt', '==': 
 
 '''Obtenemos el operando derecho para poder asignarlo a una variable auxiliar y reemplazar en el arbol.'''
 def assignment(Nodo, type):
+    global TS
+    var_left_type = TS[Nodo.left.op]['type']
+    valid = False
+    if (var_left_type + ':main') in TS and TS[var_left_type + ':main']['uso'] == 'Nombre de tipo':
+        for i in TS[var_left_type + ':main']['valores']:
+            if Nodo.right.op == i.op:
+                valid = True
+                break
+    else:
+        valid = True
+
+    if not valid:
+        raise Exception(f'Error: El valor {Nodo.right.op} no es valido para el tipo {var_left_type}.')
+
     hojas(Nodo.right)
     wat.info(f'{type}.set ${Nodo.left.op}')
     return TpParser.NodoHoja(Nodo.left.type, Nodo.left.op)
