@@ -10,13 +10,14 @@ var_aux = 0
 
 OPS_I32 = {'+': 'i32.add', '-': 'i32.sub', '*': 'i32.mul', '/': 'i32.div_s'}
 OPS_F32 = {'+': 'f32.add', '-': 'f32.sub', '*': 'f32.mul', '/': 'f32.div'}
+
+#invertimos los operadores de comparacion porque si el resultado es falso, se salta la ejecucion del bloque de codigo o al else.
 COMP_I32 = {'>': 'i32.le_s', '<': 'i32.ge_s', '>=': 'i32.lt_s', '<=': 'i32.gt_s', '==': 'i32.ne', '!=': 'i32.eq'}
 COMP_F32 = {'>': 'f32.le', '<': 'f32.ge', '>=': 'f32.lt', '<=': 'f32.gt', '==': 'f32.ne', '!=': 'f32.eq'}
 
 '''Obtenemos el operando derecho para poder asignarlo a una variable auxiliar y reemplazar en el arbol.'''
 def assignment(Nodo, type):
     hojas(Nodo.right)
-    print(Nodo.left)
     wat.info(f'{type}.set ${Nodo.left.op}')
     return TpParser.NodoHoja(Nodo.left.type, Nodo.left.op)
 
@@ -171,10 +172,10 @@ def generateDeclaration(TS, arboles):
 def GetAssembly(Nodo, TS, arboles):
     wat.info('(module')
     wat.info('(import "console" "log_string" (func $console_log_string (param i32 i32)))')
-    wat.info('(import "js" "mem" (memory 1))')
+    wat.info(f'(import "js" "mem" (memory 1))\n')
     generateDeclaration(TS, arboles)
+    wat.info(f'\n')
 
     wat.info('(func $main (export "main")')
     generateWAT(Nodo, 'global')
     wat.info('))')
-    print(var_aux)

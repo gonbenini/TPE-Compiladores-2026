@@ -1054,7 +1054,7 @@ class TpParser(Parser):
                 print(f"ERROR | Tipos de datos no validos para iteracion en linea {p.lineno}")
                 return self.NodoBinario('error', 'error', 'error', 'error')
 
-            it = self.NodoHoja('longint', p.IDEN)
+            it = self.NodoHoja('longint', path)
             inicializacion = self.NodoBinario(":=", it, p.constante0, self.TS[path]['type'])
 
             sentido = "<=" if p.constante0.op <= p.constante1.op else ">="
