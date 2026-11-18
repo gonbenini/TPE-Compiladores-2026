@@ -7,7 +7,7 @@ parser.out
 InfoParser.txt
 logLex.txt
 logParser.txt
-.wat
+/*.wat
 
 # Ignorar todos los tests
 tests/*.txt
