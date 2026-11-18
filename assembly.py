@@ -201,7 +201,7 @@ def generateDeclaration(arboles):
                 declarate_var(i, 'global')
 
         #todas las funciones
-        if 'uso' in TS[i] and TS[i]['uso'] == 'Nombre de funcion':
+        if 'uso' in TS[i] and (TS[i]['uso'] == 'Nombre de funcion' or TS[i]['uso'] == 'Nombre de metodo'):
             declarate_func(i, arboles[i]['nodo'])
 
         if 'type' in TS[i] and TS[i]['type'] == 'CADN':
@@ -218,6 +218,8 @@ def GetAssembly(Nodo, T, arboles):
     wat.info('))')
 
     clean_wat()
+
+    print(arboles)
 
 def clean_wat():
     wat_with_aux.info('(module')

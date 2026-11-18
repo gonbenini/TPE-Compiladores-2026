@@ -726,7 +726,6 @@ class TpParser(Parser):
     @_('asignable "." IDEN "(" parametros ")" "[" posicionales "]"', 'asignable "." IDEN "(" parametros ")"')
     def invocacion_metodo(self, p): #invocacion_m . invocacion_f -> invocacion_m . invocacion_f . invocacion_f - > a.b.c.m().m1().m2()
         self._InfoLogger.info(f"Linea {p.lineno} | Invocacion a metodo")
-        call_name = p.asignable.op + '.' + p.IDEN
         valido, path = self.atributo_valido(p)
 
         if not valido:
@@ -745,7 +744,7 @@ class TpParser(Parser):
                 
             valido, raiz = self.assign_generate(params, parametros_reales, check=False)
             if valido:
-                return self.NodoUnario('CALL ' + call_name, raiz, self.TS[path]['type'])
+                return self.NodoUnario('CALL ' + path, raiz, self.TS[path]['type'])
 
             print("ERROR | La cantidad de parametros reales o posicionales no coincide con los parametros formales")
             return self.NodoUnario('error', 'error', 'error')
