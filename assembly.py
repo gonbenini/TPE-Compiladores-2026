@@ -40,13 +40,23 @@ def assignment(Nodo, type):
 def arithmetic(Nodo, type):
     hojas(Nodo.left)
     hojas(Nodo.right)
-    if Nodo.type == 'longint':
-        wat.info(OPS_I32[Nodo.op])
-    else:
-        wat.info(OPS_F32[Nodo.op])
-
     global var_aux
     var_aux += 1
+    if Nodo.type == 'longint':
+        wat.info(OPS_I32[Nodo.op])
+    elif Nodo.type == 'singlef':
+        wat.info(OPS_F32[Nodo.op])
+    else:
+        real_type = TS[Nodo.type + ':main']['type']
+        if real_type == 'longint':
+            wat.info(OPS_I32[Nodo.op])
+        elif real_type == 'singlef':
+            wat.info(OPS_F32[Nodo.op])
+
+        wat.info(f'{type}.set $aux{var_aux}')
+        type_aux[f'aux{var_aux}'] = real_type
+        return TpParser.NodoHoja(real_type, f'aux{var_aux}')
+
     wat.info(f'{type}.set $aux{var_aux}')
 
     type_aux[f'aux{var_aux}'] = Nodo.type
