@@ -181,16 +181,16 @@ class TpParser(Parser):
         else: return False, 'NIL'
 
         if self.TS[clase + ':' + 'main']['type'] == 'CLASS':
-            metodo = (p.IDEN + ':' + 'main' + ':(' + clase + ')')
+            metodo = (p.IDEN + ':' + 'main' + ':_' + clase + '_')
             atributo = next(
                 (var for var in self.TS[p.asignable.op]['vars'].items
                 if var.startswith(p.IDEN + ':')),
                 None
             )
-            clase_heredada = (p.IDEN + ':extend:(' + p.asignable.op.split(':')[0] + ':' + p.asignable.type + ':' + self.ambito + ')')
+            clase_heredada = (p.IDEN + ':extend:_' + p.asignable.op.split(':')[0] + ':' + p.asignable.type + ':' + self.ambito + '_')
             
-            if ':extend:(' in (p.asignable.op): #cambiar cambiar cambiar
-                atributo_heredado = (p.IDEN + ':' + self.ambito + ':(' + p.asignable.op.split('(')[1].split(':')[0] + '.extend:' + p.asignable.type + ')')
+            if ':extend:_' in (p.asignable.op): #cambiar cambiar cambiar
+                atributo_heredado = (p.IDEN + ':' + self.ambito + ':_' + p.asignable.op.split('_')[1].split(':')[0] + '.extend:' + p.asignable.type + '_')
             else:
                 atributo_heredado = None
 
@@ -613,7 +613,7 @@ class TpParser(Parser):
         if not valido and code != "error":
             self.TS[code + ':' + self.ambito] = {'class': p.IDEN0 + ':' + self.ambito, 'uso': 'Nombre de codigo'}
 
-        self.ambito = self.ambito + ':' + '(' + p[1] + ')'
+        self.ambito = self.ambito + ':' + '_' + p[1] + '_'
         return {'name': p.IDEN0, 'valido': valido, 'code': code}
 
     #Esta funcion nos permite almacenar los valores posibles de un tipo usuario como lo mas importante.
