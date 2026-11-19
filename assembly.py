@@ -1,6 +1,6 @@
 from parser import TpParser
 import numbers
-from utils import get_assembly
+from utils import get_assembly, check_int_range, check_flt_range
 wat = get_assembly()
 wat_with_aux = get_assembly("./final_assembly.wat")
 blocks = []
@@ -19,18 +19,23 @@ COMP_F32 = {'>': 'f32.le', '<': 'f32.ge', '>=': 'f32.lt', '<=': 'f32.gt', '==': 
 '''Obtenemos el operando derecho para poder asignarlo a una variable auxiliar y reemplazar en el arbol.'''
 def assignment(Nodo, type):
     global TS
+    global number_block
+    number_block += 1
     var_left_type = TS[Nodo.left.op]['type']
-    valid = False
-    if (var_left_type + ':main') in TS and TS[var_left_type + ':main']['uso'] == 'Nombre de tipo':
+    if var_left_type + ':main' in TS:
+        real_type = 'i32' if TS[var_left_type + ':main']['type'] == 'longint' else 'f32'
+        wat.info(f'(block $b{number_block}')
         for i in TS[var_left_type + ':main']['valores']:
-            if Nodo.right.op == i.op:
-                valid = True
-                break
-    else:
-        valid = True
+            hojas(Nodo.right)
+            wat.info(f'{real_type}.const {i.op}')
+            wat.info(f'{real_type}.eq')
+            wat.info(f'br_if $b{number_block}')
 
-    if not valid:
-        raise Exception(f'Error: El valor {Nodo.right.op} no es valido para el tipo {var_left_type}.')
+        wat.info(f'i32.const 60')
+        wat.info(f'i32.const 30')
+        wat.info(f'call $console_log_string')
+        wat.info(f'unreachable')
+        wat.info(f')')
 
     hojas(Nodo.right)
     wat.info(f'{type}.set ${Nodo.left.op}')
@@ -142,7 +147,7 @@ def printer(Nodo):
         wat.info(f'i32.const {len(value) - 2}')
         wat.info(f'call $console_log_string')
     
-    elif Nodo.type == 'longint':
+    elif Nodo.type == 'longint' or TS[Nodo.type + ':main']['type'] == 'longint':
         hojas(Nodo.son)
         wat.info(f'call $console_log_i32')
 
@@ -265,6 +270,8 @@ def clean_wat():
 
         elif type_aux[f'aux{i}'] == 'singlef':
             wat_with_aux.info(f'(global $aux{i} (mut f32) (f32.const 0))')
+
+    wat_with_aux.info(f'(data (i32.const 60) "valor invalido para variable")')
 
     with open("./assembly.wat", "r") as f:
         content = f.read()
