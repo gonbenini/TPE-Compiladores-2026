@@ -1,5 +1,3 @@
-from numpy import var
-
 from parser import TpParser
 import numbers
 from utils import get_assembly

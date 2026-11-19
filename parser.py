@@ -1,8 +1,6 @@
-from math import e
 import numbers
 from abc import ABC, abstractmethod
 from sly import Parser
-from zmq import TYPE
 from lexer import TpLexer
 
 '''
