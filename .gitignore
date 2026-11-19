@@ -1,19 +1,17 @@
-log.txt
+# Archivos compilados de Python
 __pycache__/
-tokens.txt
-TS.txt
+
 # Archivos generados por SLY
 parser.out
-InfoParser.txt
-logLex.txt
-logParser.txt
 /*.wat
+/*.txt
 
 # Ignorar todos los tests
 tests/*.txt
+test.txt
 
 # Exceptuar los tests OK
 !tests/test_ok_*.txt
 
+#entorno virtual
 venv*
-test.txt
