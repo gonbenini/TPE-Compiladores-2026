@@ -3,12 +3,13 @@ import re
 
 class TpLexer(Lexer):
 
-    def __init__(self, _logger, TS, PR, tokens_out):
+    def __init__(self, _logger, TS, PR, tokens_out, err):
         # Inyectamos dependencias
         self._logger = _logger
         self.TS = TS
         self.PR = PR
         self.tokens_out = tokens_out
+        self.err = err
 
     tokens = { 
         IDEN, PLUS, MINUS, TIMES, DIVIDE, EQ, ASSIGN2P, ASSIGN, LE, LT, GE, GT, NE, 
@@ -98,6 +99,7 @@ class TpLexer(Lexer):
                 self.TS[t.value] = {'type': 'IDENTIFICADOR'}
             else:
                 self._logger.error(f"Linea {self.lineno} | ERROR Identificador con letras mayus.")
+                self.err = True
                 return # devolvemos None en vez de un token ya que ocurrio un error. Luego de loggear podemos podemos seguir obteniendo proximos tokens
 
         #self.tokens_out.append(t)
@@ -109,6 +111,7 @@ class TpLexer(Lexer):
         t.value = int(t.value[:-2]) # removemos el sufijo $l
         if not self._check_int_range(t):
             self._logger.error(f"Linea {self.lineno} | ERROR constante entera fuera de rango.")
+            self.err = True
             return # no devolvemos nada
 
         if not self.TS.get(str(t.value)):
@@ -133,6 +136,7 @@ class TpLexer(Lexer):
 
         if not self._check_flt_range(t):
             self._logger.error(f"Linea {self.lineno} | ERROR constante flotante fuera de rango.")
+            self.err = True
             return # no devolvemos nada
 
         if not self.TS.get(str(t.value)):
@@ -154,6 +158,7 @@ class TpLexer(Lexer):
         err = "'%s'" % t.value[0]
         self._logger.error(f"Linea {self.lineno} | ERROR caracter ilegal: {err}")
         self.index += 1
+        self.err = True
 
     def tokenize(self, text, lineno=1, index=0):
         for t in super().tokenize(text, lineno, index):
