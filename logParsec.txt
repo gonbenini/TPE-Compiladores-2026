@@ -1,4 +1,0 @@
-2026-09-27 03:30:42,617 | dec_var | Linea 4 | Declaracion de variable/s
-2026-09-27 03:30:42,618 | pout | Linea 7 | Sentencia pout
-2026-09-27 03:30:42,618 | funcion | Linea 3 | Declaracion de funcion
-2026-09-27 03:30:42,618 | invocacion_funcion | Linea 11 | Invocacion a funcion
