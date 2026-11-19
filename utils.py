@@ -7,21 +7,8 @@ def get_program_code(file_path='./archivo.txt'):
         texto = f.read()
     return texto
 
-def get_logger_Lex(fn="./logLex.txt"):
-    # instanciar logger
-    open(fn, "w").close()
-    logging.basicConfig(
-        filename=fn,
-        level=logging.DEBUG,
-        format="%(asctime)s | %(funcName)s | %(message)s",
-        force=True
-    )
-
-    _logger = logging.getLogger(__name__)
-    return _logger
-
-def get_logger_Err_Parsec(fn="./logParser.txt"):
-    logger = logging.getLogger("Err_Parsec")
+def get_logger(fn="./loggerError.txt"):
+    logger = logging.getLogger("Err_logger")
     logger.setLevel(logging.DEBUG)
     logger.handlers.clear()
 
@@ -29,7 +16,7 @@ def get_logger_Err_Parsec(fn="./logParser.txt"):
     handler.setLevel(logging.DEBUG)
     handler.setFormatter(
         logging.Formatter(
-            "%(asctime)s | %(funcName)s | %(message)s"
+            "[%(levelname)s] %(message)s"
         )
     )
 
@@ -52,31 +39,7 @@ def get_assembly(fn="./assembly.wat"):
 
     return logger
 
-def get_logger_Parsec(fn="./InfoParser.txt"):
-    logger = logging.getLogger("Parsec")
-    logger.setLevel(logging.DEBUG)
-    logger.handlers.clear()
-
-    handler = logging.FileHandler(fn, mode="w")
-    handler.setLevel(logging.DEBUG)
-    handler.setFormatter(
-        logging.Formatter(
-            "%(asctime)s | %(message)s"
-        )
-    )
-
-    logger.addHandler(handler)
-    logger.propagate = False
-
-    return logger
-
-def save_lexer_output(tokens, TS):
-    # Guarda en un archivo los tokens generados
-    with open ("tokens.txt", "w") as f:
-        # corregir cuando recorremos los tokens los perdemos.
-        for t in tokens:
-            f.write(f"{t}\n")
-
+def save_lexer_output(TS):
     # Guarda en un archivo los Identificadores reconocidos.
     with open ("TS.txt", "w") as f:
         for t in TS:

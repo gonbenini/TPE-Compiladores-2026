@@ -1,4 +1,4 @@
-from utils import get_logger_Lex, get_logger_Parsec, get_program_code, save_lexer_output, get_logger_Err_Parsec, clean_TS
+from utils import get_logger, get_program_code, clean_TS, save_lexer_output
 from lexer import TpLexer
 from parser import TpParser
 import sys
@@ -7,9 +7,7 @@ from assembly import GetAssembly
 ### Dependencias del lexer
 
 program_code = get_program_code(sys.argv[1]) # esperamos que el primer argumento sea la direccion del archivo
-_loggerLex = get_logger_Lex()
-_InfoParsec = get_logger_Parsec()
-_loggerParsec = get_logger_Err_Parsec()
+_logger = get_logger()
 
 
 # Definiciones del lenguaje (ppalabras reservadas y tabbla de simbolos)
@@ -27,13 +25,13 @@ arboles = {}
 ### Instanciaciones
 
 tokens_out = []
-lexer = TpLexer(_loggerLex, TS, PR, tokens_out)
-parser = TpParser(TS, AS, _InfoParsec, _loggerParsec, arboles)
+lexer = TpLexer(_logger, TS, PR, tokens_out)
+parser = TpParser(TS, _logger, arboles)
 
 ### Invocacion
 
 tokens = lexer.tokenize(program_code)
 result = parser.parse(tokens)
 TS = clean_TS(TS) #limpieza de la TS antes de generar el assembler.
-save_lexer_output(tokens_out, TS)
+save_lexer_output(TS)
 GetAssembly(result, TS, arboles)
