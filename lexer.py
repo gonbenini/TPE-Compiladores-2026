@@ -98,7 +98,7 @@ class TpLexer(Lexer):
             if iden[0].islower():
                 self.TS[t.value] = {'type': 'IDENTIFICADOR'}
             else:
-                self._logger.error(f"Linea {self.lineno} | ERROR Identificador con letras mayus.")
+                self._logger.error(f"Linea {self.lineno} | Identificador con letras mayusculas")
                 self.err = True
                 return # devolvemos None en vez de un token ya que ocurrio un error. Luego de loggear podemos podemos seguir obteniendo proximos tokens
 
@@ -110,7 +110,7 @@ class TpLexer(Lexer):
     def CONSTANTE_E(self, t):
         t.value = int(t.value[:-2]) # removemos el sufijo $l
         if not self._check_int_range(t):
-            self._logger.error(f"Linea {self.lineno} | ERROR constante entera fuera de rango.")
+            self._logger.error(f"Linea {self.lineno} | Constante entera fuera de rango.")
             self.err = True
             return # no devolvemos nada
 
@@ -135,7 +135,7 @@ class TpLexer(Lexer):
             t.value = float(a[0])
 
         if not self._check_flt_range(t):
-            self._logger.error(f"Linea {self.lineno} | ERROR constante flotante fuera de rango.")
+            self._logger.error(f"Linea {self.lineno} | Constante flotante fuera de rango.")
             self.err = True
             return # no devolvemos nada
 
@@ -156,7 +156,7 @@ class TpLexer(Lexer):
 
     def error(self, t):
         err = "'%s'" % t.value[0]
-        self._logger.error(f"Linea {self.lineno} | ERROR caracter ilegal: {err}")
+        self._logger.error(f"Linea {self.lineno} | Caracter ilegal: '{err}'")
         self.index += 1
         self.err = True
 
