@@ -1,6 +1,8 @@
+from numpy import var
+
 from parser import TpParser
 import numbers
-from utils import get_assembly, check_int_range, check_flt_range
+from utils import get_assembly
 wat = get_assembly()
 wat_with_aux = get_assembly("./final_assembly.wat")
 blocks = []
@@ -16,36 +18,119 @@ OPS_F32 = {'+': 'f32.add', '-': 'f32.sub', '*': 'f32.mul', '/': 'f32.div'}
 COMP_I32 = {'>': 'i32.le_s', '<': 'i32.ge_s', '>=': 'i32.lt_s', '<=': 'i32.gt_s', '==': 'i32.ne', '!=': 'i32.eq'}
 COMP_F32 = {'>': 'f32.le', '<': 'f32.ge', '>=': 'f32.lt', '<=': 'f32.gt', '==': 'f32.ne', '!=': 'f32.eq'}
 
+def user_type_generate(type_left, Nodo):
+    real_type = 'i32' if TS[type_left + ':main']['type'] == 'longint' else 'f32'
+    wat.info(f'(block $b{number_block}')
+    for i in TS[type_left + ':main']['valores']:
+        hojas(Nodo.right)
+        wat.info(f'{real_type}.const {i.op}')
+        wat.info(f'{real_type}.eq')
+        wat.info(f'br_if $b{number_block}')
+
+    wat.info(f'i32.const 10')
+    wat.info(f'i32.const 30')
+    wat.info(f'call $console_log_string')
+    wat.info(f'unreachable')
+    wat.info(f')') 
+
 '''Obtenemos el operando derecho para poder asignarlo a una variable auxiliar y reemplazar en el arbol.'''
 def assignment(Nodo, type):
     global TS
     global number_block
+    global var_aux #ver si sacar
     number_block += 1
     var_left_type = TS[Nodo.left.op]['type']
     if var_left_type + ':main' in TS:
-        real_type = 'i32' if TS[var_left_type + ':main']['type'] == 'longint' else 'f32'
-        wat.info(f'(block $b{number_block}')
-        for i in TS[var_left_type + ':main']['valores']:
-            hojas(Nodo.right)
-            wat.info(f'{real_type}.const {i.op}')
-            wat.info(f'{real_type}.eq')
-            wat.info(f'br_if $b{number_block}')
-
-        wat.info(f'i32.const 60')
-        wat.info(f'i32.const 30')
-        wat.info(f'call $console_log_string')
-        wat.info(f'unreachable')
-        wat.info(f')')
+        user_type_generate(var_left_type, Nodo)
 
     hojas(Nodo.right)
     wat.info(f'{type}.set ${Nodo.left.op}')
     return TpParser.NodoHoja(Nodo.left.type, Nodo.left.op)
 
+
+def sum_check(Nodo):
+    global var_aux
+    global number_block
+    hojas(Nodo.left)
+    type_use = 'i32' if Nodo.type == 'longint' or (Nodo.type + ':main' in TS and TS[Nodo.type + ':main']['type'] == 'longint') else 'f32'
+    var_aux += 1
+    if type_use == 'i32':
+        type_aux[f'aux{var_aux}'] = 'i64'
+        wat.info(f'i64.extend_i32_s')
+        hojas(Nodo.right)
+        wat.info(f'i64.extend_i32_s')
+        wat.info(f'i64.add')
+        wat.info(f'global.set $aux{var_aux}')
+        type_use = 'i64'
+    else:
+        type_aux[f'aux{var_aux}'] = 'f64'
+        wat.info(f'f64.promote_f32')
+        hojas(Nodo.right)
+        wat.info(f'f64.promote_f32')
+        wat.info(f'f64.add')
+        wat.info(f'global.set $aux{var_aux}')
+        type_use = 'f64'
+
+    number_block += 1
+    if type_use == 'i64':
+        wat.info(f'(block $b{number_block}')
+        number_block += 1
+        wat.info(f'(block $b{number_block}')
+        wat.info(f'global.get $aux{var_aux}')
+        wat.info(f'i64.const 2147483647')
+        wat.info(f'i64.gt_s')
+        wat.info(f'br_if $b{number_block}')
+        wat.info(f'global.get $aux{var_aux}')
+        wat.info(f'i64.const -2147483648')
+        wat.info(f'i64.lt_s')
+        wat.info(f'br_if $b{number_block}')
+        wat.info(f'br $b{number_block - 1}')
+        wat.info(f')')
+        wat.info(f'i32.const 41')
+        wat.info(f'i32.const 19')
+        wat.info(f'call $console_log_string')
+        wat.info(f'unreachable')
+        wat.info(f')')
+    else:
+        wat.info(f'(block $b{number_block}')
+        wat.info(f'global.get $aux{var_aux}')
+        wat.info(f'f64.const 0')
+        wat.info(f'f64.eq')
+        wat.info(f'br_if $b{number_block}')
+        wat.info(f'global.get $aux{var_aux}')
+        wat.info(f'f64.const -3.40282347e38')
+        wat.info(f'f64.gt')
+        wat.info(f'global.get $aux{var_aux}')
+        wat.info(f'f64.const -1.17549435e-38')
+        wat.info(f'f64.lt')
+        wat.info(f'i32.and')
+        wat.info(f'br_if $b{number_block}')
+        wat.info(f'global.get $aux{var_aux}')
+        wat.info(f'f64.const 1.17549435e-38')
+        wat.info(f'f64.gt')
+        wat.info(f'global.get $aux{var_aux}')
+        wat.info(f'f64.const 3.40282347e38')
+        wat.info(f'f64.lt')
+        wat.info(f'i32.and')
+        wat.info(f'br_if $b{number_block}')
+        wat.info(f'i32.const 61')
+        wat.info(f'i32.const 21')
+        wat.info(f'call $console_log_string')
+        wat.info(f'unreachable')
+        wat.info(f')')
+
+
 '''Obtenemos ambos operandos para poder realizar la operacion y asignar el resultado a una variable auxiliar y reemplazar en el arbol.'''
 def arithmetic(Nodo, type):
+    global var_aux
+    global number_block
+
+    if Nodo.op == '+':
+        sum_check(Nodo)
+
     hojas(Nodo.left)
     hojas(Nodo.right)
-    global var_aux
+    number_block += 1
     var_aux += 1
     if Nodo.type == 'longint':
         wat.info(OPS_I32[Nodo.op])
@@ -271,7 +356,15 @@ def clean_wat():
         elif type_aux[f'aux{i}'] == 'singlef':
             wat_with_aux.info(f'(global $aux{i} (mut f32) (f32.const 0))')
 
-    wat_with_aux.info(f'(data (i32.const 60) "valor invalido para variable")')
+        elif type_aux[f'aux{i}'] == 'i64':
+            wat_with_aux.info(f'(global $aux{i} (mut i64) (i64.const 0))')
+
+        elif type_aux[f'aux{i}'] == 'f64':
+            wat_with_aux.info(f'(global $aux{i} (mut f64) (f64.const 0))')
+
+    wat_with_aux.info(f'(data (i32.const 10) "valor invalido para variable")')
+    wat_with_aux.info(f'(data (i32.const 41) "overflow de enteros")')
+    wat_with_aux.info(f'(data (i32.const 60) "overflow de flotantes")')
 
     with open("./assembly.wat", "r") as f:
         content = f.read()
