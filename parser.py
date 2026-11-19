@@ -438,7 +438,7 @@ class TpParser(Parser):
             for j in vars.items:
                 name = (j['name'] + ':' + self.ambito + ':_' + name_single + ':' + tipo + '_')
 
-                if not self.check_duplicate(name, lineno=lineno): break
+                if not self.check_duplicate(name, lineno=lineno): continue
 
                 self.TS[name] = {'type': j['type'], 'uso': 'Nombre de variable'}
 
