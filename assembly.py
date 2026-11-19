@@ -248,7 +248,7 @@ def printer(Nodo):
         wat.info(f'i32.const {len(value) - 2}')
         wat.info(f'call $console_log_string')
     
-    elif Nodo.type == 'longint' or TS[Nodo.type + ':main']['type'] == 'longint':
+    elif Nodo.type == 'longint' or (Nodo.type + ':main' in TS and TS[Nodo.type + ':main']['type'] == 'longint'):
         hojas(Nodo.son)
         wat.info(f'call $console_log_i32')
 
