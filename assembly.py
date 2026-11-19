@@ -16,7 +16,7 @@ OPS_F32 = {'+': 'f32.add', '-': 'f32.sub', '*': 'f32.mul', '/': 'f32.div'}
 COMP_I32 = {'>': 'i32.le_s', '<': 'i32.ge_s', '>=': 'i32.lt_s', '<=': 'i32.gt_s', '==': 'i32.ne', '!=': 'i32.eq'}
 COMP_F32 = {'>': 'f32.le', '<': 'f32.ge', '>=': 'f32.lt', '<=': 'f32.gt', '==': 'f32.ne', '!=': 'f32.eq'}
 
-def user_type_generate(type_left, Nodo):
+def user_type_check(type_left, Nodo):
     real_type = 'i32' if TS[type_left + ':main']['type'] == 'longint' else 'f32'
     wat.info(f'(block $b{number_block}')
     for i in TS[type_left + ':main']['valores']:
@@ -40,7 +40,7 @@ def assignment(Nodo, type):
     number_block += 1
     var_left_type = TS[Nodo.left.op]['type']
     if var_left_type + ':main' in TS:
-        user_type_generate(var_left_type, Nodo)
+        user_type_check(var_left_type, Nodo)
 
     hojas(Nodo.right)
     wat.info(f'{type}.set ${Nodo.left.op}')
