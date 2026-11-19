@@ -67,7 +67,7 @@ class TpParser(Parser):
         self.ret = False #la usamos para verificar si una funcion o metodo tiene un retorno
         self.type_func = [] #almacena los tipos de las funciones
         self.decClass = False
-        self.byteCadn = 100
+        self.byteCadn = 105
         self.err = err
 
     debugfile = 'parser.out'

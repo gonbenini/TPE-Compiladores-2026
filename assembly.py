@@ -33,6 +33,7 @@ def user_type_generate(type_left, Nodo):
     wat.info(f'unreachable')
     wat.info(f')') 
 
+
 '''Obtenemos el operando derecho para poder asignarlo a una variable auxiliar y reemplazar en el arbol.'''
 def assignment(Nodo, type):
     global TS
@@ -46,7 +47,6 @@ def assignment(Nodo, type):
     hojas(Nodo.right)
     wat.info(f'{type}.set ${Nodo.left.op}')
     return TpParser.NodoHoja(Nodo.left.type, Nodo.left.op)
-
 
 def sum_check(Nodo):
     global var_aux
@@ -152,12 +152,30 @@ def arithmetic(Nodo, type):
     type_aux[f'aux{var_aux}'] = Nodo.type
     return TpParser.NodoHoja(Nodo.type, f'aux{var_aux}')
 
-def converted(Nodo, type):
+def convert_check(Nodo):
+    global number_block
+    number_block += 1
+    wat.info(f'(block $b{number_block}')
     hojas(Nodo.son)
-    if Nodo.son.type == 'singlef':
-        wat.info(f'i32.trunc_f32_s')
-    
+    wat.info(f'f32.trunc') #quitamos la parte decimal y colocamos .0
+    hojas(Nodo.son)
+    wat.info(f'f32.eq')
+    wat.info(f'br_if $b{number_block}')
+    wat.info(f'i32.const 82')
+    wat.info(f'i32.const 22')
+    wat.info(f'call $console_log_string')
+    wat.info(f'unreachable')
+    wat.info(f')')
+
+def converted(Nodo, type):
     global var_aux
+    global number_block
+
+    if Nodo.son.type == 'singlef':
+        convert_check(Nodo)
+
+    hojas(Nodo.son)
+    wat.info(f'i32.trunc_f32_s')
     var_aux += 1
     wat.info(f'{type}.set $aux{var_aux}')
 
@@ -365,6 +383,7 @@ def clean_wat():
     wat_with_aux.info(f'(data (i32.const 10) "valor invalido para variable")')
     wat_with_aux.info(f'(data (i32.const 41) "overflow de enteros")')
     wat_with_aux.info(f'(data (i32.const 60) "overflow de flotantes")')
+    wat_with_aux.info(f'(data (i32.const 82) "perdida de informacion")')
 
     with open("./assembly.wat", "r") as f:
         content = f.read()
