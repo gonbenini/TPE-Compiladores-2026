@@ -58,7 +58,7 @@ class ParamF(Lista): #parametros formales
         return self.items[i]
 class TpParser(Parser):
 
-    def __init__(self, TS, _logger, arboles):
+    def __init__(self, TS, _logger, arboles, err):
         # Inyectamos dependencias
         self.TS = TS
         self._logger = _logger
@@ -68,6 +68,7 @@ class TpParser(Parser):
         self.type_func = [] #almacena los tipos de las funciones
         self.decClass = False
         self.byteCadn = 100
+        self.err = err
 
     debugfile = 'parser.out'
     tokens = TpLexer.tokens
@@ -224,6 +225,7 @@ class TpParser(Parser):
             self._logger.error(f"Linea {lineno} | Redeclaracion de {new_name.rsplit(':')[0]} en ambito {self.ambito}")
             if old_name and old_name in self.TS:
                 self.TS.pop(old_name)
+            self.err = True
             return False
         else:
             return True
@@ -246,6 +248,7 @@ class TpParser(Parser):
                     if i.type == value.type and i.op == value.op:
                         return True, 'type'
                 self._logger.error(f"Linea {lineno} | Valor {value} no pertenece al tipo {type1}")
+                self.err = True
                 return False, 'nil'
 
         key1 = f"{type1}:main"
@@ -271,6 +274,7 @@ class TpParser(Parser):
         else:
             if p:
                 self._logger.error(f"Linea {lineno} | Tipos incompatibles entre {type2} y {type1}")
+            self.err = True
             return False, 'nil'
 
     '''
@@ -395,6 +399,7 @@ class TpParser(Parser):
         #quitamos antes ambito y tipos por si ocurre un error.
         if p.ambito_metodo['tipo'] not in ('singlef', 'longint'):
             self._logger.error(f"Linea {p.lineno} | Tipo de dato no valido para metodos")
+            self.err = True
             return []
 
         new_name = p.ambito_metodo['name'] + ':' + self.ambito
@@ -478,9 +483,11 @@ class TpParser(Parser):
             valido, path = self.alcance(p[0])
             if not valido:
                 self._logger.error(f"Linea {p.lineno} | Tipo fuera de alcance")
+                self.err = True
                 return "error"
             elif ('type' in self.TS[path] and self.TS[path]['uso'] not in ('Nombre de clase', 'Nombre de tipo')) or ('type' not in self.TS[path]):
                 self._logger.error(f"Linea {p.lineno} | Tipo no valido")
+                self.err = True
                 return "error"
         return p[0]
 
@@ -524,6 +531,7 @@ class TpParser(Parser):
         self.type_func.pop()
         if p.ambito_func['tipo'] not in ('singlef', 'longint'):
             self._logger.error(f"Linea {p.lineno} | Tipo de dato no valido para funciones")
+            self.err = True
             return p
 
         new_name = p.ambito_func['name'] + ':' + self.ambito
@@ -567,14 +575,17 @@ class TpParser(Parser):
             for i in p.id_vars:
                 if p.ambito_clase['name'] == i:
                     self._logger.error(f"Linea {p.lineno} | Clase '{i}' no puede extenderse a si misma")
+                    self.err = True
                     continue
                 valido, path = self.alcance(i)
                 if not valido:
                     self._logger.error(f"Linea {p.lineno} | Clase '{i}' fuera de alcance")
+                    self.err = True
                     continue
                 else:
                     if self.TS[path]['type'] != 'CLASS':
                         self._logger.error(f"Linea {p.lineno} | '{i}' no es una clase")
+                        self.err = True
                         continue
                     self.TS[new_name]['extend'].append(i)
                     #vars.items.extend(self.TS[i + ':main']['vars'].items)
@@ -584,14 +595,16 @@ class TpParser(Parser):
             vars_code = self.TS[first_class]['vars']
             if len(vars_code) != len(vars):
                 self._logger.error(f"Linea {p.lineno} | Cantidad de atributos de clase {p.ambito_clase['name']} no coincide con la cantidad de atributos de la clase compatible")
+                self.err = True
                 return p
             err = False
             for i, j in zip(vars_code.items, vars.items):
                 valido, _ = self.check_type(i['type'], j['type'], lineno=p.lineno)
                 if not valido:
                     self._logger.error(f"Linea {p.lineno} | Tipo del atributo {j['name']} de clase {p.ambito_clase['name']} no coincide con su par {i['name']} en la clase compatible {first_class.split(':')[0]}")
-                    err = True
+                    self.err = True
             if err:
+                self.err = True
                 return p
 
         return p
@@ -609,6 +622,7 @@ class TpParser(Parser):
             self._logger.error(f"Linea {p.lineno} | Redeclaracion de codigo de clase {p.IDEN1} en ambito {self.ambito}")
             code = "error"
             valido = False
+            self.err = True
 
         if not valido and code != "error":
             self.TS[code + ':' + self.ambito] = {'class': p.IDEN0 + ':' + self.ambito, 'uso': 'Nombre de codigo'}
@@ -623,6 +637,7 @@ class TpParser(Parser):
         typef = True if all(isinstance(i.op, float) for i in p.constantes) else False
         if not (typei or typef):
             self._logger.error(f"Linea {p.lineno} | Tipos de datos diferentes entre las constantes {p.IDEN}")
+            self.err = True
             return p
 
         new_name = p.IDEN + ':main'
@@ -689,6 +704,7 @@ class TpParser(Parser):
         if self.type_func and self.type_func[-1] != p.expr.type:
             self._logger.error(f"Linea {p.lineno} | Se esperaba retornar {self.type_func[-1]} y se recibio {p.expr.type}")
             self.ret = False
+            self.err = True
             return self.NodoUnario('error', 'error', 'error')
         return self.NodoUnario('RET', p.expr, p.expr.type)
     
@@ -705,10 +721,12 @@ class TpParser(Parser):
 
     def validar_posicionales(self, lista, parametros_reales, posicionales, lineno=None):
         if len(posicionales) != len(parametros_reales.items):
+            self.err = True
             self._logger.error("Linea {lineno} | La cantidad de parametros posicionales no coincide con la cantidad de parametros reales")
             return None, False
         if not len(lista) == len(lista) and set(lista) == set(range(1, len(lista) + 1)):
             self._logger.error("Linea {lineno} | Los parametros posicionales no son validos")
+            self.err = True
             return None, False
         ord = {}
         for i in range(len(posicionales)):
@@ -729,6 +747,7 @@ class TpParser(Parser):
 
         if not valido:
             self._logger.error(f'Linea {p.lineno} | {p.asignable.op} no posee un metodo {p.IDEN}')
+            self.err = True
             return self.NodoUnario('error', 'error', 'error')
         
         elif self.TS[path]['uso'] == 'Nombre de metodo':
@@ -746,8 +765,10 @@ class TpParser(Parser):
                 return self.NodoUnario('CALL ' + path, raiz, self.TS[path]['type'])
 
             self._logger.error(f"Linea {p.lineno} | La cantidad de parametros reales o posicionales no coincide con los parametros formales")
+            self.err = True
             return self.NodoUnario('error', 'error', 'error')
         self._logger.error(f"Linea {p.lineno} | La invocacion no corresponde a un metodo")
+        self.err = True
         return self.NodoUnario('error', 'error', 'error')
 
     '''
@@ -759,6 +780,7 @@ class TpParser(Parser):
         valido, path = self.alcance(p.IDEN)
         if not valido:
             self._logger.error(f"Linea {p.lineno} | funcion {p.IDEN} no declarada o no alcanzable")
+            self.err = True
             return self.NodoUnario('CALL', 'error', 'error')
         elif self.TS[path]['uso'] == 'Nombre de funcion':
             params = ParamF(self.TS[path]['parametros'], self.TS)
@@ -774,9 +796,11 @@ class TpParser(Parser):
             if valido:
                 return self.NodoUnario('CALL ' + path, raiz, self.TS[path]['type'])
 
+            self.err = True
             self._logger.error("Linea {p.lineno} | La cantidad de parametros reales o posicionales no coincide con los parametros formales")
             return self.NodoUnario('error', 'error', 'error')
 
+        self.err = True
         self._logger.error(f"Linea {p.lineno} | La invocacion no corresponde a una funcion")
         return self.NodoUnario('error', 'error', 'error')
     
@@ -827,6 +851,7 @@ class TpParser(Parser):
 
             if not valido:
                 self._logger.error(f'Linea {p.lineno} | {p.asignable.op} no posee un atributo {p.IDEN}')
+                self.err = True
                 return self.NodoHoja('error', 'error')
             
             else:
@@ -837,10 +862,12 @@ class TpParser(Parser):
             valido, path = self.alcance(p.IDEN)
             if not valido:
                 self._logger.error(f"Linea {p.lineno} | variable {p.IDEN} no declarada o no alcanzable")
+                self.err = True
                 return self.NodoHoja('error', 'error')
             else:
                 if self.TS[path]['uso'] != 'Nombre de variable':
                     self._logger.error(f"Linea {p.lineno} | {p.IDEN} no es una variable")
+                    self.err = True
                     return self.NodoHoja('error', 'error')
                 return self.NodoHoja(self.TS[path]['type'], path)
 
@@ -851,6 +878,7 @@ class TpParser(Parser):
             use1 = self.TS[path1]['uso']
             if type1 not in ('longint', 'singlef') or (use1 == 'Nombre de clase'):
                 self._logger.error(f"Linea {lineno} | No se pueden operar entre no numericos")
+                self.err = True
                 return False
         path2 = type2 + ':main'
         if path2 in self.TS:
@@ -858,6 +886,7 @@ class TpParser(Parser):
             use2 = self.TS[path2]['uso']
             if type2 not in ('longint', 'singlef') or (use2 == 'Nombre de clase'):
                 self._logger.error(f"Linea {lineno} | No se pueden operar entre no numericos")
+                self.err = True
                 return False
         return True
 
@@ -898,6 +927,7 @@ class TpParser(Parser):
             path = p.expr.type + ':main'
             if path in self.TS and self.TS[path]['type'] not in ('longint', 'singlef'):
                 self._logger.error(f"Linea {p.lineno} | No se puede convertir un tipo no numérico a longint")
+                self.err = True
                 return self.NodoUnario('error', 'error', 'error')
             
             return self.NodoUnario('TOL', p.expr, 'longint')
@@ -939,6 +969,7 @@ class TpParser(Parser):
             path = p.expr.type + ':main'
             if path in self.TS and self.TS[path]['type'] not in ('longint', 'singlef'):
                 self._logger.error(f"Linea {p.lineno} | No se puede convertir un tipo no numérico a longint")
+                self.err = True
                 return self.NodoUnario('error', 'error', 'error')
         
         return self.NodoUnario('TOL', p.expr, 'longint')
@@ -979,6 +1010,7 @@ class TpParser(Parser):
             return self.NodoBinario(p[1], p[2], p[0], p.expr_linea0.type)
         else:
             self._logger.error(f"Linea {p.lineno} | Tipos de datos no validos para condicion")
+            self.err = True
             return self.NodoBinario('error', 'error', 'error', 'error')
 
     '''
@@ -1014,6 +1046,7 @@ class TpParser(Parser):
 
             if self.TS[path]['uso'] != 'Nombre de variable':
                 self._logger.error(f"Linea {p.lineno} | {p.IDEN} no es una variable")
+                self.err = True
                 return self.NodoBinario('error', 'error', 'error', 'error')
 
             equal_type, _ = self.check_type(self.TS[path]['type'], 'longint', lineno=p.lineno)
@@ -1023,6 +1056,7 @@ class TpParser(Parser):
             )
             if not equal_type or not equal_type2:
                 self._logger.error(f"Linea {p.lineno} | Tipos de datos no validos para iteracion")
+                self.err = True
                 return self.NodoBinario('error', 'error', 'error', 'error')
 
             it = self.NodoHoja('longint', path)
@@ -1044,11 +1078,13 @@ class TpParser(Parser):
 
             if (sentido == "<=" and sign == '-') or (sentido == ">=" and sign == '+') or (p.constante2.op == 0):
                 self._logger.error(f"Linea {p.lineno} | Iteracion infinita")
+                self.err = True
                 return self.NodoBinario('error', 'error', 'error', 'error')
 
             return arbol_for
         else:
             self._logger.error(f"Linea {p.lineno} | Variable {it} no declarada o no alcanzable")
+            self.err = True
             return self.NodoBinario('error', 'error', 'error', 'error')    
         
     @_('cuerpo_ejecutable', 'ejecutable')
@@ -1063,32 +1099,38 @@ class TpParser(Parser):
     @_('programa : program_in error ";"')
     def programa_error_declaracion(self, p):
         self._logger.error(f"Linea {p.lineno} | Error fatal en declaraciones")
+        self.err = True
         return p
 
     @_('programa : declaraciones cuerpo_ejecutable', 'programa : cuerpo_ejecutable')
     def programa_error_nombre(self, p):
         self._logger.error(f"Linea {p.lineno} | Falta nombre de programa")
+        self.err = True
         if not hasattr(p, 'declaraciones'): self._logger.error(f"Linea {p.lineno} | Falta declaracion")
         return p
 
     @_('declaracion : error ";"', 'declaracion_func : error ";"', 'declaracion_clase : error ";"')
     def declaracion_error(self, p):
         self._logger.error(f"Linea {p.lineno} | Error de declaracion")
+        self.err = True
         return []
 
     @_('declaracion : dec_var error ";"', 'declaracion_func : dec_var error ";"', 'declaracion_clase : dec_var error ";"')
     def declaracion_error_lista_var(self, p):
         self._logger.error(f"Linea {p.lineno} | Falta de ',' o ';' en declaracion")
+        self.err = True
         return []
 
     @_('declaracion_clase : tipo IDEN "(" error ";"')
     def declaracion_error_parametros(self, p):
         self._logger.error(f"Linea {p.lineno} | Falta de parametros formales")
+        self.err = True
         return []
 
     @_('declaracion : tipo FUNCTION error ";"', 'declaracion_func : tipo FUNCTION error ";"')
     def declaracion_error_function_name(self, p):
         self._logger.error(f"Linea {p.lineno} | Falta de nombre de funcion")
+        self.err = True
         return p
 
     @_('declaracion : ambito_func "(" error ";"', 'declaracion_func : ambito_func "(" error ";"')
@@ -1096,6 +1138,7 @@ class TpParser(Parser):
         self._logger.error(f"Linea {p.lineno} | Falta de nombre o tipo de parametro formal")
         self.ambito = self.ambito.rsplit(":", 1)[0] #desacoplamos ambito
         self.type_func.pop()
+        self.err = True
         return p
 
     @_('declaracion : ambito_clase error BEGIN declaraciones_clase END ";"')
@@ -1103,6 +1146,7 @@ class TpParser(Parser):
         self._logger.error(f"Linea {p.lineno} | Falta de codigo en declaracion de clase")
         self.ambito = self.ambito.rsplit(":", 1)[0] #desacoplamos ambito
         self.decClass = False
+        self.err = True
         return p
 
     @_('declaracion : ambito_clase BEGIN declaraciones_clase EXTENDS error ";" END ";"')
@@ -1110,53 +1154,63 @@ class TpParser(Parser):
         self._logger.error(f"Linea {p.lineno} | Falta de identificadores luego del 'extends'")
         self.ambito = self.ambito.rsplit(":", 1)[0] #desacoplamos ambito
         self.decClass = False
+        self.err = True
         return p
 
     @_('declaracion : TYPEDEF IDEN ASSIGN "[" error "]" ";"')
     def tipoUsuario_error(self, p):
         self._logger.error(f"Linea {p.lineno} | Asencia de valores para la enumeración")
+        self.err = True
         return p
 
     @_('ejecutable : error ";"', 'ejecutable : error END')
     def ejecutable_error(self, p):
         self._logger.error(f"Linea {p.lineno} | Error ejecutable")
+        self.err = True
         return self.NodoUnario('error', 'error', 'error')
 
     @_('ejecutable : POUT "(" ")" ";"')
     def ejecutable_error_pout(self, p):
         self._logger.error(f"Linea {p.lineno} | Falta de argumento en sentencia 'pout'")
+        self.err = True
         return self.NodoUnario('error', 'error', 'error')
 
     @_('ejecutable : IF error ";"', 'ejecutable : IF "(" condicion error ";"')
     def ejecutable_error_if(self, p):
         self._logger.error(f"Linea {p.lineno} | Falta de parentesis de cierre o apertura en linea")
+        self.err = True
         return self.NodoBinario('error', 'error', 'error', 'error')
 
     @_('ejecutable : IF "(" condicion ")" cuerpo_control error ";"')
     def ejecutable_error_if_endIF(self, p):
         self._logger.error(f"Linea {p.lineno} | Falta de 'end_if'")
+        self.err = True
         return self.NodoBinario('error', 'error', 'error', 'error')
 
     @_('expr : expr PLUS error', 'expr : expr MINUS error',
        'expr_linea : expr_linea PLUS error', 'expr_linea : expr_linea MINUS error')
     def expr_error(self, p):
         self._logger.error(f"Linea {p.lineno} | Falta de operando derecho en linea")
+        self.err = True
         return self.NodoBinario('error', 'error', 'error', 'error')
 
     @_('term : term TIMES error', 'term : term DIVIDE error', 'term : TIMES factor', 'term : DIVIDE factor', 'term : TIMES error', 'term : DIVIDE error',
        'term_linea : term_linea TIMES error', 'term_linea : term_linea DIVIDE error', 'term_linea : TIMES factor_linea', 'term_linea : DIVIDE factor_linea', 'term_linea : TIMES error', 'term_linea : DIVIDE error')
     def term_error(self, p):
         self._logger.error(f"Linea {p.lineno} | Falta de operando")
+        self.err = True
         return self.NodoBinario('error', 'error', 'error', 'error')
 
     @_('asignacion_de_linea : asignable ASSIGN2P IDEN',
        'asignacion_de_linea : asignable ASSIGN2P constante')
     def asignacion_de_linea_error(self, p):
         self._logger.error(f"Linea {p.lineno} | Uso del símbolo de asignación normal ':=' donde debe usarse '='")
+        self.err = True
         return self.NodoBinario('error', 'error', 'error', 'error')
 
     @_('ejecutable : FROM IDEN ASSIGN2P constante TO constante BY constante REPEAT error',
        'ejecutable : FROM IDEN ASSIGN2P constante TO constante BY constante REPEAT BEGIN END ";"')
     def iteracion_error_cuerpo(self, p):
         self._logger.error(f"Linea {p.lineno} | Falta de cuerpo de control en iteracion")
+        self.err = True
         return self.NodoBinario('error', 'error', 'error', 'error')

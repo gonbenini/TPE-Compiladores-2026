@@ -19,14 +19,14 @@ TS = {
     # ejemplo de identificador, donde los mismos usan siempre tipo IDEN.
 }
 
-AS = []
 arboles = {}
+err = False
 
 ### Instanciaciones
 
 tokens_out = []
-lexer = TpLexer(_logger, TS, PR, tokens_out)
-parser = TpParser(TS, _logger, arboles)
+lexer = TpLexer(_logger, TS, PR, tokens_out, err)
+parser = TpParser(TS, _logger, arboles, err)
 
 ### Invocacion
 
@@ -34,4 +34,5 @@ tokens = lexer.tokenize(program_code)
 result = parser.parse(tokens)
 TS = clean_TS(TS) #limpieza de la TS antes de generar el assembler.
 save_lexer_output(TS)
-GetAssembly(result, TS, arboles)
+if not lexer.err and not parser.err:
+    GetAssembly(result, TS, arboles)
