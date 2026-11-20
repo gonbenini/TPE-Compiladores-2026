@@ -36,7 +36,7 @@ def user_type_check(type_left, Nodo):
 def assignment(Nodo, type):
     global TS
     global number_block
-    global var_aux #ver si sacar
+    global var_aux
     number_block += 1
     var_left_type = TS[Nodo.left.op]['type']
     if var_left_type + ':main' in TS:
@@ -191,7 +191,7 @@ def comparate(Nodo, type):
     return None #chequear
 
 def condition(Nodo, type):
-    Nodo.son = comparate(Nodo.son, type)
+    Nodo.son = generateWAT(Nodo.son, type)
     wat.info(f'br_if $b{blocks[-1]}') #salta si la condicion da verdadera
     return None
 
@@ -231,7 +231,7 @@ def loop(Nodo, type):
     blocks.append(number_block)
 
     Nodo.right = generateWAT(Nodo.right, type)
-    wat.info(f'br $b{blocks[-1]}')
+    wat.info(f'br $b{blocks[-2]}')
 
     wat.info(f'))')
     blocks.pop()
@@ -305,6 +305,10 @@ def generateWAT(Nodo, type):
         if Nodo.op.split(' ')[0] == 'CALL': return callFunction(Nodo, type)
         if Nodo.op == 'RET': return ret(Nodo)
 
+    if isinstance(Nodo, TpParser.NodoHoja):
+        hojas(Nodo)
+        return Nodo
+
 def declarate_var(var, type):
     global TS
     if TS[var]['type'] == 'longint':
@@ -345,7 +349,7 @@ def generateDeclaration(arboles):
             declarate_func(i, arboles[i]['nodo'])
 
         if 'type' in TS[i] and TS[i]['type'] == 'CADN':
-            wat.info(f'(data (i32.const {TS[i]["dir"]}) {TS[i]['value']})')
+            wat.info(f'(data (i32.const {TS[i]["dir"]}) {TS[i]["value"]})')
 
 def GetAssembly(Nodo, T, arboles):
     global TS
