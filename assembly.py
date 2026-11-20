@@ -280,6 +280,7 @@ def callFunction(Nodo, type):
 
 def ret(Nodo):
     hojas(Nodo.son)
+    wat.info('return')
     return None
 
 def hojas(Nodo):
@@ -312,13 +313,15 @@ def generateWAT(Nodo, type):
 
         if Nodo.op == 'TOL': return converted(Nodo, type)
         if Nodo.op == 'POUT': return printer(Nodo)
-        if Nodo.op == 'TRANSFER_OBJECT': return generateWAT(Nodo.son, type)
         if Nodo.op.split(' ')[0] == 'CALL': return callFunction(Nodo, type)
         if Nodo.op == 'RET': return ret(Nodo)
 
     if isinstance(Nodo, TpParser.NodoHoja):
         hojas(Nodo)
         return Nodo
+
+    if isinstance(Nodo, str) and Nodo in TS:
+        return TpParser.NodoHoja(TS[Nodo]['type'], Nodo)
 
 def declarate_var(var, type):
     global TS
@@ -343,7 +346,11 @@ def declarate_func(func, arbol):
     else:
         wat.info(f'(result f32)')
 
-    generateWAT(arbol, 'local')
+    generateWAT(arbol, 'global')
+    if TS[func]["type"] == 'longint':
+        wat.info('i32.const 0')
+    else:
+        wat.info('f32.const 0')
     wat.info(')')
 
 def generateDeclaration(arboles):
