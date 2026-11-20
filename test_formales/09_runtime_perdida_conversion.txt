@@ -1,0 +1,17 @@
+program t09_rt_perdida_conv
+singlef f_ok, f_dec;
+longint r;
+
+begin
+    // Control en tiempo de ejecucion (g): Perdida de informacion en conversion tol(singlef)
+    f_ok := 8.0;
+    r := tol(f_ok);
+    pout("Conversion valida tol(8.0) (esp 8):");
+    pout(r);
+
+    f_dec := 8.25;
+    pout("Disparando perdida de informacion en tol(8.25)...");
+    r := tol(f_dec);
+    pout("No deberia imprimirse:");
+    pout(r);
+end;

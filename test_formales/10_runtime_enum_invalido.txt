@@ -1,0 +1,18 @@
+program t10_rt_enum_invalido
+typedef codigo = [10$l, 20$l, 30$l];
+longint entrada;
+codigo c;
+
+begin
+    // Control en tiempo de ejecucion (h): Asignacion invalida a variable de enumeracion
+    entrada := 20$l;
+    c := entrada;
+    pout("Asignacion valida en runtime (esp 20):");
+    pout(c);
+
+    entrada := 25$l;
+    pout("Disparando valor invalido para variable (25 no pertenece a codigo)...");
+    c := entrada;
+    pout("No deberia imprimirse:");
+    pout(c);
+end;

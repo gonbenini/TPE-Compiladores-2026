@@ -1,0 +1,49 @@
+program t04_err_tipos_enum
+// Tema 23: constantes de distinto tipo en la enumeracion
+typedef enum_mixto = [1$l, 2.5];
+typedef dias = [1$l, 2$l, 3$l];
+
+class item citem
+begin
+    longint v;
+end;
+
+longint x, y, i;
+singlef f;
+dias d;
+item obj1, obj2;
+
+begin
+    // Temas 33-34: tipos incompatibles en asignaciones y expresiones
+    x := 1.5;
+    f := 10$l;
+    x := x + f;
+    f := f * x;
+
+    // Operaciones aritmeticas y conversion tol() sobre tipos no numericos (objetos)
+    x := obj1 + obj2;
+    x := tol(obj1);
+
+    // Tema 23: valor constante fuera de los valores de la enumeracion (compilacion)
+    d := 99$l;
+    d := 1.0;
+
+    // Temas 17-18: error semantico y sintactico en asignaciones en linea
+    x := y = 2.5 + 1$l;
+    x := y := 1$l;
+
+    // Condicion con tipos incompatibles
+    if (x > f)
+        pout("error");
+    end_if;
+
+    // Iteracion con tipos no enteros e iteracion infinita
+    from f := 1$l to 5$l by 1$l repeat
+        pout(x);
+
+    from i := 1.0 to 5$l by 1$l repeat
+        pout(i);
+
+    from i := 1$l to 5$l by -1$l repeat
+        pout(i);
+end;

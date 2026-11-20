@@ -1,0 +1,95 @@
+program t05_err_decl_alcance
+typedef t_dup = [1$l, 2$l];
+// Redeclaracion de tipo en mismo ambito
+typedef t_dup = [3$l, 4$l];
+
+longint x, r;
+// Redeclaracion de variable en mismo ambito
+longint x;
+
+// Uso de tipo no declarado
+tipo_inexistente z;
+
+class c_dup cd1
+begin
+    longint a;
+    longint m1(longint p)
+    begin
+        ret(p);
+    end;
+    // Redeclaracion de metodo en misma clase
+    longint m1(longint q)
+    begin
+        ret(q);
+    end;
+end;
+
+// Redeclaracion de clase en mismo ambito
+class c_dup cd2
+begin
+    longint b;
+end;
+
+// Redeclaracion de atributo en una misma clase (se detecta al instanciar el objeto)
+class c_attr_dup cad
+begin
+    longint rep;
+    longint rep;
+end;
+
+c_attr_dup obj_dup;
+
+// Tipo de retorno invalido para funcion (clase)
+c_dup function f_ret_clase(longint p)
+begin
+    ret(1$l);
+end;
+
+// Parametro formal redeclarado y retorno con tipo incompatible
+longint function f_params(longint a, longint a)
+begin
+    ret(2.5);
+end;
+
+// Funcion con variable local y funcion anidada para probar alcance
+longint function f_ambito(longint a, singlef b)
+longint oculta;
+longint function f_interna(longint k)
+begin
+    ret(k);
+end;
+begin
+    oculta := a;
+    ret(f_interna(oculta));
+end;
+
+// Redeclaracion de funcion en mismo ambito
+longint function f_ambito(longint p)
+begin
+    ret(p);
+end;
+
+// Violacion de alcance entre funciones hermanas
+longint function f_hermana(longint p)
+begin
+    oculta := p;
+    ret(p);
+end;
+
+begin
+    // Variable y funcion no declaradas
+    no_declarada := 1$l;
+    r := no_existe_func(1$l);
+
+    // Violacion de alcance desde main hacia local y funcion anidada
+    oculta := 10$l;
+    r := f_interna(5$l);
+
+    // Temas 19-21: errores en invocacion y parametros posicionales
+    r := f_ambito(1$l);
+    r := f_ambito(1$l, 2.5, 3$l);
+    r := f_ambito(1.5, 2$l);
+    r := f_ambito(1$l, 2.5)[1$l];
+    r := f_ambito(1$l, 2.5)[1$l, 1$l];
+    r := f_ambito(1$l, 2.5)[2$l, 1$l];
+end;

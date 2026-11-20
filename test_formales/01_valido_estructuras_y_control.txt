@@ -1,0 +1,87 @@
+program t01_estructuras_control
+typedef estado = [1$l, 2$l, 3$l];
+typedef escala = [1.0, 2.5, 5.0];
+
+longint a, b, c, r, i, j, ok, fail;
+singlef f1, f2, fres;
+estado est;
+escala esc;
+
+begin
+    // 1) Aritmetica entera y flotante (con constantes negativas)
+    a := 10$l;
+    b := -2$l;
+    c = a * 2$l + b / 2$l - 4$l;
+    pout("1) Entero c (esp 15):");
+    pout(c);
+
+    f1 := 6.0;
+    f2 := 2.5;
+    fres = f1 + f2 * 2.0 - 1.0;
+    pout("2) Flotante fres (esp 10.0):");
+    pout(fres);
+
+    // 2) Conversion explicita valida tol() (Temas 33-34)
+    r := tol(f1);
+    pout("3) tol(6.0) (esp 6):");
+    pout(r);
+
+    // 3) Enumeraciones validas: constante y expresion (Tema 23)
+    est = 1$l;
+    est := est + 1$l;
+    esc := 2.5;
+    pout("4) Enums est y esc (esp 2 y 2.5):");
+    pout(est);
+    pout(esc);
+
+    // 4) Asignacion en linea en expresion: con constante y con variable (Temas 17-18)
+    r := a = 5$l + 3$l;
+    pout("5a) Inline constante a y r (esp 5 y 8):");
+    pout(a);
+    pout(r);
+
+    r := c = a + 2$l;
+    pout("5b) Inline variable c y r (esp 5 y 7):");
+    pout(c);
+    pout(r);
+
+    // 5) Sentencias IF / ELSE con comparadores longint y singlef
+    ok := 0$l;
+    fail := 0$l;
+    if (a == 5$l) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (a != 3$l) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (b < a) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (a <= 5$l) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (f1 > f2) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (f2 >= 2.5) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+
+    // 6) Anidamiento de IF y FROM (ascendente y descendente) + inline en condicion
+    r := 0$l;
+    if (a = 4$l == 4$l)
+    begin
+        from i := 1$l to 3$l by 1$l repeat
+        begin
+            if (i != 2$l)
+            begin
+                from j := 2$l to 1$l by -1$l repeat
+                    r := r + i;
+            end;
+            else
+            begin
+                r := r + 10$l;
+            end;
+            end_if;
+        end;
+    end;
+    else
+    begin
+        fail := fail + 1$l;
+    end;
+    end_if;
+
+    // i=1 -> +1+1=2; i=2 -> +10; i=3 -> +3+3=6 => r = 18
+    pout("6) Control ok, fail, r (esp 6, 0, 18):");
+    pout(ok);
+    pout(fail);
+    pout(r);
+end;

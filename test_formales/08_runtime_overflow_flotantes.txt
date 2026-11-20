@@ -1,0 +1,20 @@
+program t08_rt_overflow_float
+singlef f, res;
+
+begin
+    // Control en tiempo de ejecucion (c): Overflow en sumas de flotantes (singlef)
+    // Construye 2.0e38 sin usar notacion cientifica
+    f := 1000000000.0;
+    f := f * f;
+    f := f * f;
+    f := f * 200.0;
+
+    res := f + 1.0;
+    pout("Suma flotante valida cercana al limite:");
+    pout(res);
+
+    pout("Disparando overflow de flotantes (2e38 + 2e38)...");
+    res := f + f;
+    pout("No deberia imprimirse:");
+    pout(res);
+end;

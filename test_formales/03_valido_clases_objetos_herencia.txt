@@ -1,0 +1,133 @@
+program t03_clases_herencia
+
+// Clases base con atributo 'x' y metodo 'obtener' repetidos (Temas 30-32)
+class base1 cb1
+begin
+    longint x;
+    longint obtener(longint v)
+    begin
+        ret(v + 100$l);
+    end;
+end;
+
+class base2 cb2
+begin
+    longint x;
+    singlef y;
+    longint obtener(longint v)
+    begin
+        ret(v + 200$l);
+    end;
+end;
+
+// Clases distintas estructuralmente compatibles con mismo codigo (Temas 24-25)
+class punto cpar
+begin
+    longint x;
+    singlef y;
+end;
+
+class vector cpar
+begin
+    longint vx;
+    singlef vy;
+end;
+
+// Composicion anidada con clases compatibles
+class caja ccaja
+begin
+    longint id;
+    punto pos;
+end;
+
+class contenedor ccaja
+begin
+    longint cid;
+    vector vpos;
+end;
+
+// Clase con herencia multiple, composicion y metodos propios
+class hija ch1
+begin
+    longint propio;
+    base1 comp;
+    longint restar_m(longint a, longint b)
+    begin
+        ret(a - b);
+    end;
+    longint mostrar_m(longint v)
+    begin
+        pout("Metodo suelto mostrar_m (esp 42):");
+        pout(v);
+        ret(v);
+    end;
+    extends base1, base2;
+end;
+
+// Funcion que recibe un objeto por parametro
+longint function sumar_punto(punto p)
+begin
+    ret(p.x + tol(p.y));
+end;
+
+hija h;
+punto p1, p2;
+vector v1;
+caja cj;
+contenedor ct;
+longint r;
+
+begin
+    // 1) Acceso a atributos propios, compuestos y desambiguacion heredada (Temas 28-32)
+    h.propio := 5$l;
+    h.comp.x := 15$l;
+    h.base1.x := 10$l;
+    h.base2.x := 20$l;
+    h.base2.y := 3.5;
+
+    pout("1) Propio, comp, base1.x, base2.x, base2.y (esp 5, 15, 10, 20, 3.5):");
+    pout(h.propio);
+    pout(h.comp.x);
+    pout(h.base1.x);
+    pout(h.base2.x);
+    pout(h.base2.y);
+
+    // 2) Desambiguacion de metodos heredados + metodo propio con posicionales
+    pout("2) Metodos base1.obtener(5), base2.obtener(5), restar_m posicional (esp 105, 205, -7):");
+    r := h.base1.obtener(5$l);
+    pout(r);
+    r := h.base2.obtener(5$l);
+    pout(r);
+    r := h.restar_m(10$l, 3$l)[2$l, 1$l];
+    pout(r);
+
+    // 3) Asignacion entre objetos de misma clase y clases compatibles (Temas 24-25)
+    p1.x := 8$l;
+    p1.y := 4.0;
+    p2 := p1;
+    v1 = p1;
+    p1.x := 999$l;
+    pout("3) p2 y v1 tras mutar p1 (esp 8, 4.0, 8, 4.0):");
+    pout(p2.x);
+    pout(p2.y);
+    pout(v1.vx);
+    pout(v1.vy);
+
+    // 4) Copia recursiva entre objetos compuestos compatibles (caja <- contenedor)
+    ct.cid := 50$l;
+    ct.vpos.vx := 7$l;
+    ct.vpos.vy := 2.0;
+    cj := ct;
+    pout("4) caja <- contenedor (esp 50, 7, 2.0):");
+    pout(cj.id);
+    pout(cj.pos.x);
+    pout(cj.pos.y);
+
+    // 5) Pasaje de objeto como parametro
+    r := sumar_punto(p2);
+    pout("5) sumar_punto(p2) (esp 12):");
+    pout(r);
+
+    // 6) Invocacion de metodo como sentencia suelta
+    h.mostrar_m(42$l);
+end;

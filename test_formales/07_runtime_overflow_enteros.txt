@@ -1,0 +1,16 @@
+program t07_rt_overflow_int
+longint a, b, res;
+
+begin
+    // Control en tiempo de ejecucion (b): Overflow en sumas de enteros (longint)
+    a := 2000000000$l;
+    b := 100000000$l;
+    res := a + b;
+    pout("Suma entera valida (esp 2100000000):");
+    pout(res);
+
+    pout("Disparando overflow de enteros (2000000000 + 2000000000)...");
+    res := a + a;
+    pout("No deberia imprimirse:");
+    pout(res);
+end;

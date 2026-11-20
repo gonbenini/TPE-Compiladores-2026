@@ -1,0 +1,92 @@
+program t02_funciones_alcance
+longint g, x, r;
+singlef rf;
+
+// Funcion con variable local (shadowing de x), acceso a global y funcion anidada
+longint function calcular(longint a, longint b)
+longint x;
+longint function sumar_global(longint k)
+begin
+    ret(k + g);
+end;
+begin
+    x := a - b;
+    ret(sumar_global(x));
+end;
+
+// Funcion con multiples returns (early return + ciclo from)
+longint function buscar_par(longint limite)
+longint i;
+begin
+    if (limite <= 0$l)
+        ret(-1$l);
+    end_if;
+    from i := 1$l to 5$l by 1$l repeat
+    begin
+        if (i == limite)
+            ret(i * 10$l);
+        end_if;
+    end;
+    ret(0$l);
+end;
+
+// Funcion singlef con return en ramas if/else
+singlef function operar(longint modo, singlef f1, singlef f2)
+begin
+    if (modo == 1$l)
+        ret(f1 + f2);
+    else
+        ret(f1 - f2);
+    end_if;
+end;
+
+// Funcion sin ret explicito (retorna 0 por defecto)
+longint function sin_retorno(longint v)
+begin
+    pout("Dentro de sin_retorno:");
+    pout(v);
+end;
+
+begin
+    g := 100$l;
+    x := 555$l;
+
+    // Invocacion normal y con parametros posicionales (Temas 19-21)
+    // calcular(10, 3) => (10 - 3) + 100 = 107
+    r := calcular(10$l, 3$l);
+    pout("1) Normal (esp 107):");
+    pout(r);
+
+    // calcular(10, 3)[2, 1] => a=3, b=10 => (3 - 10) + 100 = 93
+    r := calcular(10$l, 3$l)[2$l, 1$l];
+    pout("2) Posicional [2,1] (esp 93):");
+    pout(r);
+
+    // Verifica que x global no fue pisada por x local de calcular
+    pout("3) Global x intacta (esp 555):");
+    pout(x);
+
+    // Multiples returns
+    pout("4) buscar_par(-2, 3, 9) (esp -1, 30, 0):");
+    r := buscar_par(-2$l);
+    pout(r);
+    r := buscar_par(3$l);
+    pout(r);
+    r := buscar_par(9$l);
+    pout(r);
+
+    // Funcion singlef con parametros posicionales
+    // operar(2.0, 1, 7.5)[3, 1, 2] => modo=1, f1=7.5, f2=2.0 => 9.5
+    rf := operar(2.0, 1$l, 7.5)[3$l, 1$l, 2$l];
+    pout("5) operar posicional [3,1,2] (esp 9.5):");
+    pout(rf);
+
+    // Retorno por defecto (imprime 77 y retorna 0)
+    r := sin_retorno(77$l);
+    pout("6) Retorno por defecto (esp 0):");
+    pout(r);
+
+    // Invocacion de funcion como sentencia suelta (imprime 88)
+    pout("7) Invocacion suelta (esp 88):");
+    sin_retorno(88$l);
+end;

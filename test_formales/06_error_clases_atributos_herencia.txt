@@ -1,0 +1,72 @@
+program t06_err_clases_herencia
+longint v_prim, x;
+
+class base1 cb1
+begin
+    longint a;
+    singlef b;
+end;
+
+class base2 cb2
+begin
+    longint a;
+end;
+
+// Tema 24: mismo codigo cb1 pero distinta cantidad de atributos
+class mal_cant cb1
+begin
+    longint a;
+end;
+
+// Tema 24: mismo codigo cb1 pero distinto tipo de atributo
+class mal_tipo cb1
+begin
+    singlef a;
+    longint b;
+end;
+
+// Codigo de clase colisionando con variable ya declarada
+class mal_cod v_prim
+begin
+    longint a;
+end;
+
+// Clase con misma estructura que base1 pero DISTINTO codigo (Temas 24-25)
+class otra_clase cb_distinto
+begin
+    longint a;
+    singlef b;
+end;
+
+// Temas 30-32: herencia de clase inexistente, no-clase y auto-herencia
+class her_err ch_err
+begin
+    longint k;
+    extends no_existe, v_prim, her_err;
+end;
+
+// Clase valida con herencia multiple para probar acceso sin desambiguar
+class hija ch_ok
+begin
+    longint propio;
+    extends base1, base2;
+end;
+
+base1 o1;
+otra_clase o2;
+hija h;
+
+begin
+    // Temas 24-25: asignacion invalida entre objetos de clases con distinto codigo
+    o1 := o2;
+
+    // Temas 28-29: acceso a atributo/metodo inexistente, sobre primitiva y atributo como metodo
+    x := o1.no_existe;
+    o1.metodo_inexistente(1$l);
+    x := v_prim.algo;
+    o1.a(1$l);
+
+    // Temas 30-32: acceso a atributo heredado 'a' sin desambiguar la clase padre
+    x := h.a;
+    x := h.otra_clase.a;
+end;
