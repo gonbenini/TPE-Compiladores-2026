@@ -1,0 +1,221 @@
+program test_objetos_y_returns
+
+// 1) Clase de 1 solo atributo (rama len == 1 en assign_generate)
+class simple c1
+begin
+    longint v;
+end;
+
+// 2) Clases de 2 atributos con mismo codigo (compatibilidad estructural - Tema 24)
+class punto cpar
+begin
+    longint x;
+    singlef y;
+end;
+
+class vector cpar
+begin
+    longint vx;
+    singlef vy;
+end;
+
+// 3) Clase de 3 atributos (rama recursiva len >= 3) + metodo con multiples ret
+class triple c3
+begin
+    longint a;
+    longint b;
+    longint c;
+    longint mayor(longint n1, longint n2)
+    begin
+        if (n1 >= n2)
+            ret(n1);
+        else
+            ret(n2);
+        end_if;
+    end;
+end;
+
+// 4) Composicion anidada con mismo codigo (copia recursiva de objetos)
+class caja ccaja
+begin
+    longint id;
+    punto pos;
+end;
+
+class contenedor ccaja
+begin
+    longint cid;
+    vector vpos;
+end;
+
+// --- FUNCIONES CON DISTINTOS TIPOS DE RETURN ---
+
+// A) Early returns en IF sin ELSE + return final con expresion
+longint function signo_o_doble(longint n)
+begin
+    if (n < 0$l)
+        ret(-1$l);
+    end_if;
+    if (n == 0$l)
+        ret(0$l);
+    end_if;
+    ret(n * 2$l);
+end;
+
+// B) Return en todas las ramas de IF/ELSE anidados (sin ret suelto al final)
+longint function clasificar(longint n)
+begin
+    if (n < 10$l)
+        ret(1$l);
+    else
+        if (n < 20$l)
+            ret(2$l);
+        else
+            ret(3$l);
+        end_if;
+    end_if;
+end;
+
+// C) Return temprano dentro de un ciclo FROM + fallback al final
+longint function buscar_primero(longint objetivo)
+longint i;
+begin
+    from i := 1$l to 5$l by 1$l repeat
+    begin
+        if (i == objetivo)
+            ret(i * 10$l);
+        end_if;
+    end;
+    ret(-1$l);
+end;
+
+// D) Funcion singlef con multiples returns
+singlef function operar_flt(longint op, singlef f1, singlef f2)
+begin
+    if (op == 1$l)
+        ret(f1 + f2);
+    else
+        ret(f1 - f2);
+    end_if;
+end;
+
+// E) Funcion sin ret explicito (prueba retorno por defecto 0)
+longint function sin_ret(longint dato)
+begin
+    pout("Dentro de sin_ret (esp 77):");
+    pout(dato);
+end;
+
+// F) Funcion que recibe un objeto por parametro + multiples returns
+longint function evaluar_punto(punto p)
+begin
+    if (p.x > 0$l)
+        ret(p.x + tol(p.y));
+    end_if;
+    ret(0$l);
+end;
+
+simple s1, s2;
+punto p1, p2;
+vector v1;
+triple t1, t2;
+caja cj1;
+contenedor ct1;
+longint r;
+singlef rf;
+
+begin
+    // --- PRUEBAS DE ASIGNACION ENTRE OBJETOS ---
+
+    // 1) Misma clase, 1 atributo (:=)
+    s1.v := 42$l;
+    s2 := s1;
+    s1.v := 999$l;
+    pout("1) simple s2.v tras mutar s1 (esp 42):");
+    pout(s2.v);
+
+    // 2) Misma clase (2 atributos) y clase distinta con mismo codigo (= y :=)
+    p1.x := 10$l;
+    p1.y := 4.0;
+    p2 := p1;
+    v1 = p1;
+    p1.x := 500$l;
+    p1.y := 9.0;
+    pout("2) p2 (esp 10, 4.0) y v1 (esp 10, 4.0):");
+    pout(p2.x);
+    pout(p2.y);
+    pout(v1.vx);
+    pout(v1.vy);
+
+    // 3) Misma clase, 3 atributos
+    t1.a := 1$l;
+    t1.b := 2$l;
+    t1.c := 3$l;
+    t2 := t1;
+    pout("3) triple t2 (esp 1, 2, 3):");
+    pout(t2.a);
+    pout(t2.b);
+    pout(t2.c);
+
+    // 4) Copia recursiva entre clases compuestas compatibles (caja <- contenedor)
+    ct1.cid := 88$l;
+    ct1.vpos.vx := 7$l;
+    ct1.vpos.vy := 3.0;
+    cj1 := ct1;
+    ct1.vpos.vx := 0$l;
+    pout("4) caja <- contenedor (esp 88, 7, 3.0):");
+    pout(cj1.id);
+    pout(cj1.pos.x);
+    pout(cj1.pos.y);
+
+    // --- PRUEBAS DE MULTIPLES RETURN ---
+
+    // A) Early returns
+    pout("A) signo_o_doble(-5, 0, 6) (esp -1, 0, 12):");
+    r := signo_o_doble(-5$l);
+    pout(r);
+    r := signo_o_doble(0$l);
+    pout(r);
+    r := signo_o_doble(6$l);
+    pout(r);
+
+    // B) Return en cada rama de IF/ELSE anidado
+    pout("B) clasificar(5, 15, 25) (esp 1, 2, 3):");
+    r := clasificar(5$l);
+    pout(r);
+    r := clasificar(15$l);
+    pout(r);
+    r := clasificar(25$l);
+    pout(r);
+
+    // C) Return dentro de FROM y fallback fuera del ciclo
+    pout("C) buscar_primero(3, 9) (esp 30, -1):");
+    r := buscar_primero(3$l);
+    pout(r);
+    r := buscar_primero(9$l);
+    pout(r);
+
+    // D) Return singlef
+    pout("D) operar_flt(1 y 2) (esp 7.5, 2.5):");
+    rf := operar_flt(1$l, 5.0, 2.5);
+    pout(rf);
+    rf := operar_flt(2$l, 5.0, 2.5);
+    pout(rf);
+
+    // E) Funcion sin ret explicito
+    r := sin_ret(77$l);
+    pout("E) retorno por defecto sin_ret (esp 0):");
+    pout(r);
+
+    // F) Pasaje de objeto como parametro + multiples ret
+    pout("F) evaluar_punto(p2) (esp 14):");
+    r := evaluar_punto(p2);
+    pout(r);
+
+    // G) Metodo de clase con multiples ret
+    pout("G) t2.mayor(9, 4) y (2, 8) (esp 9, 8):");
+    r := t2.mayor(9$l, 4$l);
+    pout(r);
+    r := t2.mayor(2$l, 8$l);
+    pout(r);
+end;
