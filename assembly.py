@@ -198,24 +198,32 @@ def condition(Nodo, type):
 def selection(Nodo, type):
     global number_block
     number_block += 1
-    wat.info(f'(block $b{number_block}')
-    blocks.append(number_block)
-    if isinstance(Nodo.right, TpParser.NodoBinario):
-        number_block += 1
-        wat.info(f'(block $b{number_block}')
-        blocks.append(number_block)
-    Nodo.left = condition(Nodo.left, type)
-    if isinstance(Nodo.right, TpParser.NodoBinario): #cuerpo
-        Nodo.right.left = generateWAT(Nodo.right.left, type) #then
-        wat.info(f'br $b{blocks[-2]}')
-        wat.info(f')')
-        Nodo.right.right = generateWAT(Nodo.right.right, type) #else
-        wat.info(f')')
-    else:
-        Nodo.left = generateWAT(Nodo.right, type) #then
-        wat.info(f')')
+    b_out = number_block
+    wat.info(f'(block $b{b_out}')
+    blocks.append(b_out)
 
-    blocks.pop()
+    tiene_else = isinstance(Nodo.right, TpParser.NodoBinario)
+    if tiene_else:
+        number_block += 1
+        b_else = number_block
+        wat.info(f'(block $b{b_else}')
+        blocks.append(b_else)
+
+    Nodo.left = condition(Nodo.left, type)
+
+    if tiene_else:
+        Nodo.right.left = generateWAT(Nodo.right.left, type) # then
+        wat.info(f'br $b{b_out}')
+        wat.info(f')')
+        blocks.pop() # cierra b_else
+        Nodo.right.right = generateWAT(Nodo.right.right, type) # else
+        wat.info(f')')
+        blocks.pop() # cierra b_out
+    else:
+        Nodo.left = generateWAT(Nodo.right, type) # then
+        wat.info(f')')
+        blocks.pop() # cierra b_out
+
     return None
 
 def loop(Nodo, type):
