@@ -1,0 +1,96 @@
+program test_if_comparaciones
+longint a, b, c, n1, n2, z, ok, fail;
+singlef f1, f2, f3, fn1, fn2, fz;
+
+begin
+    ok := 0$l;
+    fail := 0$l;
+
+    // Valores longint: positivos, iguales, cero y negativos
+    a := 5$l;
+    b := 5$l;
+    c := 10$l;
+    n1 := -10$l;
+    n2 := -2$l;
+    z := 0$l;
+
+    // --- LONGINT: == y != ---
+    if (a == b) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (a == c) fail := fail + 1$l; else ok := ok + 1$l; end_if;
+    if (a != c) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (a != b) fail := fail + 1$l; else ok := ok + 1$l; end_if;
+
+    // --- LONGINT: < y <= (menor, igual, mayor) ---
+    if (a < c) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (a < b) fail := fail + 1$l; else ok := ok + 1$l; end_if;
+    if (c < a) fail := fail + 1$l; else ok := ok + 1$l; end_if;
+
+    if (a <= c) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (a <= b) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (c <= a) fail := fail + 1$l; else ok := ok + 1$l; end_if;
+
+    // --- LONGINT: > y >= (mayor, igual, menor) ---
+    if (c > a) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (a > b) fail := fail + 1$l; else ok := ok + 1$l; end_if;
+    if (a > c) fail := fail + 1$l; else ok := ok + 1$l; end_if;
+
+    if (c >= a) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (a >= b) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (a >= c) fail := fail + 1$l; else ok := ok + 1$l; end_if;
+
+    // --- LONGINT NEGATIVOS Y CERO (detecta error signed vs unsigned) ---
+    if (n1 < n2) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (n2 > n1) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (n2 < z) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (n1 <= n1) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (n1 >= n2) fail := fail + 1$l; else ok := ok + 1$l; end_if;
+    if (n1 == -10$l) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (n1 != z) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+
+    // --- IF SIN ELSE (true y false) ---
+    if (a == b) ok := ok + 1$l; end_if;
+    if (a != b) fail := fail + 1$l; end_if;
+
+    // Valores singlef: positivos, iguales, cero y negativos
+    f1 := 2.5;
+    f2 := 2.5;
+    f3 := 4.75;
+    fn1 := -3.5;
+    fn2 := -1.25;
+    fz := 0.0;
+
+    // --- SINGLEF: == y != ---
+    if (f1 == f2) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (f1 == f3) fail := fail + 1$l; else ok := ok + 1$l; end_if;
+    if (f1 != f3) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (f1 != f2) fail := fail + 1$l; else ok := ok + 1$l; end_if;
+
+    // --- SINGLEF: < y <= (menor, igual, mayor) ---
+    if (f1 < f3) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (f1 < f2) fail := fail + 1$l; else ok := ok + 1$l; end_if;
+    if (f3 < f1) fail := fail + 1$l; else ok := ok + 1$l; end_if;
+
+    if (f1 <= f3) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (f1 <= f2) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (f3 <= f1) fail := fail + 1$l; else ok := ok + 1$l; end_if;
+
+    // --- SINGLEF: > y >= (mayor, igual, menor) ---
+    if (f3 > f1) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (f1 > f2) fail := fail + 1$l; else ok := ok + 1$l; end_if;
+    if (f1 > f3) fail := fail + 1$l; else ok := ok + 1$l; end_if;
+
+    if (f3 >= f1) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (f1 >= f2) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (f1 >= f3) fail := fail + 1$l; else ok := ok + 1$l; end_if;
+
+    // --- SINGLEF NEGATIVOS Y CERO ---
+    if (fn1 < fn2) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (fn2 > fn1) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (fn2 < fz) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (fn1 <= fn1) ok := ok + 1$l; else fail := fail + 1$l; end_if;
+    if (fn1 >= fn2) fail := fail + 1$l; else ok := ok + 1$l; end_if;
+
+    pout("Esperado ok=45, fail=0:");
+    pout(ok);
+    pout(fail);
+end;
