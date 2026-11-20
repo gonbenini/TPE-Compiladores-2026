@@ -347,10 +347,6 @@ def declarate_func(func, arbol):
         wat.info(f'(result f32)')
 
     generateWAT(arbol, 'global')
-    if TS[func]["type"] == 'longint':
-        wat.info('i32.const 0')
-    else:
-        wat.info('f32.const 0')
     wat.info(')')
 
 def generateDeclaration(arboles):
