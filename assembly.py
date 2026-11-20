@@ -229,17 +229,20 @@ def selection(Nodo, type):
 def loop(Nodo, type):
     global number_block
     number_block += 1
-    wat.info(f'(block $b{number_block}')
-    blocks.append(number_block)
+    b_out = number_block
+    wat.info(f'(block $b{b_out}')
+    blocks.append(b_out)
+
     number_block += 1
-    wat.info(f'(loop $b{number_block}')
+    b_loop = number_block
+    wat.info(f'(loop $b{b_loop}')
 
     Nodo.left = condition(Nodo.left, type)
 
-    blocks.append(number_block)
+    blocks.append(b_loop)
 
     Nodo.right = generateWAT(Nodo.right, type)
-    wat.info(f'br $b{blocks[-2]}')
+    wat.info(f'br $b{b_loop}')
 
     wat.info(f'))')
     blocks.pop()

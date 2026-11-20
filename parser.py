@@ -1065,7 +1065,7 @@ class TpParser(Parser):
             condicion = self.NodoUnario("COND", condicion)
 
             sign = "+" if int(p.constante2.op) >= 0 else "-"
-            step = self.NodoBinario(sign, it, p.constante2, self.TS[path]['type'])
+            step = self.NodoBinario("+", it, p.constante2, self.TS[path]['type'])
             incremento = self.NodoBinario("=", it, step, self.TS[path]['type'])
 
             cuerpo_for = self.NodoBinario("CUERPO", p.cuerpo_control, incremento)
